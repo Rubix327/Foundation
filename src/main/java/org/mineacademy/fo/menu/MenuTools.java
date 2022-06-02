@@ -1,8 +1,5 @@
 package org.mineacademy.fo.menu;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
@@ -15,6 +12,9 @@ import org.mineacademy.fo.menu.model.ItemCreator;
 import org.mineacademy.fo.menu.tool.Tool;
 import org.mineacademy.fo.plugin.SimplePlugin;
 import org.mineacademy.fo.settings.SimpleLocalization;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A standardized menu to display a list of tools player can toggle to get in
@@ -53,7 +53,7 @@ public abstract class MenuTools extends Menu {
 
 	/**
 	 * Attempts to automatically compile a set of tools Accepts an array containing
-	 * {@link Button}, {@link ItemStack} or enter 0 for air.
+	 * {@link org.mineacademy.fo.menu.button.Button}, {@link ItemStack} or enter 0 for air.
 	 *
 	 * @return the array of items in this menu
 	 */
@@ -133,7 +133,6 @@ public abstract class MenuTools extends Menu {
 		return null;
 	}
 
-	@Override
 	protected int getInfoButtonPosition() {
 		return this.getSize() - 1;
 	}

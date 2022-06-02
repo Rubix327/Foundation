@@ -1,9 +1,6 @@
 
 package org.mineacademy.fo;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
@@ -21,9 +18,6 @@ import org.mineacademy.fo.remain.CompChatColor;
 import org.mineacademy.fo.remain.CompMaterial;
 import org.mineacademy.fo.remain.nbt.NBTItem;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -221,7 +215,6 @@ public final class ItemUtil {
 
 		return firstNbt.getString(key).equals(secondNbt.getString(key));
 	}
-}
 
 	/**
 	 * Get the amount of the given item in the player's inventory.

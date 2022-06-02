@@ -1,12 +1,9 @@
 package org.mineacademy.fo.menu;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.annotation.Nullable;
-
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.Setter;
+import lombok.val;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
@@ -22,10 +19,11 @@ import org.mineacademy.fo.menu.model.ItemCreator;
 import org.mineacademy.fo.remain.CompMaterial;
 import org.mineacademy.fo.settings.SimpleLocalization;
 
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.Setter;
-import lombok.val;
+import javax.annotation.Nullable;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * An advanced menu listing items with automatic page support
@@ -258,7 +256,7 @@ public abstract class MenuPagged<T> extends Menu {
 			final boolean canGo = MenuPagged.this.currentPage > 1;
 
 			@Override
-			public void onClickedInMenu(final Player player, final Menu menu, final ClickType click) {
+			public void onClickedInMenu(final Player player, final AdvancedMenu menu, final ClickType click) {
 				if (this.canGo) {
 					MenuPagged.this.currentPage = MathUtil.range(MenuPagged.this.currentPage - 1, 1, MenuPagged.this.pages.size());
 
@@ -289,7 +287,7 @@ public abstract class MenuPagged<T> extends Menu {
 			final boolean canGo = MenuPagged.this.currentPage < MenuPagged.this.pages.size();
 
 			@Override
-			public void onClickedInMenu(final Player player, final Menu menu, final ClickType click) {
+			public void onClickedInMenu(final Player player, final AdvancedMenu menu, final ClickType click) {
 				if (this.canGo) {
 					MenuPagged.this.currentPage = MathUtil.range(MenuPagged.this.currentPage + 1, 1, MenuPagged.this.pages.size());
 

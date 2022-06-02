@@ -1,8 +1,6 @@
 package org.mineacademy.fo.menu;
 
-import java.util.Arrays;
-import java.util.List;
-
+import lombok.NonNull;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
@@ -14,7 +12,8 @@ import org.mineacademy.fo.menu.model.MenuQuantity;
 import org.mineacademy.fo.model.Replacer;
 import org.mineacademy.fo.remain.CompMaterial;
 
-import lombok.NonNull;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Advanced menu concept allowing to change quality of an item by more than 1 on
@@ -90,7 +89,7 @@ public interface MenuQuantitable {
 		return new Button() {
 
 			@Override
-			public final void onClickedInMenu(Player player, Menu clickedMenu, ClickType clickType) {
+			public final void onClickedInMenu(Player player, AdvancedMenu clickedMenu, ClickType clickType) {
 				final MenuQuantity nextQuantity = clickType == ClickType.LEFT ? MenuQuantitable.this.getQuantity().previous(MenuQuantitable.this.allowDecimalQuantities()) : MenuQuantitable.this.getQuantity().next(MenuQuantitable.this.allowDecimalQuantities());
 				Valid.checkNotNull(nextQuantity, "Next quantity cannot be null. Current: " + MenuQuantitable.this.getQuantity() + " Click: " + clickType);
 

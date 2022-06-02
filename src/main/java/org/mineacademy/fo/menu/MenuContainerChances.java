@@ -1,5 +1,9 @@
 package org.mineacademy.fo.menu;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
@@ -16,11 +20,6 @@ import org.mineacademy.fo.menu.model.MenuClickLocation;
 import org.mineacademy.fo.menu.model.MenuQuantity;
 import org.mineacademy.fo.model.Tuple;
 import org.mineacademy.fo.remain.CompMaterial;
-
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 
 /**
  * A menu that lets players put items into the container and save them.
@@ -69,7 +68,6 @@ public abstract class MenuContainerChances extends Menu implements MenuQuantitab
 	 * Create a new menu that can edit chances of the items you put inside.
 	 *
 	 * @param parent
-	 * @param startMode
 	 * @param returnMakesNewInstance
 	 */
 	protected MenuContainerChances(Menu parent, boolean returnMakesNewInstance) {
@@ -84,7 +82,7 @@ public abstract class MenuContainerChances extends Menu implements MenuQuantitab
 			 * Change the menu mode and refresh its content.
 			 */
 			@Override
-			public void onClickedInMenu(Player player, Menu menu, ClickType click) {
+			public void onClickedInMenu(Player player, AdvancedMenu menu, ClickType click) {
 				final MenuContainerChances instance = MenuContainerChances.this;
 
 				// Call event to properly save data without us having to restart the menu completely
@@ -229,7 +227,7 @@ public abstract class MenuContainerChances extends Menu implements MenuQuantitab
 	 * Return true for the slots you want players to be able to edit.
 	 * By default we enable them to edit anything above the bottom bar.
 	 *
-	 * This is called from {@link #isActionAllowed(MenuClickLocation, int, ItemStack, ItemStack)} and
+	 * This is called from {@link #isActionAllowed(MenuClickLocation, int, ItemStack, ItemStack, InventoryAction)} and
 	 * by defaults forwards the call to {@link #canEditItem(int)}
 	 *
 	 * @param location

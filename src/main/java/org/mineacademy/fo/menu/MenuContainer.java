@@ -1,5 +1,7 @@
 package org.mineacademy.fo.menu;
 
+import javax.annotation.Nullable;
+
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
@@ -10,8 +12,6 @@ import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.menu.model.ItemCreator;
 import org.mineacademy.fo.menu.model.MenuClickLocation;
 import org.mineacademy.fo.remain.CompMaterial;
-
-import javax.annotation.Nullable;
 
 /**
  * A simple menu allowing players to drop or take items.

@@ -1,6 +1,9 @@
 package org.mineacademy.fo.command;
 
-import lombok.NonNull;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.mineacademy.fo.Common;
 import org.mineacademy.fo.collection.SerializedMap;
 import org.mineacademy.fo.command.annotation.Permission;
@@ -12,9 +15,7 @@ import org.mineacademy.fo.model.SimpleComponent;
 import org.mineacademy.fo.plugin.SimplePlugin;
 import org.mineacademy.fo.settings.SimpleLocalization.Commands;
 
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.List;
+import lombok.NonNull;
 
 /**
  * A simple predefined command for quickly listing all permissions

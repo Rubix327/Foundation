@@ -1,7 +1,12 @@
 package org.mineacademy.fo;
 
-import lombok.NonNull;
-import lombok.experimental.UtilityClass;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.regex.Pattern;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
@@ -11,8 +16,8 @@ import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.model.RangedValue;
 import org.mineacademy.fo.settings.SimpleLocalization;
 
-import java.util.*;
-import java.util.regex.Pattern;
+import lombok.NonNull;
+import lombok.experimental.UtilityClass;
 
 /**
  * Utility class for checking conditions and throwing our safe exception that is

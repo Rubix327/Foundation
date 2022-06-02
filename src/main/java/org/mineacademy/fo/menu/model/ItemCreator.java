@@ -1,16 +1,26 @@
 package org.mineacademy.fo.menu.model;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import javax.annotation.Nullable;
+
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.*;
+import org.bukkit.inventory.meta.BookMeta;
+import org.bukkit.inventory.meta.EnchantmentStorageMeta;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.LeatherArmorMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.material.MaterialData;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -20,12 +30,19 @@ import org.mineacademy.fo.MinecraftVersion.V;
 import org.mineacademy.fo.ReflectionUtil;
 import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.model.SimpleEnchantment;
-import org.mineacademy.fo.remain.*;
+import org.mineacademy.fo.remain.CompColor;
+import org.mineacademy.fo.remain.CompItemFlag;
+import org.mineacademy.fo.remain.CompMaterial;
+import org.mineacademy.fo.remain.CompMetadata;
+import org.mineacademy.fo.remain.CompMonsterEgg;
+import org.mineacademy.fo.remain.CompProperty;
+import org.mineacademy.fo.remain.Remain;
 import org.mineacademy.fo.remain.nbt.NBTItem;
 
-import javax.annotation.Nullable;
-import java.util.*;
-import java.util.Map.Entry;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
 
 /**
  * ItemCreator allows you to create highly customized {@link ItemStack}

@@ -1,10 +1,15 @@
 package org.mineacademy.fo.model;
 
-import lombok.Getter;
-import lombok.NonNull;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.mineacademy.fo.Valid;
 
-import java.util.*;
+import lombok.Getter;
+import lombok.NonNull;
 
 /**
  * Represents a simple way of checking for whitelist or blacklist according

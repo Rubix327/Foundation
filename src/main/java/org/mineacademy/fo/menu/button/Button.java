@@ -229,7 +229,7 @@ public abstract class Button {
 		return new Button() {
 
 			@Override
-			public void onClickedInMenu(Player player, AdvancedMenu menu, ClickType click) {
+			public void onClickedInMenu(Player player, Menu menu, ClickType click) {
 				final boolean has = getter.get();
 
 				setter.accept(!has);
@@ -283,7 +283,7 @@ public abstract class Button {
 		return new Button() {
 
 			@Override
-			public void onClickedInMenu(Player player, AdvancedMenu menu, ClickType click) {
+			public void onClickedInMenu(Player player, Menu menu, ClickType click) {
 				new SimplePrompt() {
 
 					@Override
@@ -355,11 +355,7 @@ public abstract class Button {
 	 *
 	 * @param item
 	 * @param question
-	 * @param menuTitle
-	 * @param minMaxRange
-	 * @param getter
-	 * @param setter
-	 * @return
+	 * @param successAction
 	 */
 	public static Button makeDecimalPrompt(ItemCreator item, String question, String menuTitle, RangedValue minMaxRange, @Nullable Supplier<Object> getter, Consumer<Double> setter) {
 		return new Button() {
@@ -436,7 +432,7 @@ public abstract class Button {
 		return new Button() {
 
 			@Override
-			public void onClickedInMenu(Player player, AdvancedMenu menu, ClickType click) {
+			public void onClickedInMenu(Player player, Menu menu, ClickType click) {
 				new SimpleStringPrompt(question) {
 
 					@Override

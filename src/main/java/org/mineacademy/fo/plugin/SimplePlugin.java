@@ -10,8 +10,16 @@
  */
 package org.mineacademy.fo.plugin;
 
-import lombok.Getter;
-import lombok.NonNull;
+import java.io.File;
+import java.lang.reflect.Constructor;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -24,8 +32,12 @@ import org.bukkit.event.Event;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.Messenger;
-import org.mineacademy.fo.*;
+import org.mineacademy.fo.Common;
+import org.mineacademy.fo.FileUtil;
+import org.mineacademy.fo.MinecraftVersion;
 import org.mineacademy.fo.MinecraftVersion.V;
+import org.mineacademy.fo.ReflectionUtil;
+import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.annotation.AutoRegister;
 import org.mineacademy.fo.bungee.BungeeListener;
 import org.mineacademy.fo.command.SimpleCommand;
@@ -38,16 +50,24 @@ import org.mineacademy.fo.menu.Menu;
 import org.mineacademy.fo.menu.MenuListener;
 import org.mineacademy.fo.menu.tool.ToolsListener;
 import org.mineacademy.fo.metrics.Metrics;
-import org.mineacademy.fo.model.*;
+import org.mineacademy.fo.model.DiscordListener;
+import org.mineacademy.fo.model.FolderWatcher;
+import org.mineacademy.fo.model.HookManager;
+import org.mineacademy.fo.model.JavaScriptExecutor;
+import org.mineacademy.fo.model.SimpleHologram;
+import org.mineacademy.fo.model.SimpleScoreboard;
+import org.mineacademy.fo.model.SpigotUpdater;
 import org.mineacademy.fo.remain.CompMetadata;
 import org.mineacademy.fo.remain.Remain;
-import org.mineacademy.fo.settings.*;
+import org.mineacademy.fo.settings.FileConfig;
+import org.mineacademy.fo.settings.Lang;
+import org.mineacademy.fo.settings.SimpleLocalization;
+import org.mineacademy.fo.settings.SimpleSettings;
+import org.mineacademy.fo.settings.YamlConfig;
 import org.mineacademy.fo.visual.BlockVisualizer;
 
-import javax.annotation.Nullable;
-import java.io.File;
-import java.lang.reflect.Constructor;
-import java.util.*;
+import lombok.Getter;
+import lombok.NonNull;
 
 /**
  * Represents a basic Java plugin using enhanced library functionality,

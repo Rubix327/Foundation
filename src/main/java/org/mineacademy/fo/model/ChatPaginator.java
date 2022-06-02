@@ -1,7 +1,13 @@
 package org.mineacademy.fo.model;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
@@ -10,11 +16,11 @@ import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.Plugin;
 import org.mineacademy.fo.ChatUtil;
 import org.mineacademy.fo.Common;
-import org.mineacademy.fo.command.PermsCommand;
 import org.mineacademy.fo.plugin.SimplePlugin;
 import org.mineacademy.fo.settings.SimpleLocalization;
 
-import java.util.*;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 /**
  * A draft API for enumerating chat messages into pages.

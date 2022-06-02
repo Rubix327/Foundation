@@ -1,10 +1,8 @@
 package org.mineacademy.fo.constants;
 
-import org.mineacademy.fo.menu.Menu;
-import org.mineacademy.fo.plugin.SimplePlugin;
-import org.mineacademy.fo.remain.CompMetadata;
-
 import java.util.UUID;
+
+import org.mineacademy.fo.plugin.SimplePlugin;
 
 /**
  * Stores constants for this plugin

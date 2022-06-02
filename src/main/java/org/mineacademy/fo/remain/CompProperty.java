@@ -1,7 +1,9 @@
 package org.mineacademy.fo.remain;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.bukkit.entity.Entity;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.mineacademy.fo.ChatUtil;
@@ -11,9 +13,8 @@ import org.mineacademy.fo.ReflectionUtil;
 import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.remain.nbt.NBTEntity;
 
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 /**
  * A convenience class for applying "properies" to certain Bukkit classes

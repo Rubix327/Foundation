@@ -1,12 +1,13 @@
 package org.mineacademy.fo.model;
 
-import lombok.AllArgsConstructor;
-import org.mineacademy.fo.Common;
-import org.mineacademy.fo.collection.SerializedMap;
-
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
+
+import org.mineacademy.fo.Common;
+import org.mineacademy.fo.collection.SerializedMap;
+
+import lombok.AllArgsConstructor;
 
 /**
  * An elegant way to find {variables} and replace them.

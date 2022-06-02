@@ -1,7 +1,8 @@
 package org.mineacademy.fo.model;
 
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import java.util.Arrays;
+import java.util.Objects;
+
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -9,8 +10,8 @@ import org.mineacademy.fo.ChatUtil;
 import org.mineacademy.fo.Common;
 import org.mineacademy.fo.remain.Remain;
 
-import java.util.Arrays;
-import java.util.Objects;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Represents a chat message surrounded by chat-wide line on the top and bottom:

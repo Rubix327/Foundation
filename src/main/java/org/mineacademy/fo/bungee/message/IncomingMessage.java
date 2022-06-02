@@ -1,19 +1,20 @@
 package org.mineacademy.fo.bungee.message;
 
-import com.google.common.io.ByteArrayDataInput;
-import com.google.common.io.ByteStreams;
-import lombok.Getter;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.UUID;
+
 import org.bukkit.entity.Player;
 import org.mineacademy.fo.ReflectionUtil;
 import org.mineacademy.fo.bungee.BungeeListener;
-import org.mineacademy.fo.bungee.BungeeMessageType;
 import org.mineacademy.fo.collection.SerializedMap;
 import org.mineacademy.fo.debug.Debugger;
 import org.mineacademy.fo.plugin.SimplePlugin;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.util.UUID;
+import com.google.common.io.ByteArrayDataInput;
+import com.google.common.io.ByteStreams;
+
+import lombok.Getter;
 
 /**
  * Represents an incoming plugin message.

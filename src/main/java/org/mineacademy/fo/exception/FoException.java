@@ -4,6 +4,9 @@ import lombok.Getter;
 import lombok.Setter;
 import org.mineacademy.fo.debug.Debugger;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Represents our core exception. All exceptions of this
  * kind are logged automatically to the error.log file

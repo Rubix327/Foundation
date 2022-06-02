@@ -3,6 +3,14 @@ package org.mineacademy.fo.menu;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
@@ -22,6 +30,9 @@ import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.menu.button.Button;
 import org.mineacademy.fo.menu.button.Button.DummyButton;
 import org.mineacademy.fo.menu.button.annotation.Position;
+import org.mineacademy.fo.menu.button.ButtonReturnBack;
+import org.mineacademy.fo.menu.button.StartPosition;
+import org.mineacademy.fo.menu.button.annotation.Position;
 import org.mineacademy.fo.menu.model.InventoryDrawer;
 import org.mineacademy.fo.menu.model.ItemCreator;
 import org.mineacademy.fo.menu.model.MenuClickLocation;
@@ -37,6 +48,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.Setter;
 
 /**
  * The core class of Menu. Represents a simple menu.
@@ -791,7 +805,7 @@ public abstract class Menu {
 	}
 
 	/**
-	 * Set the menu's description
+	 * Get the menu's description
 	 *
 	 * <p>
 	 * Used to create an info bottom in bottom left corner, see
@@ -801,6 +815,19 @@ public abstract class Menu {
 	 */
 	protected String[] getInfo() {
 		return null;
+	}
+
+	/**
+	 * Set the menu's description
+	 *
+	 * <p>
+	 * Used to create an info bottom in bottom left corner, see
+	 * {@link Button#makeInfo(String...)}
+	 *
+	 * @param info the info to set
+	 */
+	protected final void setInfo(final String... info) {
+		this.info = info;
 	}
 
 	/**

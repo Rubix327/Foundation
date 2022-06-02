@@ -1,13 +1,14 @@
 package org.mineacademy.fo.settings;
 
-import lombok.NonNull;
-import org.mineacademy.fo.Valid;
-import org.mineacademy.fo.collection.SerializedMap;
-
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+
+import org.mineacademy.fo.Valid;
+import org.mineacademy.fo.collection.SerializedMap;
+
+import lombok.NonNull;
 
 /**
  * Represents the internal data map a configuration section has.

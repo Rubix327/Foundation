@@ -1,16 +1,12 @@
 package org.mineacademy.fo;
 
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
+import lombok.NonNull;
+
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import lombok.NonNull;
 
 /**
  * Textual ASCII generator.
@@ -25,8 +21,6 @@ public class ASCIIUtil {
 	 * Prints ASCII art for the specified text using {@link #MEDIUM} size and the * symbol
 	 *
 	 * @param message
-	 * @param textHeight - Use a predefined sizes from this class or a custom type
-	 * @param letterSymbols - The symbols that will be used to draw the text, randomly mixed
 	 *
 	 * @return the list of text lines you can print in console or send to a player
 	 */
@@ -38,7 +32,6 @@ public class ASCIIUtil {
 	 * Prints ASCII art for the specified text using {@link #MEDIUM} size and the given symbols
 	 *
 	 * @param message
-	 * @param textHeight - Use a predefined sizes from this class or a custom type
 	 * @param letterSymbols - The symbols that will be used to draw the text, randomly mixed, split by |
 	 *
 	 * @return the list of text lines you can print in console or send to a player

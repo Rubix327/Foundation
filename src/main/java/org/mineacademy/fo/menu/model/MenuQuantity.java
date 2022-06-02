@@ -1,11 +1,11 @@
 package org.mineacademy.fo.menu.model;
 
-import lombok.RequiredArgsConstructor;
-import org.mineacademy.fo.Common;
-import org.mineacademy.fo.menu.MenuQuantitable;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import org.mineacademy.fo.Common;
+
+import lombok.RequiredArgsConstructor;
 
 /**
  * Represents how much we should change an

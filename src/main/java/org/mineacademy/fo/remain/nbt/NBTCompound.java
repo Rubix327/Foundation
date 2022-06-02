@@ -1,16 +1,15 @@
 package org.mineacademy.fo.remain.nbt;
 
-import org.bukkit.inventory.ItemStack;
-import org.mineacademy.fo.exception.FoException;
-
 import java.io.OutputStream;
-import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import org.bukkit.inventory.ItemStack;
+import org.mineacademy.fo.exception.FoException;
 
 /**
  * Base class representing NMS Compounds. For a standalone implementation check

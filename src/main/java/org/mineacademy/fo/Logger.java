@@ -1,7 +1,6 @@
 package org.mineacademy.fo;
 
 import lombok.Getter;
-import lombok.Setter;
 import org.mineacademy.fo.exception.CommandException;
 
 /**
@@ -15,8 +14,13 @@ import org.mineacademy.fo.exception.CommandException;
  */
 public class Logger {
 
-    @Getter @Setter
+    @Getter
     public static String logPrefix = "";
+
+    public static void setLogPrefix(String prefix){
+        Common.setLogPrefix("");
+        logPrefix = prefix;
+    }
 
     /**
      * Log an info message to the console.
@@ -46,7 +50,7 @@ public class Logger {
      * @param args replacements
      */
     public static void infoF(Object s, Object... args){
-        Common.logF(s.toString(), args);
+        Common.logF(logPrefix + s.toString(), args);
     }
 
     /**

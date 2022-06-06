@@ -293,7 +293,7 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
 
     @Override
     protected void onMenuClick(Player player, int slot, InventoryAction action, ClickType click, ItemStack cursor, ItemStack clicked, boolean cancelled) {
-        if (clicked.getType().isAir()) return;
+        if (CompMaterial.isAir(clicked.getType())) return;
         int pagedSlot = slot + (currentPage - 1) * getSize();
         boolean isElement = elementsSlots.containsKey(pagedSlot);
         if (isElement) onElementClick(player,  elementsSlots.get(pagedSlot), slot, click);

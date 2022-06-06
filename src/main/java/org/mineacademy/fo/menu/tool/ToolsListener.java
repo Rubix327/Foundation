@@ -50,7 +50,7 @@ public final class ToolsListener implements Listener {
 			return;
 
 		final Player player = event.getPlayer();
-		final Tool tool = Tool.getTool(player.getInventory().getItemInMainHand());
+		final Tool tool = Tool.getTool(player.getInventory().getItemInHand());
 		int initialAmount = 0;
 		int finalAmount = 0;
 
@@ -181,7 +181,7 @@ public final class ToolsListener implements Listener {
 			return;
 
 		final Player player = (Player) shooter;
-		final Tool tool = Tool.getTool(player.getInventory().getItemInMainHand());
+		final Tool tool = Tool.getTool(player.getInventory().getItemInHand());
 
 		if (tool instanceof Rocket)
 			try {

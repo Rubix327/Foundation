@@ -15,7 +15,7 @@ import org.mineacademy.fo.exception.CommandException;
 public class Logger {
 
     @Getter
-    public static String logPrefix = "";
+    private static String logPrefix = "";
 
     public static void setLogPrefix(String prefix){
         Common.setLogPrefix("");

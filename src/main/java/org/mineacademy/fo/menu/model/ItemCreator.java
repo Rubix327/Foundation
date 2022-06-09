@@ -1,26 +1,18 @@
 package org.mineacademy.fo.menu.model;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import javax.annotation.Nullable;
-
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import org.bukkit.Material;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.BookMeta;
-import org.bukkit.inventory.meta.EnchantmentStorageMeta;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.LeatherArmorMeta;
-import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.inventory.meta.*;
 import org.bukkit.material.MaterialData;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -30,19 +22,12 @@ import org.mineacademy.fo.MinecraftVersion.V;
 import org.mineacademy.fo.ReflectionUtil;
 import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.model.SimpleEnchantment;
-import org.mineacademy.fo.remain.CompColor;
-import org.mineacademy.fo.remain.CompItemFlag;
-import org.mineacademy.fo.remain.CompMaterial;
-import org.mineacademy.fo.remain.CompMetadata;
-import org.mineacademy.fo.remain.CompMonsterEgg;
-import org.mineacademy.fo.remain.CompProperty;
-import org.mineacademy.fo.remain.Remain;
+import org.mineacademy.fo.remain.*;
 import org.mineacademy.fo.remain.nbt.NBTItem;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
+import javax.annotation.Nullable;
+import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * ItemCreator allows you to create highly customized {@link ItemStack}
@@ -101,6 +86,11 @@ public final class ItemCreator {
 	 * The {@link CompItemFlag}.
 	 */
 	private final List<CompItemFlag> flags = new ArrayList<>();
+
+	/**
+	 * The attributes and their modifiers applied to the item.
+	 */
+	private final HashMap<CompAttribute, AttributeModifier> attributeModifiers = new HashMap<>();
 
 	/**
 	 * Is the item unbreakable?
@@ -312,6 +302,39 @@ public final class ItemCreator {
 	 */
 	public ItemCreator flags(CompItemFlag... flags) {
 		this.flags.addAll(Arrays.asList(flags));
+
+		return this;
+	}
+
+	/**
+	 * Modify the given attribute of the item by the given value.
+	 * Default operation is {@link org.bukkit.attribute.AttributeModifier.Operation#ADD_NUMBER}.
+	 * If no {@link EquipmentSlot EquipmentSlots} specified, all available will be used.
+	 */
+	public ItemCreator attributeModifier(CompAttribute attribute, double amount){
+		this.attributeModifiers.put(attribute, new AttributeModifier("", amount, AttributeModifier.Operation.ADD_NUMBER));
+
+		return this;
+	}
+
+	/**
+	 * Modify the given attribute of the item by the given value.
+	 * If no {@link EquipmentSlot EquipmentSlots} specified, all available will be used.
+	 */
+	public ItemCreator attributeModifier(CompAttribute attribute, double amount, AttributeModifier.Operation operation){
+		this.attributeModifiers.put(attribute, new AttributeModifier(UUID.randomUUID(), "", amount, operation));
+
+		return this;
+	}
+
+	/**
+	 * Modify the given attribute of the item by the given value only on the specified equipment slots.
+	 */
+	public ItemCreator attributeModifier(
+			CompAttribute attribute, double amount, AttributeModifier.Operation operation, EquipmentSlot... slots){
+		for (EquipmentSlot slot: slots){
+			this.attributeModifiers.put(attribute, new AttributeModifier(UUID.randomUUID(), "", amount, operation, slot));
+		}
 
 		return this;
 	}
@@ -701,14 +724,21 @@ public final class ItemCreator {
 		for (final CompItemFlag flag : this.flags)
 			try {
 				((ItemMeta) compiledMeta).addItemFlags(ItemFlag.valueOf(flag.toString()));
-			} catch (final Throwable t) {
+			} catch (final Throwable ignored) {
 			}
+
+		for (final Map.Entry<CompAttribute, AttributeModifier> modifier : this.attributeModifiers.entrySet()){
+			try{
+				((ItemMeta) compiledMeta).addAttributeModifier(modifier.getKey().toAttribute(), modifier.getValue());
+			} catch (final Throwable ignored){
+			}
+		}
 
 		// Set custom model data
 		if (this.modelData != null && MinecraftVersion.atLeast(V.v1_14))
 			try {
 				((ItemMeta) compiledMeta).setCustomModelData(this.modelData);
-			} catch (final Throwable t) {
+			} catch (final Throwable ignored) {
 			}
 
 		// Override with custom amount if set

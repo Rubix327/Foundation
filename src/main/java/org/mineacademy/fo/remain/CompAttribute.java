@@ -55,6 +55,7 @@ public enum CompAttribute {
 	 * This attribute is not found on passive mobs and golems.
 	 */
 	GENERIC_ATTACK_DAMAGE("generic.attackDamage", "ATTACK_DAMAGE"),
+	GENERIC_ATTACK_KNOCKBACK("generic.attackKnockback"),
 
 	/**
 	 * Attack speed of an Entity.
@@ -101,12 +102,16 @@ public enum CompAttribute {
 	/**
 	 * Construct a new Attribute.
 	 *
-	 * @param name              the generic name
+	 * @param minecraftName              the generic name
 	 * @param genericFieldName see {@link #genericFieldName}
 	 */
-	CompAttribute(final String name, final String genericFieldName) {
-		this.minecraftName = name;
+	CompAttribute(final String minecraftName, final String genericFieldName) {
+		this.minecraftName = minecraftName;
 		this.genericFieldName = genericFieldName;
+	}
+
+	public final Attribute toAttribute(){
+		return Attribute.valueOf(this.toString());
 	}
 
 	/**

@@ -90,7 +90,7 @@ public final class ItemCreator {
 	/**
 	 * The attributes and their modifiers applied to the item.
 	 */
-	private final HashMap<CompAttribute, AttributeModifier> attributeModifiers = new HashMap<>();
+	private final HashMap<CompAttribute, List<AttributeModifier>> attributeModifiers = new HashMap<>();
 
 	/**
 	 * Is the item unbreakable?
@@ -312,7 +312,7 @@ public final class ItemCreator {
 	 * If no {@link EquipmentSlot EquipmentSlots} specified, all available will be used.
 	 */
 	public ItemCreator attributeModifier(CompAttribute attribute, double amount){
-		this.attributeModifiers.put(attribute, new AttributeModifier("", amount, AttributeModifier.Operation.ADD_NUMBER));
+		attributeModifier(attribute, amount, AttributeModifier.Operation.ADD_NUMBER);
 
 		return this;
 	}
@@ -322,7 +322,12 @@ public final class ItemCreator {
 	 * If no {@link EquipmentSlot EquipmentSlots} specified, all available will be used.
 	 */
 	public ItemCreator attributeModifier(CompAttribute attribute, double amount, AttributeModifier.Operation operation){
-		this.attributeModifiers.put(attribute, new AttributeModifier(UUID.randomUUID(), "", amount, operation));
+		List<AttributeModifier> modifiers = new ArrayList<>();
+		if (this.attributeModifiers.containsKey(attribute)){
+			modifiers.addAll(this.attributeModifiers.get(attribute));
+		}
+		modifiers.add(new AttributeModifier("", amount, operation));
+		this.attributeModifiers.put(attribute, modifiers);
 
 		return this;
 	}
@@ -332,9 +337,14 @@ public final class ItemCreator {
 	 */
 	public ItemCreator attributeModifier(
 			CompAttribute attribute, double amount, AttributeModifier.Operation operation, EquipmentSlot... slots){
-		for (EquipmentSlot slot: slots){
-			this.attributeModifiers.put(attribute, new AttributeModifier(UUID.randomUUID(), "", amount, operation, slot));
+		List<AttributeModifier> modifiers = new ArrayList<>();
+		if (this.attributeModifiers.containsKey(attribute)){
+			modifiers.addAll(this.attributeModifiers.get(attribute));
 		}
+		for (EquipmentSlot slot: slots){
+			modifiers.add(new AttributeModifier(UUID.randomUUID(), "", amount, operation, slot));
+		}
+		this.attributeModifiers.put(attribute, modifiers);
 
 		return this;
 	}
@@ -727,9 +737,11 @@ public final class ItemCreator {
 			} catch (final Throwable ignored) {
 			}
 
-		for (final Map.Entry<CompAttribute, AttributeModifier> modifier : this.attributeModifiers.entrySet()){
+		for (final Map.Entry<CompAttribute, List<AttributeModifier>> attributeModifiers : this.attributeModifiers.entrySet()){
 			try{
-				((ItemMeta) compiledMeta).addAttributeModifier(modifier.getKey().toAttribute(), modifier.getValue());
+				for (AttributeModifier modifier : attributeModifiers.getValue()){
+					((ItemMeta) compiledMeta).addAttributeModifier(attributeModifiers.getKey().toAttribute(), modifier);
+				}
 			} catch (final Throwable ignored){
 			}
 		}

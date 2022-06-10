@@ -669,10 +669,10 @@ public final class ItemCreator {
 			if (this.bookPages != null)
 				bookMeta.setPages(Common.colorize(this.bookPages));
 
-			if (this.bookAuthor == null)
+			if (this.bookAuthor != null)
 				bookMeta.setAuthor(Common.getOrEmpty(this.bookAuthor));
 
-			if (this.bookTitle == null)
+			if (this.bookTitle != null)
 				bookMeta.setTitle(Common.getOrEmpty(this.bookTitle));
 
 			// Fix "Corrupted NBT tag" error when any of these fields are not set

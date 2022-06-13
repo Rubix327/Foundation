@@ -2,6 +2,7 @@ package org.mineacademy.fo.menu.tool;
 
 import lombok.Data;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.EnderPearl;
 import org.bukkit.entity.Player;
@@ -10,6 +11,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -17,6 +19,8 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.mineacademy.fo.Common;
 import org.mineacademy.fo.ItemUtil;
@@ -27,15 +31,15 @@ import org.mineacademy.fo.event.RocketExplosionEvent;
 import org.mineacademy.fo.remain.Remain;
 import org.mineacademy.fo.settings.SimpleLocalization;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * The event listener class responsible for firing events in tools
  */
 public final class ToolsListener implements Listener {
 
+	private static HashMap<UUID, List<ItemStack>> droppedTools = new HashMap<UUID, List<ItemStack>>();
 	/**
 	 * Stores rockets that were shot
 	 */
@@ -45,7 +49,7 @@ public final class ToolsListener implements Listener {
 	 * Handles clicking tools and shooting rocket
 	 */
 	@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
-	public void onToolClick(final PlayerInteractEvent event) {
+	public void onClick(final PlayerInteractEvent event) {
 		if (!Remain.isInteractEventPrimaryHand(event))
 			return;
 
@@ -53,12 +57,9 @@ public final class ToolsListener implements Listener {
 		final Tool tool = Tool.getTool(player.getInventory().getItemInHand());
 		int initialAmount = 0;
 		int finalAmount = 0;
-
 		if (tool != null)
 			try {
-				if ((event.isCancelled() || !event.hasBlock()) && tool.ignoreCancelled())
-					return;
-
+				if ((event.isCancelled() && tool.ignoreCancelled())) return;
 				if (tool instanceof Rocket) {
 					final Rocket rocket = (Rocket) tool;
 
@@ -69,7 +70,7 @@ public final class ToolsListener implements Listener {
 
 				} else {
 					initialAmount = ItemUtil.getAmount(player, tool.getItem());
-					tool.onBlockClick(event);
+					tool.onToolClick(event);
 					finalAmount = ItemUtil.getAmount(player, tool.getItem());
 				}
 
@@ -104,7 +105,7 @@ public final class ToolsListener implements Listener {
 					return;
 
 				initialAmount = ItemUtil.getAmount(player, tool.getItem());
-				tool.onBlockPlace(event);
+				tool.onToolPlace(event);
 				finalAmount = ItemUtil.getAmount(player, tool.getItem());
 
 				if (tool.autoCancel())
@@ -255,9 +256,10 @@ public final class ToolsListener implements Listener {
 
 	@EventHandler
 	public void onToolMove(InventoryClickEvent event){
-		if (event.getInventory().getType() == InventoryType.PLAYER ||
-		event.getInventory().getType() == InventoryType.CREATIVE ||
-		event.getInventory().getType() == InventoryType.CRAFTING) return;
+		List<InventoryType> safeTypes = new ArrayList<>(Arrays.asList(InventoryType.PLAYER, InventoryType.CREATIVE,
+				InventoryType.CRAFTING, InventoryType.ENDER_CHEST, InventoryType.MERCHANT, InventoryType.ENCHANTING,
+				InventoryType.WORKBENCH));
+		if (safeTypes.contains(event.getInventory().getType())) return;
 
 		final Tool currentTool = Tool.getTool(event.getCurrentItem());
 
@@ -266,6 +268,37 @@ public final class ToolsListener implements Listener {
 				event.setCancelled(true);
 			}
 		}
+	}
+
+	@EventHandler
+	public void onToolWasteDeath(PlayerDeathEvent event){
+		List<ItemStack> tools = Arrays.stream(Tool.getTools()).filter(Tool::isDropForbidden).map(Tool::getItem).collect(Collectors.toList());
+		if (tools.isEmpty() || event.getDrops().isEmpty()) return;
+		for (ItemStack tool : tools){
+			for (ItemStack drop : event.getDrops()){
+				if (tool.isSimilar(drop)) {
+					if (droppedTools.containsKey(event.getEntity().getUniqueId())){
+						droppedTools.get(event.getEntity().getUniqueId()).add(drop.clone());
+					}
+					else{
+						droppedTools.put(event.getEntity().getUniqueId(), new ArrayList<>(Collections.singletonList(drop.clone())));
+					}
+					drop.setType(Material.AIR);
+				}
+			}
+		}
+	}
+
+	@EventHandler
+	public void onToolWasteRespawn(PlayerRespawnEvent event){
+		if (droppedTools.isEmpty()) return;
+		Player player = event.getPlayer();
+		if (droppedTools.containsKey(player.getUniqueId())){
+			for (ItemStack item : droppedTools.get(player.getUniqueId())){
+				player.getInventory().addItem(item);
+			}
+		}
+		droppedTools.get(player.getUniqueId()).clear();
 	}
 
 	// -------------------------------------------------------------------------------------------

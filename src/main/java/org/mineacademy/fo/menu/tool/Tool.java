@@ -159,7 +159,7 @@ public abstract class Tool {
 	 *
 	 * @param event the event
 	 */
-	protected void onBlockClick(PlayerInteractEvent event) {
+	protected void onToolClick(PlayerInteractEvent event) {
 	}
 
 	/**
@@ -167,7 +167,7 @@ public abstract class Tool {
 	 *
 	 * @param event
 	 */
-	protected void onBlockPlace(BlockPlaceEvent event) {
+	protected void onToolPlace(BlockPlaceEvent event) {
 	}
 
 	/**
@@ -188,15 +188,15 @@ public abstract class Tool {
 	}
 
 	/**
-	 * Should we fire {@link #onBlockClick(PlayerInteractEvent)} even on cancelled
+	 * Should we fire {@link #onToolClick(PlayerInteractEvent)} even on cancelled
 	 * events?
 	 * <p>
-	 * True by default. Set to false if you want to catch clicking air.
+	 * False by default. Set to false if you want to catch clicking air.
 	 *
 	 * @return true if we should ignore the click event if it was cancelled
 	 */
 	protected boolean ignoreCancelled() {
-		return true;
+		return false;
 	}
 
 	/**
@@ -243,8 +243,20 @@ public abstract class Tool {
 		player.getInventory().addItem(this.getItem());
 	}
 
+	/**
+	 * Removes one peace of this tool from the player's inventory.
+	 * By default, does not remove item if the gamemode is creative.
+	 */
 	public final void removeOne(final Player player){
-		if (this.isConsumable() && player.getGameMode() != GameMode.CREATIVE){
+		removeOne(player, true);
+	}
+
+	/**
+	 * Removes one peace of this tool from the player's inventory.
+	 * By default, does not remove item if the gamemode is creative.
+	 */
+	public final void removeOne(final Player player, final boolean ignoreCreative){
+		if (!(ignoreCreative && player.getGameMode() == GameMode.CREATIVE)){
 			player.getInventory().removeItem(this.getItem());
 		}
 	}

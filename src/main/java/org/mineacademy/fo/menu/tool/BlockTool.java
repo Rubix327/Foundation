@@ -1,13 +1,12 @@
 package org.mineacademy.fo.menu.tool;
 
+import lombok.AccessLevel;
+import lombok.Getter;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.player.PlayerInteractEvent;
-
-import lombok.AccessLevel;
-import lombok.Getter;
 
 /**
  * A helper class for tools that may only be used on blocks
@@ -21,7 +20,7 @@ public abstract class BlockTool extends Tool {
 	private PlayerInteractEvent event;
 
 	@Override
-	protected final void onBlockClick(final PlayerInteractEvent event) {
+	protected final void onToolClick(final PlayerInteractEvent event) {
 		this.event = event;
 
 		final Player player = event.getPlayer();

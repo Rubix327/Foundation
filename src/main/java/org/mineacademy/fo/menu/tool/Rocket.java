@@ -1,12 +1,12 @@
 package org.mineacademy.fo.menu.tool;
 
+import lombok.Getter;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.mineacademy.fo.Valid;
-
-import lombok.Getter;
+import org.mineacademy.fo.event.RocketExplosionEvent;
 
 /**
  * A rocket is an extended {@link Tool}
@@ -93,7 +93,7 @@ public abstract class Rocket extends Tool {
 	 * {@inheritDoc}
 	 */
 	@Override
-	protected void onBlockClick(PlayerInteractEvent e) {
+	protected void onToolClick(PlayerInteractEvent e) {
 	}
 
 	/**

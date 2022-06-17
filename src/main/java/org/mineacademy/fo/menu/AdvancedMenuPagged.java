@@ -9,7 +9,6 @@ import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.inventory.ItemStack;
 import org.mineacademy.fo.SoundUtil;
 import org.mineacademy.fo.menu.button.Button;
-import org.mineacademy.fo.menu.model.ItemCreator;
 import org.mineacademy.fo.remain.CompMaterial;
 import org.mineacademy.fo.remain.CompSound;
 
@@ -56,17 +55,17 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
      */
     private boolean isPrevNextButtonsEnabledNoPages = false;
     /**
-     * The ItemStack that the previous button should have.
-     * Default: Material: Spectral_arrow, Name: "&7Previous page"
+     * The ItemStack that the previous button should have.<br>
+     * Default: {@link MenuUtil#defaultPreviousPageButtonItem}.
      */
     @Setter
-    private ItemStack previousButtonItem = ItemCreator.of(CompMaterial.SPECTRAL_ARROW, "&7Previous page").make();
+    private ItemStack previousButtonItem = MenuUtil.defaultPreviousPageButtonItem;
     /**
-     * The ItemStack that the next button should have.
-     * Default: Material: Tipped_arrow, Name: "&7Next page"
+     * The ItemStack that the next button should have.<br>
+     * Default: {@link MenuUtil#defaultNextPageButtonItem}.
      */
     @Setter
-    private ItemStack nextButtonItem = ItemCreator.of(CompMaterial.TIPPED_ARROW, "&7Next page").make();
+    private ItemStack nextButtonItem = MenuUtil.defaultNextPageButtonItem;
 
     public AdvancedMenuPagged(Player player){
         super(player);
@@ -205,7 +204,7 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
      * Get the number of pages that can be in the menu considering amount of elements and available slots.
      */
     public final int getMaxPage(){
-        float a = (float) elementsItems.size() / getAvailableSlotsSize();
+        float a = (float) this.elementsItems.size() / getAvailableSlotsSize();
         return (a % 2 == 0 ? (int)a : (int)a + 1);
     }
 
@@ -280,7 +279,7 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
         if (getItems().containsKey(slot)){
             return getItems().get(slot);
         }
-        if (lockedSlots.contains(slot)){
+        if (getLockedSlots().contains(slot)){
             return getWrapperItem();
         }
         else{

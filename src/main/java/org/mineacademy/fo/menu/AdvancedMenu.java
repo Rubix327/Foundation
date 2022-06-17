@@ -127,28 +127,26 @@ public abstract class AdvancedMenu extends Menu {
      * For {@link AdvancedMenuPagged}, set the slots the main elements should NOT be placed on.
      */
     protected final void setLockedSlots(Integer... slots){
-        lockedSlots.clear();
-        lockedSlots.addAll(Arrays.asList(slots));
+        lockedSlots = Arrays.stream(slots).filter(e -> e < getSize()).collect(Collectors.toList());
     }
 
     /**
      * See {@link #setLockedSlots(Integer...)} for the detailed description.<br><br>
-     * Figures available: 9x6_bounds, 9x6_circle, 9x6_rows, 9x6_columns, 9x6_six_slots,
-     * 9x6_two_slots, 9x3_bounds, 9x3_one_slot, 9x1_one_slot.
+     * Figures available: {@link LockedSlotsFigure}.
      */
-    protected final void setLockedSlots(String figure){
-        switch (figure) {
-            case ("9x6_bounds"): setLockedSlots(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 17, 18, 26, 27, 35, 36, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53); break;
-            case ("9x6_circle"): setUnlockedSlots(12, 13, 14, 20, 21, 22, 23, 24, 29, 30, 31, 32, 33, 39, 40, 41); break;
-            case ("9x6_rows"): setLockedSlots(0, 1, 2, 3, 4, 5, 6, 7, 8, 45, 46, 47, 48, 49, 50, 51, 52, 53); break;
-            case ("9x6_columns"): setLockedSlots(0, 8, 9, 18, 27, 36, 45, 17, 26, 35, 44, 53); break;
-            case ("9x6_six_slots"): setUnlockedSlots(21, 22, 23, 30, 31, 32); break;
-            case ("9x6_two_slots"): setUnlockedSlots(22, 31); break;
-            case ("9x3_bounds"): setUnlockedSlots(10, 11, 12, 13, 14, 15, 16); break;
-            case ("9x3_one_slot"): setUnlockedSlots(13); break;
-            case ("9x1_one_slot"): setUnlockedSlots(4); break;
-            default: new ArrayList<>();
-        }
+    protected final void setLockedSlots(LockedSlotsFigure figure){
+        setLockedSlots(figure.getSlots());
+    }
+
+    /**
+     * For {@link AdvancedMenu}, set the slots that should NOT be filled with {@link #wrapperItem}.<br>
+     * For {@link AdvancedMenuPagged}, set the slots the main elements can only be placed on.
+     * Note that all unspecified slots are locked.
+     */
+    @SuppressWarnings("BoxingBoxedValue")
+    protected final void setUnlockedSlots(Integer... slots){
+        List<Integer> slotsList = Arrays.stream(slots).collect(Collectors.toList());
+        setLockedSlots(IntStream.rangeClosed(0, getSize() - 1).filter(i -> !slotsList.contains(i)).boxed().toArray(Integer[]::new));
     }
 
     /**
@@ -251,15 +249,15 @@ public abstract class AdvancedMenu extends Menu {
      * <b>Attention! Please use {@link #getMenuButton(Class)} if possible because it is much more efficient!
      * Use this method only if your menu constructor is custom or the menu must be created by instance
      * (and not by class).</b><br><br>
-     * Does the same as {@link #getMenuButton(ItemStack, AdvancedMenu)}.
+     * Does the same as {@link #getMenuButton(AdvancedMenu, ItemStack)}.
      * Uses the default button from {@link MenuUtil#defaultMenuItem}.
      */
     protected final Button getMenuButton(AdvancedMenu to){
-        return getMenuButton(MenuUtil.defaultMenuItem, to);
+        return getMenuButton(to, MenuUtil.defaultMenuItem);
     }
 
     /**
-     * <b>Attention! Please use {@link #getMenuButton(ItemStack, Class)} if possible because it is much more efficient!
+     * <b>Attention! Please use {@link #getMenuButton(Class, ItemStack)} if possible because it is much more efficient!
      * Use this method only if your menu constructor is custom or the menu must be created by instance
      * (and not by class).</b><br><br>
      * Create a new button which opens a given menu instance.
@@ -267,7 +265,7 @@ public abstract class AdvancedMenu extends Menu {
      * @param to what menu the player should be sent to
      * @return the button
      */
-    protected final Button getMenuButton(ItemStack item, AdvancedMenu to){
+    protected final Button getMenuButton(AdvancedMenu to, ItemStack item){
         return new Button() {
             @Override
             public void onClickedInMenu(Player player, AdvancedMenu menu, ClickType click) {
@@ -282,11 +280,11 @@ public abstract class AdvancedMenu extends Menu {
     }
 
     /**
-     * Does the same as {@link #getMenuButton(ItemStack, Class)}.
+     * Does the same as {@link #getMenuButton(Class, ItemStack)}.
      * Uses default item from {@link MenuUtil#defaultMenuItem}.
      */
     protected final Button getMenuButton(Class<? extends AdvancedMenu> to){
-        return getMenuButton(MenuUtil.defaultMenuItem, to);
+        return getMenuButton(to, MenuUtil.defaultMenuItem);
     }
 
     /**
@@ -295,7 +293,7 @@ public abstract class AdvancedMenu extends Menu {
      * @param to what menu the player should be sent to
      * @return the button
      */
-    protected final Button getMenuButton(ItemStack item, Class<? extends AdvancedMenu> to){
+    protected final Button getMenuButton(Class<? extends AdvancedMenu> to, ItemStack item){
         return new Button() {
             @Override
             public void onClickedInMenu(Player player, AdvancedMenu menu, ClickType click) {
@@ -433,20 +431,6 @@ public abstract class AdvancedMenu extends Menu {
                 "&7Override &fgetInfoName() &7and &fgetInfoLore()",
                 "&7in " + getClass().getSimpleName() + " &7to set your own menu description."
         };
-    }
-
-    /**
-     * For {@link AdvancedMenu}, set the slots that should NOT be filled with {@link #wrapperItem}.<br>
-     * For {@link AdvancedMenuPagged}, set the slots the main elements can only be placed on.
-     * Note that all unspecified slots are locked.
-     */
-    @SuppressWarnings("BoxingBoxedValue")
-    protected final void setUnlockedSlots(Integer... slots){
-        lockedSlots.clear();
-        lockedSlots = IntStream.rangeClosed(0, 53).boxed().collect(Collectors.toList());
-        for (Integer slot : slots){
-            lockedSlots.remove(Integer.valueOf(slot));
-        }
     }
 
     @Override

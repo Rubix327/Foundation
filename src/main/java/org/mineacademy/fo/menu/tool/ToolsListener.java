@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
  */
 public final class ToolsListener implements Listener {
 
-	private static HashMap<UUID, List<ItemStack>> droppedTools = new HashMap<UUID, List<ItemStack>>();
+	private static final HashMap<UUID, List<ItemStack>> droppedTools = new HashMap<>();
 	/**
 	 * Stores rockets that were shot
 	 */

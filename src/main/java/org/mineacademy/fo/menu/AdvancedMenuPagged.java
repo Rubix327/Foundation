@@ -205,7 +205,7 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
      */
     public final int getMaxPage(){
         float a = (float) this.elementsItems.size() / getAvailableSlotsSize();
-        return (this.elementsItems.size() % 2 == 0 ? (int)a : (int)a + 1);
+        return (this.elementsItems.size() % 2 != 0 || (int)a == 0 ? (int)a + 1 : (int)a);
     }
 
     /**

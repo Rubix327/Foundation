@@ -197,7 +197,7 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
      * Get the amount of unlocked slots.
      */
     private int getAvailableSlotsSize(){
-        return getSize() - lockedSlots.size();
+        return getSize() - getLockedSlots().size();
     }
 
     /**
@@ -205,7 +205,7 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
      */
     public final int getMaxPage(){
         float a = (float) this.elementsItems.size() / getAvailableSlotsSize();
-        return (a % 2 == 0 ? (int)a : (int)a + 1);
+        return (this.elementsItems.size() % 2 == 0 ? (int)a : (int)a + 1);
     }
 
     /**
@@ -229,10 +229,10 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
                 int finalSlot = (page - 1) * getSize() + slot;
 
                 if (getItems().containsKey(slot)) continue;
-                if (lockedSlots.contains(slot)) continue;
+                if (getLockedSlots().contains(slot)) continue;
                 if (getPreviousButtonSlot() == slot) continue;
                 if (getNextButtonSlot() == slot) continue;
-                if (elementsSlots.containsKey(finalSlot)) continue;
+                if (getElementsSlots().containsKey(finalSlot)) continue;
 
                 elementsSlots.put(finalSlot, element);
                 return;

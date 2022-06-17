@@ -48,7 +48,7 @@ public abstract class AdvancedMenu extends Menu {
      * In AdvancedMenuPaginated, <i>elementsItems</i> are not displayed on these slots and slots
      * are filled with {@link #getWrapperItem()}.
      */
-    protected List<Integer> lockedSlots = new ArrayList<>();
+    private List<Integer> lockedSlots = new ArrayList<>();
     /**
      * The menu which is opened from {@link #getReturnBackButton}.
      */
@@ -60,7 +60,7 @@ public abstract class AdvancedMenu extends Menu {
      * Set this item to whether you want by {@link #setWrapper}.
      * To disable item set it to null.
      */
-    private ItemStack wrapperItem = ItemCreator.of(MenuUtil.defaultWrapperMaterial, "").make();
+    private ItemStack wrapperItem = MenuUtil.defaultWrapperItem;
 
     public AdvancedMenu(Player player){
         this.player = player;

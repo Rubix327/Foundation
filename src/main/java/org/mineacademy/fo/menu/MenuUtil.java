@@ -16,5 +16,6 @@ public class MenuUtil {
     public static ItemStack defaultInfoItem = ItemCreator.of(CompMaterial.BOOK).make();
     public static ItemStack defaultMenuItem = ItemCreator.of(CompMaterial.APPLE).make();
     public static CompMaterial defaultWrapperMaterial = CompMaterial.GRAY_STAINED_GLASS_PANE;
+    public static ItemStack defaultWrapperItem = ItemCreator.of(defaultWrapperMaterial).name("").make();
 
 }

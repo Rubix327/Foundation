@@ -127,7 +127,7 @@ public abstract class AdvancedMenu extends Menu {
      * For {@link AdvancedMenuPagged}, set the slots the main elements should NOT be placed on.
      */
     protected final void setLockedSlots(Integer... slots){
-        lockedSlots = Arrays.stream(slots).filter(e -> e < getSize()).collect(Collectors.toList());
+        lockedSlots = Arrays.stream(slots).filter(e -> e >= 0).filter(e -> e < getSize()).collect(Collectors.toList());
     }
 
     /**
@@ -136,6 +136,16 @@ public abstract class AdvancedMenu extends Menu {
      */
     protected final void setLockedSlots(LockedSlotsFigure figure){
         setLockedSlots(figure.getSlots());
+    }
+
+    /**
+     * Set the automated slots locking depending on the figure and the size.<br>
+     * Figures available: {@link LockedSlotsFigure.Raw}.
+     * @param rawFigure the figure
+     * @param size the size of the menu
+     */
+    protected final void setLockedSlots(LockedSlotsFigure.Raw rawFigure, int size){
+        setLockedSlots(LockedSlotsFigure.AUTO(rawFigure, size));
     }
 
     /**

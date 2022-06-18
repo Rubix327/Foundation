@@ -16,11 +16,8 @@ import org.bukkit.inventory.meta.*;
 import org.bukkit.material.MaterialData;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.mineacademy.fo.Common;
-import org.mineacademy.fo.MinecraftVersion;
+import org.mineacademy.fo.*;
 import org.mineacademy.fo.MinecraftVersion.V;
-import org.mineacademy.fo.ReflectionUtil;
-import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.model.SimpleEnchantment;
 import org.mineacademy.fo.remain.*;
 import org.mineacademy.fo.remain.nbt.NBTItem;
@@ -737,13 +734,19 @@ public final class ItemCreator {
 			} catch (final Throwable ignored) {
 			}
 
-		for (final Map.Entry<CompAttribute, List<AttributeModifier>> attributeModifiers : this.attributeModifiers.entrySet()){
-			try{
-				for (AttributeModifier modifier : attributeModifiers.getValue()){
-					((ItemMeta) compiledMeta).addAttributeModifier(attributeModifiers.getKey().toAttribute(), modifier);
+		if (MinecraftVersion.atLeast(V.v1_9)){
+			for (final Map.Entry<CompAttribute, List<AttributeModifier>> attributeModifiers : this.attributeModifiers.entrySet()){
+				try{
+					for (AttributeModifier modifier : attributeModifiers.getValue()){
+						((ItemMeta) compiledMeta).addAttributeModifier(attributeModifiers.getKey().toAttribute(), modifier);
+					}
+				} catch (final Throwable ignored){
 				}
-			} catch (final Throwable ignored){
 			}
+		}
+		else{
+			Logger.info("Please note that the custom item with material " + item.getType() + " will not have any " +
+					"attribute modifiers because your server version does not support it. Please use 1.9+!");
 		}
 
 		// Set custom model data

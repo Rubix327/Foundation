@@ -745,7 +745,7 @@ public final class ItemCreator {
 			}
 		}
 		else{
-			Logger.info("Please note that the custom item with material " + item.getType() + " will not have any " +
+			Logger.info("Please note that the custom item with material " + material.toString() + " will not have any " +
 					"attribute modifiers because your server version does not support it. Please use 1.9+!");
 		}
 

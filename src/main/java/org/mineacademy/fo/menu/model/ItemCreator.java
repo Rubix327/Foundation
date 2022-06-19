@@ -312,7 +312,9 @@ public final class ItemCreator {
 	 * If no {@link EquipmentSlot EquipmentSlots} specified, all available will be used.
 	 */
 	public ItemCreator attributeModifier(CompAttribute attribute, double amount){
-		attributeModifier(attribute, amount, AttributeModifier.Operation.ADD_NUMBER);
+		if (MinecraftVersion.atLeast(V.v1_9)){
+			attributeModifier(attribute, amount, AttributeModifier.Operation.ADD_NUMBER);
+		}
 
 		return this;
 	}
@@ -322,12 +324,14 @@ public final class ItemCreator {
 	 * If no {@link EquipmentSlot EquipmentSlots} specified, all available will be used.
 	 */
 	public ItemCreator attributeModifier(CompAttribute attribute, double amount, AttributeModifier.Operation operation){
-		List<AttributeModifier> modifiers = new ArrayList<>();
-		if (this.attributeModifiers.containsKey(attribute)){
-			modifiers.addAll(this.attributeModifiers.get(attribute));
+		if (MinecraftVersion.atLeast(V.v1_9)) {
+			List<AttributeModifier> modifiers = new ArrayList<>();
+			if (this.attributeModifiers.containsKey(attribute)) {
+				modifiers.addAll(this.attributeModifiers.get(attribute));
+			}
+			modifiers.add(new AttributeModifier("", amount, operation));
+			this.attributeModifiers.put(attribute, modifiers);
 		}
-		modifiers.add(new AttributeModifier("", amount, operation));
-		this.attributeModifiers.put(attribute, modifiers);
 
 		return this;
 	}
@@ -337,14 +341,16 @@ public final class ItemCreator {
 	 */
 	public ItemCreator attributeModifier(
 			CompAttribute attribute, double amount, AttributeModifier.Operation operation, EquipmentSlot... slots){
-		List<AttributeModifier> modifiers = new ArrayList<>();
-		if (this.attributeModifiers.containsKey(attribute)){
-			modifiers.addAll(this.attributeModifiers.get(attribute));
+		if (MinecraftVersion.atLeast(V.v1_9)) {
+			List<AttributeModifier> modifiers = new ArrayList<>();
+			if (this.attributeModifiers.containsKey(attribute)) {
+				modifiers.addAll(this.attributeModifiers.get(attribute));
+			}
+			for (EquipmentSlot slot : slots) {
+				modifiers.add(new AttributeModifier(UUID.randomUUID(), "", amount, operation, slot));
+			}
+			this.attributeModifiers.put(attribute, modifiers);
 		}
-		for (EquipmentSlot slot: slots){
-			modifiers.add(new AttributeModifier(UUID.randomUUID(), "", amount, operation, slot));
-		}
-		this.attributeModifiers.put(attribute, modifiers);
 
 		return this;
 	}

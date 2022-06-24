@@ -1,17 +1,5 @@
 package org.mineacademy.fo.plugin;
 
-import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-import java.util.regex.Pattern;
-
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -28,19 +16,24 @@ import org.mineacademy.fo.debug.Debugger;
 import org.mineacademy.fo.event.SimpleListener;
 import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.menu.tool.Tool;
-import org.mineacademy.fo.model.DiscordListener;
-import org.mineacademy.fo.model.FoundationEnchantmentListener;
-import org.mineacademy.fo.model.HookManager;
-import org.mineacademy.fo.model.PacketListener;
-import org.mineacademy.fo.model.SimpleEnchantment;
-import org.mineacademy.fo.model.SimpleExpansion;
-import org.mineacademy.fo.model.Tuple;
-import org.mineacademy.fo.model.Variables;
+import org.mineacademy.fo.model.*;
 import org.mineacademy.fo.remain.Remain;
 import org.mineacademy.fo.settings.SimpleLocalization;
 import org.mineacademy.fo.settings.SimpleSettings;
 import org.mineacademy.fo.settings.YamlConfig;
 import org.mineacademy.fo.settings.YamlStaticConfig;
+
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.regex.Pattern;
 
 /**
  * Utilizes \@AutoRegister annotation to add auto registration support for commands, events and much more.
@@ -112,7 +105,7 @@ final class AutoRegisterScanner {
 					Valid.checkBoolean(Modifier.isFinal(clazz.getModifiers()), "Please make " + clazz + " final for it to be registered automatically (or via @AutoRegister)");
 
 					try {
-						autoRegister(clazz, autoRegister == null || !autoRegister.hideIncompatibilityWarnings());
+						autoRegister(clazz, (autoRegister == null || !autoRegister.hideIncompatibilityWarnings()) && !SimpleSettings.HIDE_INCOMPATIBILITY_WARNINGS);
 
 					} catch (final NoClassDefFoundError | NoSuchFieldError ex) {
 						Bukkit.getLogger().warning("Failed to auto register " + clazz + " due to it requesting missing fields/classes: " + ex.getMessage());

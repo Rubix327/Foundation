@@ -1,14 +1,15 @@
 package org.mineacademy.fo.settings;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.List;
-
 import org.mineacademy.fo.Common;
 import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.collection.StrictList;
 import org.mineacademy.fo.constants.FoConstants;
+import org.mineacademy.fo.debug.LagCatcher;
 import org.mineacademy.fo.plugin.SimplePlugin;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.List;
 
 /**
  * A simple implementation of a typical main plugin settings
@@ -98,7 +99,7 @@ public class SimpleSettings extends YamlStaticConfig {
 	public static String LOCATION_FORMAT = "{world} [{x}, {y}, {z}]";
 
 	/**
-	 * What debug sections should we enable in {@link Debugger} ? When you call {@link Debugger#debug(String, String...)}
+	 * What debug sections should we enable in {@link org.mineacademy.fo.debug.Debugger} ? When you call {@link org.mineacademy.fo.debug.Debugger#debug(String, String...)}
 	 * those that are specified in this settings are logged into the console, otherwise no message is shown.
 	 * <p>
 	 * Typically this is left empty: Debug: []
@@ -155,7 +156,7 @@ public class SimpleSettings extends YamlStaticConfig {
 	/**
 	 * Should we check for updates from SpigotMC and notify the console and users with permission?
 	 * <p>
-	 * See {@link SimplePlugin#getUpdateCheck()} that you can make to return {@link SpigotUpdater} with your Spigot plugin ID.
+	 * See {@link SimplePlugin#getUpdateCheck()} that you can make to return {@link org.mineacademy.fo.model.SpigotUpdater} with your Spigot plugin ID.
 	 * <p>
 	 * Typically for ChatControl:
 	 * <p>
@@ -164,6 +165,13 @@ public class SimpleSettings extends YamlStaticConfig {
 	 * // ONLY MANDATORY IF YOU OVERRIDE {@link SimplePlugin#getUpdateCheck()} //
 	 */
 	public static Boolean NOTIFY_UPDATES = true;
+
+	/**
+	 * Should we warn about incompatibilities.
+	 * It is used in {@link org.mineacademy.fo.plugin.AutoRegisterScanner#autoRegister(Class, boolean)}.
+	 * Please hide these warnings only on the last stage of your plugin development.
+	 */
+	public static Boolean HIDE_INCOMPATIBILITY_WARNINGS = false;
 
 	/**
 	 * Load the values -- this method is called automatically by reflection in the {@link YamlStaticConfig} class!
@@ -222,6 +230,12 @@ public class SimpleSettings extends YamlStaticConfig {
 			final boolean keySet = isSetDefault("Notify_Updates");
 
 			NOTIFY_UPDATES = keySet ? getBoolean("Notify_Updates") : NOTIFY_UPDATES;
+		}
+
+		{ // Load incompatibility warnings flag
+			final boolean keySet = isSetDefault("Hide_Incompatibility_Warnings");
+
+			HIDE_INCOMPATIBILITY_WARNINGS = keySet ? getBoolean("Hide_Incompatibility_Warnings") : HIDE_INCOMPATIBILITY_WARNINGS;
 		}
 
 		settingsClassCalled = true;

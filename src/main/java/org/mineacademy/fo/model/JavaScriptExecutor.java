@@ -136,8 +136,10 @@ public final class JavaScriptExecutor {
 		}
 
 		if (engine == null) {
-			Common.warning("Not running script" + (sender == null ? "" : " for " + sender.getName()) + " because JavaScript library is missing "
-					+ "(install Oracle Java 8, 11 or 16 and download mineacademy.org/nashorn): " + javascript);
+			if (!SimpleSettings.HIDE_NASHORN_WARNINGS){
+				Common.warning("Not running script" + (sender == null ? "" : " for " + sender.getName()) + " because JavaScript library is missing "
+						+ "(install Oracle Java 8, 11 or 16 and download mineacademy.org/nashorn): " + javascript);
+			}
 
 			return null;
 		}
@@ -217,8 +219,10 @@ public final class JavaScriptExecutor {
 	public static Object run(final String javascript, final Map<String, Object> replacements) {
 
 		if (engine == null) {
-			Common.warning("Not running script because JavaScript library is missing "
-					+ "(install Oracle Java 8, 11 or 16 and download mineacademy.org/nashorn): " + javascript);
+			if (!SimpleSettings.HIDE_NASHORN_WARNINGS){
+				Common.warning("Not running script because JavaScript library is missing "
+						+ "(install Oracle Java 8, 11 or 16 and download mineacademy.org/nashorn): " + javascript);
+			}
 
 			return javascript;
 		}

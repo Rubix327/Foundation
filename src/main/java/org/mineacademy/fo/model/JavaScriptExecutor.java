@@ -1,19 +1,6 @@
 package org.mineacademy.fo.model;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-
-import javax.script.ScriptContext;
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineFactory;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
-
+import lombok.NonNull;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
@@ -23,8 +10,12 @@ import org.mineacademy.fo.collection.expiringmap.ExpiringMap;
 import org.mineacademy.fo.exception.EventHandledException;
 import org.mineacademy.fo.plugin.SimplePlugin;
 import org.mineacademy.fo.remain.Remain;
+import org.mineacademy.fo.settings.SimpleSettings;
 
-import lombok.NonNull;
+import javax.script.*;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
 
 /**
  * An engine that compiles and executes code on the fly.
@@ -74,7 +65,7 @@ public final class JavaScriptExecutor {
 
 		engine = scriptEngine;
 
-		if (engine == null) {
+		if (engine == null && !SimpleSettings.HIDE_NASHORN_WARNINGS) {
 			final List<String> warningMessage = Common.newList(
 					"ERROR: JavaScript placeholders will not function!",
 					"",
@@ -91,6 +82,11 @@ public final class JavaScriptExecutor {
 						"",
 						"To fix this, install Java 11 from Oracle",
 						"or other vendor that supports Nashorn."));
+
+			warningMessage.addAll(Arrays.asList(
+					"",
+					"If you are a developer, you can hide these messages",
+					"with SimpleSettings.HIDE_NASHORN_WARNINGS = true"));
 
 			Common.logFramed(false, Common.toArray(warningMessage));
 		}

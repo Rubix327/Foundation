@@ -174,6 +174,12 @@ public class SimpleSettings extends YamlStaticConfig {
 	public static Boolean HIDE_INCOMPATIBILITY_WARNINGS = false;
 
 	/**
+	 * Should we warn about Nashorn not installed on the server.
+	 * Is is used
+	 */
+	public static Boolean HIDE_NASHORN_WARNINGS = false;
+
+	/**
 	 * Load the values -- this method is called automatically by reflection in the {@link YamlStaticConfig} class!
 	 */
 	private static void init() {
@@ -236,6 +242,12 @@ public class SimpleSettings extends YamlStaticConfig {
 			final boolean keySet = isSetDefault("Hide_Incompatibility_Warnings");
 
 			HIDE_INCOMPATIBILITY_WARNINGS = keySet ? getBoolean("Hide_Incompatibility_Warnings") : HIDE_INCOMPATIBILITY_WARNINGS;
+		}
+
+		{ // Load Nashorn warnings flag
+			final boolean keySet = isSetDefault("Hide_Nashorn_Warnings");
+
+			HIDE_NASHORN_WARNINGS = keySet ? getBoolean("Hide_Nashorn_Warnings") : HIDE_NASHORN_WARNINGS;
 		}
 
 		settingsClassCalled = true;

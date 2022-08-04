@@ -2179,6 +2179,7 @@ class PlaceholderAPIHook {
 	}
 
 	private String setPlaceholders(final OfflinePlayer player, String text) {
+		final String oldText = text;
 		final Map<String, PlaceholderHook> hooks = PlaceholderAPI.getPlaceholders();
 
 		if (hooks.isEmpty())
@@ -2210,22 +2211,29 @@ class PlaceholderAPIHook {
 
 			final String identifier = format.substring(0, index);
 			final String params = format.substring(index + 1);
+			final String finalFormat = format;
 
 			if (hooks.containsKey(identifier)) {
 
 				// Wait 0.5 seconds then kill the thread to prevent server
 				// crashing on PlaceholderAPI variables hanging up on the main thread
 				final Thread currentThread = Thread.currentThread();
-				final BukkitTask watchDog = Common.runLater(20, () -> {
+				final boolean main = Bukkit.isPrimaryThread();
+				final BukkitTask watchDog = Common.runLater(main ? 30 : 80, () -> {
 					Common.logFramed(
 							"IMPORTANT: PREVENTED SERVER CRASH FROM PLACEHOLDERAPI",
-							"Replacing a variable using PlaceholderAPI took",
-							"longer than our maximum limit (1 second) and",
-							"was forcefully interrupted to prevent your",
-							"server from crashing. This is not error on",
-							"our end, please contact the expansion author.",
 							"",
-							"Variable: " + identifier,
+							"Replacing PlaceholderAPI variable took over " + (main ? "1.5" : "4") + " sec",
+							"and was interrupted to prevent hanging the server.",
+							"",
+							"This is typically caused when a variable sends",
+							"blocking HTTP request, such as checking stuff on",
+							"the Internet or resolving offline player names.",
+							"This is NOT error in " + SimplePlugin.getNamed() + ", you need",
+							"to contact placeholder expansion author instead.",
+							"",
+							"Variable: " + finalFormat,
+							"Text: " + oldText,
 							"Player: " + (player == null ? "none" : player.getName()));
 
 					currentThread.stop();

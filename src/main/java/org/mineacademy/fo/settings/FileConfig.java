@@ -31,11 +31,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.mineacademy.fo.Common;
 import org.mineacademy.fo.SerializeUtil;
+import org.mineacademy.fo.SerializeUtil.Mode;
 import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.collection.SerializedMap;
 import org.mineacademy.fo.collection.StrictList;
-import org.mineacademy.fo.command.SimpleCommand;
-import org.mineacademy.fo.command.SimpleCommandGroup;
 import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.model.BoxedMessage;
 import org.mineacademy.fo.model.ConfigSerializable;
@@ -67,10 +66,18 @@ public abstract class FileConfig {
 	 */
 	public static final String NO_DEFAULT = null;
 
+	/**
+	 * Switches how you'd like to store the content of the settings file. Defaults to YAML.
+	 *
+	 * TODO Implement JSON settings storage
+	 */
+	final SerializeUtil.Mode mode = Mode.YAML;
+
 	/*
 	 * The file that is being used
 	 */
 	@Nullable
+	@Setter(value = AccessLevel.PROTECTED)
 	File file;
 
 	/*
@@ -207,7 +214,7 @@ public abstract class FileConfig {
 			if (type == Long.class && raw instanceof Integer)
 				raw = ((Integer) raw).longValue();
 
-			raw = SerializeUtil.deserialize(type, raw, deserializeParams);
+			raw = SerializeUtil.deserialize(this.mode, type, raw, deserializeParams);
 			this.checkAssignable(path, raw, type);
 
 			return (T) raw;
@@ -905,7 +912,7 @@ public abstract class FileConfig {
 
 		if (objects != null)
 			for (Object object : objects) {
-				object = object != null ? SerializeUtil.deserialize(type, object, deserializeParameters) : null;
+				object = object != null ? SerializeUtil.deserialize(this.mode, type, object, deserializeParameters) : null;
 
 				if (object != null)
 					list.add((T) object);
@@ -982,8 +989,8 @@ public abstract class FileConfig {
 		// Load key-value pairs from config to our map
 		if (exists)
 			for (final Map.Entry<String, Object> entry : SerializedMap.of(this.section.retrieve(path))) {
-				final Key key = SerializeUtil.deserialize(keyType, entry.getKey());
-				final Value value = SerializeUtil.deserialize(valueType, entry.getValue(), valueDeserializeParams);
+				final Key key = SerializeUtil.deserialize(this.mode, keyType, entry.getKey());
+				final Value value = SerializeUtil.deserialize(this.mode, valueType, entry.getValue(), valueDeserializeParams);
 
 				// Ensure the pair values are valid for the given paramenters
 				this.checkAssignable(path, key, keyType);
@@ -1027,8 +1034,8 @@ public abstract class FileConfig {
 		// Load key-value pairs from config to our map
 		if (exists)
 			for (final Map.Entry<String, Object> entry : SerializedMap.of(this.section.retrieve(path)).entrySet()) {
-				final Key key = SerializeUtil.deserialize(keyType, entry.getKey());
-				final List<Value> value = SerializeUtil.deserialize(List.class, entry.getValue(), setDeserializeParameters);
+				final Key key = SerializeUtil.deserialize(this.mode, keyType, entry.getKey());
+				final List<Value> value = SerializeUtil.deserialize(this.mode, List.class, entry.getValue(), setDeserializeParameters);
 
 				// Ensure the pair values are valid for the given parameters
 				this.checkAssignable(path, key, keyType);
@@ -1074,7 +1081,7 @@ public abstract class FileConfig {
 	 */
 	public final void set(String path, Object value) {
 		path = this.buildPathPrefix(path);
-		value = SerializeUtil.serialize(value);
+		value = SerializeUtil.serialize(this.mode, value);
 
 		this.section.store(path, value);
 		this.shouldSave = true;

@@ -1,23 +1,5 @@
 package org.mineacademy.fo.model;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.regex.Pattern;
-
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.mineacademy.fo.ChatUtil;
-import org.mineacademy.fo.Common;
-import org.mineacademy.fo.PlayerUtil;
-import org.mineacademy.fo.SerializeUtil;
-import org.mineacademy.fo.Valid;
-import org.mineacademy.fo.collection.SerializedMap;
-import org.mineacademy.fo.remain.CompMaterial;
-import org.mineacademy.fo.remain.Remain;
-
 import lombok.NonNull;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -25,6 +7,20 @@ import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ClickEvent.Action;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.mineacademy.fo.*;
+import org.mineacademy.fo.SerializeUtil.Mode;
+import org.mineacademy.fo.collection.SerializedMap;
+import org.mineacademy.fo.remain.CompMaterial;
+import org.mineacademy.fo.remain.Remain;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * A very simple way of sending interactive chat messages
@@ -39,7 +35,7 @@ public final class SimpleComponent implements ConfigSerializable {
 	/**
 	 * The pattern to match URL addresses when parsing text
 	 */
-	private static final Pattern URL_PATTERN = Pattern.compile("^(https?)://[-a-zA-Z\\d+&@#/%?=~_|!:,.;]*[-a-zA-Z\\d]?([^&]+[^\\da-fk-orA-FK-OR])?$");
+	private static final Pattern URL_PATTERN = Pattern.compile("^(http(s|):\\/\\/|)(www\\.|)[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b(?:[a-zA-Z:,.\\?\\!]*)$");
 
 	/**
 	 * The past components
@@ -347,7 +343,7 @@ public final class SimpleComponent implements ConfigSerializable {
 					preparedComponent.addExtra(component);
 		}
 
-		final TextComponent currentComponent = this.currentComponent.toTextComponent(true, receiver);
+		final TextComponent currentComponent = this.currentComponent == null ? null : this.currentComponent.toTextComponent(true, receiver);
 
 		if (currentComponent != null)
 			if (preparedComponent == null)
@@ -366,7 +362,7 @@ public final class SimpleComponent implements ConfigSerializable {
 	 * @return
 	 */
 	public SimpleComponent replace(String variable, Object value) {
-		final String serialized = SerializeUtil.serialize(value).toString();
+		final String serialized = SerializeUtil.serialize(Mode.YAML, value).toString();
 
 		for (final Part part : this.pastComponents) {
 			Valid.checkNotNull(part.text);
@@ -667,8 +663,12 @@ public final class SimpleComponent implements ConfigSerializable {
 				final TextComponent old = component;
 				component = new TextComponent(old);
 
-				final String urlString = message.substring(index, pos);
+				String urlString = message.substring(index, pos);
 				component.setText(urlString);
+
+				if (urlString.endsWith(",") || urlString.endsWith(".") || urlString.endsWith(":") || urlString.endsWith("?") || urlString.endsWith("!"))
+					urlString = urlString.substring(0, urlString.length() - 1);
+
 				component.setClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, urlString.startsWith("http") ? urlString : "http://" + urlString));
 				components.add(component);
 

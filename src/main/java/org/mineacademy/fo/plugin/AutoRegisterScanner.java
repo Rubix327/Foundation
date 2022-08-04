@@ -145,6 +145,7 @@ final class AutoRegisterScanner {
 	private static void registerSettings(List<Class<?>> classes) {
 		final List<Class<?>> staticSettingsFound = new ArrayList<>();
 		final List<Class<?>> staticLocalizations = new ArrayList<>();
+		final List<Class<?>> staticCustom = new ArrayList<>();
 
 		for (final Class<?> clazz : classes) {
 			boolean load = false;
@@ -165,7 +166,7 @@ final class AutoRegisterScanner {
 			}
 
 			if (load || !load && YamlStaticConfig.class.isAssignableFrom(clazz))
-				YamlStaticConfig.load((Class<? extends YamlStaticConfig>) clazz);
+				staticCustom.add(clazz);
 		}
 
 		boolean staticSettingsFileExist = false;
@@ -193,6 +194,19 @@ final class AutoRegisterScanner {
 
 		if (staticLocalizations.isEmpty() && staticLocalizationFileExist)
 			YamlStaticConfig.load(SimpleLocalization.class);
+
+		// A dirty solution to prioritize loading settings and then localization
+		final List<Class<?>> delayedLoading = new ArrayList<>();
+
+		for (final Class<?> customSettings : staticCustom) {
+			if (SimpleSettings.class.isAssignableFrom(customSettings))
+				YamlStaticConfig.load((Class<? extends YamlStaticConfig>) customSettings);
+			else
+				delayedLoading.add(customSettings);
+		}
+
+		for (final Class<?> delayedSettings : delayedLoading)
+			YamlStaticConfig.load((Class<? extends YamlStaticConfig>) delayedSettings);
 	}
 
 	/*
@@ -382,7 +396,7 @@ final class AutoRegisterScanner {
 				try {
 					clazz = SimplePlugin.class.getClassLoader().loadClass(className);
 
-				} catch (final VerifyError | NoClassDefFoundError | ClassNotFoundException | IncompatibleClassChangeError error) {
+				} catch (final ClassFormatError | VerifyError | NoClassDefFoundError | ClassNotFoundException | IncompatibleClassChangeError error) {
 					continue;
 				}
 

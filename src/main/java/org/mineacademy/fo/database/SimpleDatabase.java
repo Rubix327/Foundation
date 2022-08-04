@@ -20,6 +20,7 @@ import org.mineacademy.fo.FileUtil;
 import org.mineacademy.fo.RandomUtil;
 import org.mineacademy.fo.ReflectionUtil;
 import org.mineacademy.fo.SerializeUtil;
+import org.mineacademy.fo.SerializeUtil.Mode;
 import org.mineacademy.fo.TimeUtil;
 import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.collection.SerializedMap;
@@ -58,6 +59,11 @@ public class SimpleDatabase {
 	 * Map of variables you can use with the {} syntax in SQL
 	 */
 	private final StrictMap<String, String> sqlVariables = new StrictMap<>();
+
+	/**
+	 * The raw URL from which the connection was created
+	 */
+	private String url;
 
 	/**
 	 * The last credentials from the connect function, or null if never called
@@ -160,12 +166,10 @@ public class SimpleDatabase {
 	 */
 	public final void connect(final String url, final String user, final String password, final String table) {
 
+		this.url = url;
 		this.connecting = true;
 
 		try {
-
-			// Close any open connection
-			this.close();
 
 			// Support local storage of databases on your disk, typically in your plugin's folder
 			// Make sure to load the library using "libraries" and "legacy-libraries" feature in plugin.yml:
@@ -364,7 +368,9 @@ public class SimpleDatabase {
 			columns += ", PRIMARY KEY (`" + creator.getPrimaryColumn() + "`)";
 
 		try {
-			this.update("CREATE TABLE IF NOT EXISTS `" + creator.getName() + "` (" + columns + ") DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;");
+			final boolean isSQLite = this.url != null && this.url.startsWith("jdbc:sqlite");
+
+			this.update("CREATE TABLE IF NOT EXISTS `" + creator.getName() + "` (" + columns + ")" + (isSQLite ? "" : " DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci") + ";");
 
 		} catch (final Throwable t) {
 			if (t.toString().contains("Unknown collation")) {
@@ -444,7 +450,7 @@ public class SimpleDatabase {
 	 * A helper method to insert compatible value to db
 	 */
 	private final String parseValue(Object value) {
-		return value == null || value.equals("NULL") ? "NULL" : "'" + SerializeUtil.serialize(value).toString() + "'";
+		return value == null || value.equals("NULL") ? "NULL" : "'" + SerializeUtil.serialize(Mode.YAML, value).toString() + "'";
 	}
 
 	/**
@@ -469,11 +475,8 @@ public class SimpleDatabase {
 
 		Debugger.debug("mysql", "Updating database with: " + sql);
 
-		try {
-			final Statement statement = this.connection.createStatement();
-
+		try (Statement statement = this.connection.createStatement()) {
 			statement.executeUpdate(sql);
-			statement.close();
 
 		} catch (final SQLException e) {
 			this.handleError(e, "Error on updating database with: " + sql);
@@ -491,34 +494,31 @@ public class SimpleDatabase {
 	}
 
 	/**
-	 * Lists all rows in the given table with the given parameter
+	 * Lists all rows in the given table with the given parameter.
+	 * Do not forget to close the connection when done in your consumer.
 	 *
 	 * @param table
 	 * @param param
 	 * @param consumer
 	 */
 	protected final void select(String table, String param, ResultReader consumer) {
-		if (this.isLoaded()) {
-			final ResultSet resultSet = this.query("SELECT " + param + " FROM " + table);
+		if (!this.isLoaded())
+			return;
 
-			try {
-				while (resultSet.next())
-					try {
-						consumer.accept(resultSet);
+		try (ResultSet resultSet = this.query("SELECT " + param + " FROM " + table)) {
+			while (resultSet.next())
+				try {
+					consumer.accept(resultSet);
 
-					} catch (final Throwable t) {
-						Common.log("Error reading a row from table " + table + " with param '" + param + "', aborting...");
+				} catch (final Throwable t) {
+					Common.log("Error reading a row from table " + table + " with param '" + param + "', aborting...");
 
-						t.printStackTrace();
-						break;
-					}
+					t.printStackTrace();
+					break;
+				}
 
-			} catch (final Throwable t) {
-				Common.error(t, "Error selecting rows from table " + table + " with param '" + param + "'");
-
-			} finally {
-				this.close(resultSet);
-			}
+		} catch (final Throwable t) {
+			Common.error(t, "Error selecting rows from table " + table + " with param '" + param + "'");
 		}
 	}
 
@@ -549,13 +549,12 @@ public class SimpleDatabase {
 	protected final int count(String table, SerializedMap conditions) {
 
 		// Convert conditions into SQL syntax
-		final Set<String> conditionsList = Common.convertSet(conditions.entrySet(), entry -> entry.getKey() + " = '" + SerializeUtil.serialize(entry.getValue()) + "'");
+		final Set<String> conditionsList = Common.convertSet(conditions.entrySet(), entry -> entry.getKey() + " = '" + SerializeUtil.serialize(Mode.YAML, entry.getValue()) + "'");
 
 		// Run the query
 		final String sql = "SELECT * FROM " + table + (conditionsList.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditionsList)) + ";";
 
-		try {
-			final ResultSet resultSet = this.query(sql);
+		try (ResultSet resultSet = this.query(sql)) {
 			int count = 0;
 
 			while (resultSet.next())
@@ -619,12 +618,13 @@ public class SimpleDatabase {
 		if (sqls.size() == 0)
 			return;
 
-		try {
-			final Statement batchStatement = this.getConnection().createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-			final int processedCount = sqls.size();
+		this.checkEstablished();
 
-			// Prevent automatically sending db instructions
-			this.getConnection().setAutoCommit(false);
+		if (!this.isConnected())
+			this.connectUsingLastCredentials();
+
+		try (Statement batchStatement = this.getConnection().createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
+			final int processedCount = sqls.size();
 
 			for (final String sql : sqls)
 				batchStatement.addBatch(this.replaceVariables(sql));
@@ -637,27 +637,35 @@ public class SimpleDatabase {
 			this.batchUpdateGoingOn = true;
 
 			// Notify console that progress still is being made
-			new Timer().scheduleAtFixedRate(new TimerTask() {
+			final TimerTask task = new TimerTask() {
 
 				@Override
 				public void run() {
 					if (SimpleDatabase.this.batchUpdateGoingOn)
-						Common.log("Database batch update is still processing, " + RandomUtil.nextItem("keep calm", "stand by", "watch the show", "check your db", "drink water", "call your friend") + " and DO NOT SHUTDOWN YOUR SERVER.");
+						Common.log("Database batch update is still processing, " + RandomUtil.nextItem("keep calm", "stand by", "watch the show", "check your db", "drink water", "call your friend") + " and DO NOT SHUTDOWN YOUR SERVER. (Total size: " + sqls.size() + " queries)");
 					else
 						this.cancel();
 				}
-			}, 1000 * 30, 1000 * 30);
+			};
 
-			// Execute
-			batchStatement.executeBatch();
+			new Timer().scheduleAtFixedRate(task, 1000 * 30, 1000 * 30);
 
-			// This will block the thread
-			this.getConnection().commit();
+			// Prevent automatically sending db instructions
+			this.getConnection().setAutoCommit(false);
 
-			if (!batchStatement.isClosed())
-				batchStatement.close();
+			try {
+				// Execute
+				batchStatement.executeBatch();
 
-			//Common.log("Updated " + processedCount + " database entries.");
+				// This will block the thread
+				this.getConnection().commit();
+
+			} catch (final Throwable t) {
+				task.cancel();
+
+				// Cancel the task but handle the error upstream
+				throw t;
+			}
 
 		} catch (final Throwable t) {
 			final List<String> errorLog = new ArrayList<>();

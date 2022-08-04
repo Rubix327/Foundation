@@ -479,20 +479,38 @@ public final class Remain {
 	 * @param packet the packet
 	 */
 	public static void sendPacket(final Player player, final Object packet) {
-		if (getHandle == null || fieldPlayerConnection == null || sendPacket == null) {
-			Common.log("Cannot send packet " + packet.getClass().getSimpleName() + " on your server sofware (known to be broken on Cauldron).");
+		try {
+			final Object playerConnection = getPlayerConnection(player);
 
-			return;
+			if (playerConnection != null)
+				sendPacket.invoke(playerConnection, packet);
+
+		} catch (final ReflectiveOperationException ex) {
+			throw new ReflectionException(ex, "Error sending packet " + packet.getClass() + " to player " + player.getName());
+		}
+	}
+
+	/**
+	 * Return the player connection field in EntityPlayer in NMS
+	 *
+	 * @param player
+	 * @return
+	 */
+	public static Object getPlayerConnection(Player player) {
+		if (getHandle == null || fieldPlayerConnection == null || sendPacket == null) {
+			Common.log("Cannot get player connection on your server sofware (known to be broken on Cauldron).");
+
+			return null;
 		}
 
 		try {
 			final Object handle = getHandle.invoke(player);
 			final Object playerConnection = fieldPlayerConnection.get(handle);
 
-			sendPacket.invoke(playerConnection, packet);
+			return playerConnection;
 
 		} catch (final ReflectiveOperationException ex) {
-			throw new ReflectionException(ex, "Error sending packet " + packet.getClass() + " to player " + player.getName());
+			throw new ReflectionException(ex, "Error getting player connection for player " + player.getName());
 		}
 	}
 
@@ -1483,6 +1501,7 @@ public final class Remain {
 
 			if (MinecraftVersion.atLeast(V.v1_17) || MinecraftVersion.atLeast(V.v1_18)) {
 				final boolean is1_18 = MinecraftVersion.atLeast(V.v1_18);
+				final boolean is1_19 = MinecraftVersion.atLeast(V.v1_19);
 
 				final Object nmsPlayer = Remain.getHandleEntity(player);
 				final Object chatComponent = toIChatBaseComponentPlain(ChatColor.translateAlternateColorCodes('&', title));
@@ -1519,7 +1538,7 @@ public final class Remain {
 						ReflectionUtil.lookupClass("net.minecraft.network.chat.IChatBaseComponent"));
 
 				final String version = MinecraftVersion.getServerVersion(); // special fix for MC 1.18.2
-				final Object activeContainer = ReflectionUtil.getFieldContent(nmsPlayer, is1_18 ? version.contains("R2") ? "bV" : "bW" : "bV");
+				final Object activeContainer = ReflectionUtil.getFieldContent(nmsPlayer, is1_19 ? "bU" : is1_18 ? version.contains("R2") ? "bV" : "bW" : "bV");
 				final int windowId = ReflectionUtil.getFieldContent(activeContainer, "j");
 
 				final Method method = is1_18 ? ReflectionUtil.getMethod(nmsPlayer.getClass(), "a", ReflectionUtil.lookupClass("net.minecraft.world.inventory.Container")) : null;

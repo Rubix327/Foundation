@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,6 +40,7 @@ import org.mineacademy.fo.jsonsimple.JSONArray;
 import org.mineacademy.fo.jsonsimple.JSONObject;
 import org.mineacademy.fo.jsonsimple.JSONParseException;
 import org.mineacademy.fo.jsonsimple.JSONParser;
+import org.mineacademy.fo.jsonsimple.Jsonable;
 import org.mineacademy.fo.menu.model.ItemCreator;
 import org.mineacademy.fo.model.BoxedMessage;
 import org.mineacademy.fo.model.ConfigSerializable;
@@ -54,11 +56,9 @@ import org.mineacademy.fo.remain.Remain;
 import org.mineacademy.fo.settings.ConfigSection;
 
 import lombok.AccessLevel;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -68,25 +68,6 @@ import net.md_5.bungee.api.chat.HoverEvent;
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SerializeUtil {
-
-	/**
-	 * Set the mode we are deserializing to
-	 */
-	@Getter
-	@Setter
-	private static Mode mode = Mode.YAML;
-
-	/**
-	 * The language we are de/serializing to
-	 */
-	public enum Mode {
-
-		/**
-		 * BETA!
-		 */
-		JSON,
-		YAML
-	}
 
 	/**
 	 * A list of custom serializers
@@ -109,239 +90,267 @@ public final class SerializeUtil {
 	// ------------------------------------------------------------------------------------------------------------
 
 	/**
-	 * Converts the given object into something you can safely save in file as a string
+	 * Converts the given object into something you can safely save in YAML file as a string
 	 *
 	 * @param object
 	 * @return
+	 *
+	 * @deprecated defaults to YAML always, it's recommended you call {@link #serialize(Mode, Object)} to avoid confusion
 	 */
+	@Deprecated
 	public static Object serialize(Object object) {
+		return serialize(Mode.YAML, object);
+	}
 
-		synchronized (serializers) {
+	/**
+	 * Converts the given object into something you can safely save in file as a string
+	 *
+	 * @param mode determines the file that the object originated from, if unsure just set to YAML
+	 * @param object
+	 * @return
+	 */
+	public static Object serialize(Mode mode, Object object) {
+		if (object == null)
+			return null;
 
-			if (object == null)
-				return null;
+		final boolean isJson = mode == Mode.JSON;
+		object = Remain.getRootOfSectionPathData(object);
 
-			object = Remain.getRootOfSectionPathData(object);
+		if (serializers.containsKey(object.getClass()))
+			return serializers.get(object.getClass()).apply(object);
 
-			if (serializers.containsKey(object.getClass()))
-				return serializers.get(object.getClass()).apply(object);
+		if (object instanceof ConfigurationSerializable) {
 
-			if (object instanceof ConfigurationSerializable) {
+			if (isJson) {
+				if (object instanceof ItemStack)
+					return JsonItemStack.toJson((ItemStack) object);
 
-				if (mode == Mode.JSON) {
-					if (object instanceof ItemStack)
-						return JsonItemStack.toJson((ItemStack) object);
-
-					throw new FoException("serializing " + object.getClass().getSimpleName() + " to JSON is not implemented! Please serialize it to string manually first!");
-				}
-
-				return object;
-
-			} else if (object instanceof ConfigSerializable)
-				return serialize(((ConfigSerializable) object).serialize().serialize());
-
-			else if (object instanceof StrictCollection)
-				return serialize(((StrictCollection) object).serialize());
-
-			else if (object instanceof ChatColor)
-				return ((ChatColor) object).name();
-
-			else if (object instanceof CompChatColor)
-				return ((CompChatColor) object).toSaveableString();
-
-			else if (object instanceof net.md_5.bungee.api.ChatColor) {
-				final net.md_5.bungee.api.ChatColor color = (net.md_5.bungee.api.ChatColor) object;
-
-				return MinecraftVersion.atLeast(V.v1_16) ? color.toString() : color.name();
+				throw new FoException("serializing " + object.getClass().getSimpleName() + " to JSON is not implemented! Please serialize it to string manually first!");
 			}
 
-			else if (object instanceof CompMaterial)
-				return object.toString();
+			return object;
 
-			else if (object instanceof Location)
-				return serializeLoc((Location) object);
+		} else if (object instanceof ConfigSerializable)
+			return serialize(mode, ((ConfigSerializable) object).serialize().serialize());
 
-			else if (object instanceof BoxedMessage) {
-				final String message = ((BoxedMessage) object).getMessage();
+		else if (object instanceof StrictCollection)
+			return serialize(mode, ((StrictCollection) object).serialize());
 
-				return message == null || "".equals(message) || "null".equals(message) ? null : message;
+		else if (object instanceof ChatColor)
+			return ((ChatColor) object).name();
 
-			} else if (object instanceof UUID)
-				return object.toString();
+		else if (object instanceof CompChatColor)
+			return ((CompChatColor) object).toSaveableString();
 
-			else if (object instanceof Enum<?>)
-				return object.toString();
+		else if (object instanceof net.md_5.bungee.api.ChatColor) {
+			final net.md_5.bungee.api.ChatColor color = (net.md_5.bungee.api.ChatColor) object;
 
-			else if (object instanceof CommandSender)
-				return ((CommandSender) object).getName();
-
-			else if (object instanceof World)
-				return ((World) object).getName();
-
-			else if (object instanceof Entity)
-				return Remain.getName((Entity) object);
-
-			else if (object instanceof PotionEffectType)
-				return ((PotionEffectType) object).getName();
-
-			else if (object instanceof PotionEffect)
-				return serializePotionEffect((PotionEffect) object);
-
-			else if (object instanceof ItemCreator)
-				return serialize(((ItemCreator) object).make());
-
-			else if (object instanceof SimpleTime)
-				return ((SimpleTime) object).getRaw();
-
-			else if (object instanceof SimpleSound)
-				return ((SimpleSound) object).toString();
-
-			else if (object instanceof Color)
-				return "#" + ((Color) object).getRGB();
-
-			else if (object instanceof RangedValue)
-				return ((RangedValue) object).toLine();
-
-			else if (object instanceof RangedSimpleTime)
-				return ((RangedSimpleTime) object).toLine();
-
-			else if (object instanceof BaseComponent)
-				return Remain.toJson((BaseComponent) object);
-
-			else if (object instanceof BaseComponent[])
-				return Remain.toJson((BaseComponent[]) object);
-
-			else if (object instanceof HoverEvent) {
-				final HoverEvent event = (HoverEvent) object;
-				final SerializedMap map = SerializedMap.ofArray("Action", event.getAction(), "Value", event.getValue());
-
-				return mode == Mode.JSON ? serialize(map.asMap()) : map.serialize();
-			}
-
-			else if (object instanceof ClickEvent) {
-				final ClickEvent event = (ClickEvent) object;
-				final SerializedMap map = SerializedMap.ofArray("Action", event.getAction(), "Value", event.getValue());
-
-				return mode == Mode.JSON ? serialize(map.asMap()) : map.serialize();
-			}
-
-			else if (object instanceof Path)
-				throw new FoException("Cannot serialize Path " + object + ", did you mean to convert it into a name?");
-
-			else if (object instanceof Iterable || object.getClass().isArray() || object instanceof IsInList) {
-
-				if (mode == Mode.YAML) {
-					final List<Object> serialized = new ArrayList<>();
-
-					if (object instanceof Iterable || object instanceof IsInList)
-						for (final Object element : object instanceof IsInList ? ((IsInList<?>) object).getList() : (Iterable<?>) object)
-							serialized.add(serialize(element));
-
-					else
-						for (final Object element : (Object[]) object)
-							serialized.add(serialize(element));
-
-					return serialized;
-
-				} else if (mode == Mode.JSON) {
-					final JSONArray jsonList = new JSONArray();
-
-					if (object instanceof Iterable || object instanceof IsInList)
-						for (Object element : object instanceof IsInList ? ((IsInList<?>) object).getList() : (Iterable<?>) object) {
-							element = serialize(element);
-
-							try {
-								if (element != null)
-									jsonList.add(JSONParser.getInstance().parse(element.toString()));
-
-							} catch (final JSONParseException e) {
-								jsonList.add(element);
-							}
-						}
-
-					else
-						for (Object element : (Object[]) object) {
-							element = serialize(element);
-
-							try {
-								if (element != null)
-									jsonList.add(JSONParser.getInstance().parse(element.toString()));
-
-							} catch (final JSONParseException e) {
-								jsonList.add(element);
-							}
-						}
-
-					return jsonList;
-
-				} else
-					throw new FoException("Serializing lists for mode " + mode + " not implemented!");
-
-			} else if (object instanceof Map || object instanceof StrictMap) {
-				final Map<Object, Object> oldMap = object instanceof StrictMap ? ((StrictMap<Object, Object>) object).getSource() : (Map<Object, Object>) object;
-
-				if (mode == Mode.YAML) {
-					final Map<Object, Object> newMap = new LinkedHashMap<>();
-
-					for (final Map.Entry<Object, Object> entry : oldMap.entrySet())
-						newMap.put(serialize(entry.getKey()), serialize(entry.getValue()));
-
-					return newMap;
-
-				} else if (mode == Mode.JSON) {
-					final JSONObject json = new JSONObject();
-
-					for (final Map.Entry<Object, Object> entry : oldMap.entrySet()) {
-						final Object key = serialize(entry.getKey());
-						final Object value = serialize(entry.getValue());
-
-						if (key != null)
-							Valid.checkBoolean(key instanceof String, "JSON requires Map to be translated into keys that are String only, found " + key.getClass().getSimpleName() + ": " + key + " with value " + value);
-
-						if (value != null)
-							Valid.checkBoolean(value instanceof String || value instanceof Boolean || value instanceof Character || value instanceof Number || value instanceof List
-									|| value instanceof JSONObject || value instanceof JSONArray,
-									"JSON requires Map to be translated into values that are String or List only, found " + value.getClass().getSimpleName() + ": " + value + " for key " + key);
-
-						if (value instanceof List) {
-							final JSONArray array = new JSONArray();
-
-							for (final Object listValue : (List<?>) value)
-								if (listValue == null || listValue instanceof Boolean || listValue instanceof Character || listValue instanceof String || listValue instanceof Number
-								|| listValue instanceof JSONArray || listValue instanceof JSONObject)
-									array.add(listValue);
-
-								else
-									throw new FoException("JSON requires List to only contain primitive types or strings, found " + listValue.getClass().getSimpleName() + ": " + listValue);
-
-							json.put(key == null ? null : key, array);
-
-						} else
-							json.put(key == null ? null : key, value == null ? null : value);
-					}
-
-					return json;
-
-				} else
-					throw new FoException("Serializing maps for mode " + mode + " not implemented!");
-			}
-
-			else if (object instanceof MemorySection)
-				return serialize(Common.getMapFromSection(object));
-
-			else if (object instanceof ConfigSection)
-				return serialize(((ConfigSection) object).getValues(true));
-
-			else if (object instanceof Pattern)
-				return ((Pattern) object).pattern();
-
-			else if (object instanceof Integer || object instanceof Double || object instanceof Float || object instanceof Long || object instanceof Short
-					|| object instanceof String || object instanceof Boolean || object instanceof Character)
-				return object;
-
-			throw new SerializeFailedException("Does not know how to serialize " + object.getClass().getSimpleName() + "! Does it extends ConfigSerializable? Data: " + object);
+			return MinecraftVersion.atLeast(V.v1_16) ? color.toString() : color.name();
 		}
 
+		else if (object instanceof CompMaterial)
+			return object.toString();
+
+		else if (object instanceof Location)
+			return serializeLoc((Location) object);
+
+		else if (object instanceof BoxedMessage) {
+			final String message = ((BoxedMessage) object).getMessage();
+
+			return message == null || "".equals(message) || "null".equals(message) ? null : message;
+
+		} else if (object instanceof UUID)
+			return object.toString();
+
+		else if (object instanceof Enum<?>)
+			return object.toString();
+
+		else if (object instanceof CommandSender)
+			return ((CommandSender) object).getName();
+
+		else if (object instanceof World)
+			return ((World) object).getName();
+
+		else if (object instanceof Entity)
+			return Remain.getName((Entity) object);
+
+		else if (object instanceof PotionEffectType)
+			return ((PotionEffectType) object).getName();
+
+		else if (object instanceof PotionEffect)
+			return serializePotionEffect((PotionEffect) object);
+
+		else if (object instanceof ItemCreator)
+			return serialize(mode, ((ItemCreator) object).make());
+
+		else if (object instanceof SimpleTime)
+			return ((SimpleTime) object).getRaw();
+
+		else if (object instanceof SimpleSound)
+			return ((SimpleSound) object).toString();
+
+		else if (object instanceof Color)
+			return "#" + ((Color) object).getRGB();
+
+		else if (object instanceof RangedValue)
+			return ((RangedValue) object).toLine();
+
+		else if (object instanceof RangedSimpleTime)
+			return ((RangedSimpleTime) object).toLine();
+
+		else if (object instanceof BaseComponent)
+			return Remain.toJson((BaseComponent) object);
+
+		else if (object instanceof BaseComponent[])
+			return Remain.toJson((BaseComponent[]) object);
+
+		else if (object instanceof HoverEvent) {
+			final HoverEvent event = (HoverEvent) object;
+			final SerializedMap map = SerializedMap.ofArray("Action", event.getAction(), "Value", event.getValue());
+
+			return isJson ? serialize(mode, map.asMap()) : map.serialize();
+		}
+
+		else if (object instanceof ClickEvent) {
+			final ClickEvent event = (ClickEvent) object;
+			final SerializedMap map = SerializedMap.ofArray("Action", event.getAction(), "Value", event.getValue());
+
+			return isJson ? serialize(mode, map.asMap()) : map.serialize();
+		}
+
+		else if (object instanceof Path)
+			throw new FoException("Cannot serialize Path " + object + ", did you mean to convert it into a name?");
+
+		else if (object instanceof Iterable || object.getClass().isArray() || object instanceof IsInList) {
+
+			if (isJson) {
+				final JSONArray jsonList = new JSONArray();
+
+				if (object instanceof Iterable || object instanceof IsInList)
+					for (final Object element : object instanceof IsInList ? ((IsInList<?>) object).getList() : (Iterable<?>) object)
+						addJsonElement(element, jsonList);
+
+				else
+					for (final Object element : (Object[]) object)
+						addJsonElement(element, jsonList);
+
+				return jsonList;
+			}
+
+			else {
+				final List<Object> serialized = new ArrayList<>();
+
+				if (object instanceof Iterable || object instanceof IsInList)
+					for (final Object element : object instanceof IsInList ? ((IsInList<?>) object).getList() : (Iterable<?>) object)
+						serialized.add(serialize(mode, element));
+
+				else
+					for (final Object element : (Object[]) object)
+						serialized.add(serialize(mode, element));
+
+				return serialized;
+
+			}
+
+		} else if (object instanceof Map || object instanceof StrictMap) {
+			final Map<Object, Object> oldMap = object instanceof StrictMap ? ((StrictMap<Object, Object>) object).getSource() : (Map<Object, Object>) object;
+
+			if (isJson) {
+				final JSONObject json = new JSONObject();
+
+				for (final Map.Entry<Object, Object> entry : oldMap.entrySet()) {
+					final Object key = serialize(mode, entry.getKey());
+					final Object value = serialize(mode, entry.getValue());
+
+					if (key != null)
+						Valid.checkBoolean(key instanceof String || key instanceof Number,
+								"JSON requires Map to be translated into keys that are String or Numbers, found " + key.getClass().getSimpleName() + " key: " + key + " with value '" + value + "'");
+
+					if (value != null)
+						Valid.checkBoolean(value instanceof String || value instanceof Boolean || value instanceof Character || value instanceof Number || value instanceof List
+								|| value instanceof JSONObject || value instanceof JSONArray,
+								"JSON requires Map to be translated into values that are String or List only, found " + value.getClass().getSimpleName() + ": " + value + " for key " + key);
+
+					if (value instanceof List) {
+						final JSONArray array = new JSONArray();
+
+						for (final Object listValue : (List<?>) value)
+							if (listValue == null || listValue instanceof Boolean || listValue instanceof Character || listValue instanceof String || listValue instanceof Number
+									|| listValue instanceof JSONArray || listValue instanceof JSONObject)
+								array.add(listValue);
+
+							else
+								throw new FoException("JSON requires List to only contain primitive types or strings, found " + listValue.getClass().getSimpleName() + ": " + listValue);
+
+						json.put(key == null ? null : key.toString(), array);
+
+					} else
+						json.put(key == null ? null : key.toString(), value == null ? null : value);
+				}
+
+				return json;
+
+			}
+
+			else {
+				final Map<Object, Object> newMap = new LinkedHashMap<>();
+
+				for (final Map.Entry<Object, Object> entry : oldMap.entrySet())
+					newMap.put(serialize(mode, entry.getKey()), serialize(mode, entry.getValue()));
+
+				return newMap;
+			}
+		}
+
+		else if (object instanceof MemorySection)
+			return serialize(mode, Common.getMapFromSection(object));
+
+		else if (object instanceof ConfigSection)
+			return serialize(mode, ((ConfigSection) object).getValues(true));
+
+		else if (object instanceof Pattern)
+			return ((Pattern) object).pattern();
+
+		else if (object instanceof Integer || object instanceof Double || object instanceof Float || object instanceof Long || object instanceof Short
+				|| object instanceof String || object instanceof Boolean || object instanceof Character)
+			return object;
+
+		else if (object instanceof BigDecimal) {
+			final BigDecimal big = (BigDecimal) object;
+
+			return big.toPlainString();
+		}
+
+		throw new SerializeFailedException("Does not know how to serialize " + object.getClass().getSimpleName() + "! Does it extends ConfigSerializable? Data: " + object);
+	}
+
+	/*
+	 * Helps to add an unknown element into a json list
+	 */
+	private static void addJsonElement(Object element, JSONArray jsonList) {
+		if (element == null)
+			return;
+
+		if (element instanceof Jsonable)
+			jsonList.add(element);
+
+		else {
+			element = serialize(Mode.JSON, element);
+
+			// Assume the element is a JSON string
+			try {
+				jsonList.add(JSONParser.deserialize(element.toString()));
+
+			} catch (final JSONParseException ex) {
+				final String message = ex.getMessage();
+
+				// Apparently not a json string :/
+				if (message.contains("The unexpected character") && (message.contains("was found at position 0") || message.contains("was found at position 1")))
+					jsonList.add(element.toString());
+				else
+					Common.error(ex, "Failed to deserialize JSON collection from string: " + element);
+			}
+		}
 	}
 
 	/**
@@ -381,7 +390,7 @@ public final class SerializeUtil {
 	// ------------------------------------------------------------------------------------------------------------
 
 	/**
-	 * Attempts to convert the given object into a class
+	 * Attempts to convert the given object from YAML settings into a class
 	 * <p>
 	 * Example: Call deserialize(Location.class, "worldName 5 -1 47") to convert that into a Bukkit location object
 	 *
@@ -389,9 +398,27 @@ public final class SerializeUtil {
 	 * @param classOf
 	 * @param object
 	 * @return
+	 *
+	 * @deprecated defaults to YAML always, it's recommended you call {@link #deserialize(Mode, Class, Object)} to avoid confusion
 	 */
+	@Deprecated
 	public static <T> T deserialize(@NonNull final Class<T> classOf, @NonNull final Object object) {
-		return deserialize(classOf, object, (Object[]) null);
+		return deserialize(Mode.YAML, classOf, object);
+	}
+
+	/**
+	 * Attempts to convert the given object into a class
+	 * <p>
+	 * Example: Call deserialize(Location.class, "worldName 5 -1 47") to convert that into a Bukkit location object
+	 *
+	 * @param <T>
+	 * @param mode determines the file that the object originated from, if unsure just set to YAML
+	 * @param classOf
+	 * @param object
+	 * @return
+	 */
+	public static <T> T deserialize(@NonNull Mode mode, @NonNull final Class<T> classOf, @NonNull final Object object) {
+		return deserialize(mode, classOf, object, (Object[]) null);
 	}
 
 	/**
@@ -403,241 +430,259 @@ public final class SerializeUtil {
 	 * @param object
 	 * @param parameters
 	 * @return
+	 *
+	 * @deprecated defaults to YAML always, it's recommended you call {@link #deserialize(Mode, Class, Object, Object...)} to avoid confusion
+	 */
+	@Deprecated
+	public static <T> T deserialize(@NonNull final Class<T> classOf, @NonNull Object object, final Object... parameters) {
+		return deserialize(Mode.YAML, classOf, object, parameters);
+	}
+
+	/**
+	 * Please see {@link #deserialize(Class, Object)}, plus that this method
+	 * allows you to parse through more arguments to the static deserialize method
+	 *
+	 * @param <T>
+	 * @param mode determines the file that the object originated from, if unsure just set to YAML
+	 * @param classOf
+	 * @param object
+	 * @param parameters
+	 * @return
 	 */
 	@SuppressWarnings("rawtypes")
-	public static <T> T deserialize(@NonNull final Class<T> classOf, @NonNull Object object, final Object... parameters) {
+	public static <T> T deserialize(@NonNull Mode mode, @NonNull final Class<T> classOf, @NonNull Object object, final Object... parameters) {
 
-		synchronized (serializers) {
-			if (classOf == String.class)
-				object = object.toString();
+		final boolean isJson = mode == Mode.JSON;
 
-			else if (classOf == Integer.class)
-				object = Integer.parseInt(object.toString());
+		if (classOf == String.class)
+			object = object.toString();
 
-			else if (classOf == Long.class)
-				object = Long.decode(object.toString());
+		else if (classOf == Integer.class)
+			object = Integer.parseInt(object.toString());
 
-			else if (classOf == Double.class)
-				object = Double.parseDouble(object.toString());
+		else if (classOf == Long.class)
+			object = Long.decode(object.toString());
 
-			else if (classOf == Float.class)
-				object = Float.parseFloat(object.toString());
+		else if (classOf == Double.class)
+			object = Double.parseDouble(object.toString());
 
-			else if (classOf == Boolean.class)
-				object = Boolean.parseBoolean(object.toString());
+		else if (classOf == Float.class)
+			object = Float.parseFloat(object.toString());
 
-			else if (classOf == SerializedMap.class)
-				object = mode == Mode.JSON ? SerializedMap.fromJson(object.toString()) : SerializedMap.of(object);
+		else if (classOf == Boolean.class)
+			object = Boolean.parseBoolean(object.toString());
 
-			else if (classOf == BoxedMessage.class)
-				object = new BoxedMessage(object.toString());
+		else if (classOf == SerializedMap.class)
+			object = isJson ? SerializedMap.fromJson(object.toString()) : SerializedMap.of(object);
 
-			else if (classOf == Location.class)
-				object = deserializeLocation(object);
+		else if (classOf == BoxedMessage.class)
+			object = new BoxedMessage(object.toString());
 
-			else if (classOf == PotionEffectType.class)
-				object = PotionEffectType.getByName(object.toString());
+		else if (classOf == Location.class)
+			object = deserializeLocation(object);
 
-			else if (classOf == PotionEffect.class)
-				object = deserializePotionEffect(object);
+		else if (classOf == PotionEffectType.class)
+			object = PotionEffectType.getByName(object.toString());
 
-			else if (classOf == SimpleTime.class)
-				object = SimpleTime.from(object.toString());
+		else if (classOf == PotionEffect.class)
+			object = deserializePotionEffect(object);
 
-			else if (classOf == CompMaterial.class)
-				object = CompMaterial.fromStringStrict(object.toString());
+		else if (classOf == SimpleTime.class)
+			object = SimpleTime.from(object.toString());
 
-			else if (classOf == SimpleSound.class)
-				object = new SimpleSound(object.toString());
+		else if (classOf == CompMaterial.class)
+			object = CompMaterial.fromStringStrict(object.toString());
 
-			else if (classOf == RangedValue.class)
-				object = RangedValue.parse(object.toString());
+		else if (classOf == SimpleSound.class)
+			object = new SimpleSound(object.toString());
 
-			else if (classOf == RangedSimpleTime.class)
-				object = RangedSimpleTime.parse(object.toString());
+		else if (classOf == RangedValue.class)
+			object = RangedValue.parse(object.toString());
 
-			else if (classOf == net.md_5.bungee.api.ChatColor.class)
-				throw new FoException("Instead of net.md_5.bungee.api.ChatColor, use our CompChatColor");
+		else if (classOf == RangedSimpleTime.class)
+			object = RangedSimpleTime.parse(object.toString());
 
-			else if (classOf == CompChatColor.class)
-				object = CompChatColor.of(object.toString());
+		else if (classOf == net.md_5.bungee.api.ChatColor.class)
+			throw new FoException("Instead of net.md_5.bungee.api.ChatColor, use our CompChatColor");
 
-			else if (classOf == ItemStack.class)
-				object = deserializeItemStack(object);
+		else if (classOf == CompChatColor.class)
+			object = CompChatColor.of(object.toString());
 
-			else if (classOf == UUID.class)
-				object = UUID.fromString(object.toString());
+		else if (classOf == ItemStack.class)
+			object = deserializeItemStack(mode, object);
 
-			else if (classOf == BaseComponent.class) {
-				final BaseComponent[] deserialized = Remain.toComponent(object.toString());
-				Valid.checkBoolean(deserialized.length == 1, "Failed to deserialize into singular BaseComponent: " + object);
+		else if (classOf == UUID.class)
+			object = UUID.fromString(object.toString());
 
-				object = deserialized[0];
+		else if (classOf == BaseComponent.class) {
+			final BaseComponent[] deserialized = Remain.toComponent(object.toString());
+			Valid.checkBoolean(deserialized.length == 1, "Failed to deserialize into singular BaseComponent: " + object);
 
-			} else if (classOf == BaseComponent[].class)
-				object = Remain.toComponent(object.toString());
+			object = deserialized[0];
 
-			else if (classOf == HoverEvent.class) {
-				final SerializedMap serialized = mode == Mode.JSON ? SerializedMap.fromJson(object.toString()) : SerializedMap.of(object);
-				final HoverEvent.Action action = serialized.get("Action", HoverEvent.Action.class);
-				final BaseComponent[] value = serialized.get("Value", BaseComponent[].class);
+		} else if (classOf == BaseComponent[].class)
+			object = Remain.toComponent(object.toString());
 
-				object = new HoverEvent(action, value);
-			}
+		else if (classOf == HoverEvent.class) {
+			final SerializedMap serialized = isJson ? SerializedMap.fromJson(object.toString()) : SerializedMap.of(object);
+			final HoverEvent.Action action = serialized.get("Action", HoverEvent.Action.class);
+			final BaseComponent[] value = serialized.get("Value", BaseComponent[].class);
 
-			else if (classOf == ClickEvent.class) {
-				final SerializedMap serialized = mode == Mode.JSON ? SerializedMap.fromJson(object.toString()) : SerializedMap.of(object);
-				final ClickEvent.Action action = serialized.get("Action", ClickEvent.Action.class);
-				final String value = serialized.getString("Value");
-
-				object = new ClickEvent(action, value);
-			}
-
-			else if (Enchantment.class.isAssignableFrom(classOf)) {
-				String name = object.toString().toLowerCase();
-				Enchantment enchant = Enchantment.getByName(name);
-
-				if (enchant == null) {
-					name = name.toUpperCase();
-
-					enchant = Enchantment.getByName(name);
-				}
-
-				if (enchant == null) {
-					name = EnchantmentWrapper.toBukkit(name);
-					enchant = Enchantment.getByName(name);
-
-					if (enchant == null)
-						enchant = Enchantment.getByName(name.toLowerCase());
-
-					if (enchant == null)
-						enchant = Enchantment.getByName(name.toUpperCase());
-				}
-
-				Valid.checkNotNull(enchant, "Invalid enchantment '" + name + "'! For valid names, see: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/enchantments/Enchantment.html");
-				object = enchant;
-			}
-
-			else if (PotionEffectType.class.isAssignableFrom(classOf)) {
-				final String name = PotionWrapper.getBukkitName(object.toString());
-				final PotionEffectType potion = PotionEffectType.getByName(name);
-
-				Valid.checkNotNull(potion, "Invalid potion '" + name + "'! For valid names, see: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/potion/PotionEffectType.html");
-				object = potion;
-			}
-
-			else if (Enum.class.isAssignableFrom(classOf)) {
-				object = ReflectionUtil.lookupEnum((Class<Enum>) classOf, object.toString());
-
-				if (object == null)
-					return null;
-			}
-
-			else if (Color.class.isAssignableFrom(classOf))
-				object = CompChatColor.of(object.toString()).getColor();
-			else if (List.class.isAssignableFrom(classOf) && object instanceof List) {
-				// Good
-
-			} else if (Map.class.isAssignableFrom(classOf)) {
-				if (object instanceof Map)
-					return (T) object;
-
-				if (object instanceof MemorySection)
-					return (T) Common.getMapFromSection(object);
-
-				if (object instanceof ConfigSection)
-					return (T) ((ConfigSection) object).getValues(false);
-
-				if (mode == Mode.JSON)
-					return (T) SerializedMap.fromJson(object.toString()).asMap();
-
-				throw new SerializeFailedException("Does not know how to turn " + object.getClass().getSimpleName() + " into a Map! (Keep in mind we can only serialize into Map<String, Object> Data: " + object);
-
-			} else if (ConfigurationSerializable.class.isAssignableFrom(classOf) && object instanceof ConfigurationSerializable) {
-
-				if (mode == Mode.JSON)
-					throw new FoException("Deserializing JSON into " + classOf + " is not implemented, please do it manually");
-
-			} else if (classOf.isArray()) {
-				final Class<?> arrayType = classOf.getComponentType();
-				T[] array;
-
-				if (object instanceof List) {
-					final List<?> rawList = (List<?>) object;
-					array = (T[]) Array.newInstance(classOf.getComponentType(), rawList.size());
-
-					for (int i = 0; i < rawList.size(); i++) {
-						final Object element = rawList.get(i);
-
-						array[i] = element == null ? null : (T) deserialize(arrayType, element, (Object[]) null);
-					}
-				}
-
-				else {
-					final Object[] rawArray = (Object[]) object;
-					array = (T[]) Array.newInstance(classOf.getComponentType(), rawArray.length);
-
-					for (int i = 0; i < array.length; i++)
-						array[i] = rawArray[i] == null ? null : (T) deserialize(classOf.getComponentType(), rawArray[i], (Object[]) null);
-				}
-
-				return (T) array;
-
-			}
-
-			// Try to call our own serializers
-			else if (ConfigSerializable.class.isAssignableFrom(classOf)) {
-				if (parameters != null && parameters.length > 0) {
-					final List<Class<?>> argumentClasses = new ArrayList<>();
-					final List<Object> arguments = new ArrayList<>();
-
-					// Build parameters
-					argumentClasses.add(SerializedMap.class);
-					for (final Object param : parameters)
-						argumentClasses.add(param.getClass());
-
-					// Build parameter instances
-					arguments.add(mode == Mode.JSON ? SerializedMap.fromJson(object.toString()) : SerializedMap.of(object));
-					Collections.addAll(arguments, parameters);
-
-					// Find deserialize(SerializedMap, args[]) method
-					final Method deserialize = ReflectionUtil.getMethod(classOf, "deserialize", argumentClasses.toArray(new Class[argumentClasses.size()]));
-
-					Valid.checkNotNull(deserialize,
-							"Expected " + classOf.getSimpleName() + " to have a public static deserialize(SerializedMap, " + Common.join(argumentClasses) + ") method to deserialize: " + object + " when params were given: " + Common.join(parameters));
-
-					Valid.checkBoolean(argumentClasses.size() == arguments.size(),
-							classOf.getSimpleName() + "#deserialize(SerializedMap, " + argumentClasses.size() + " args) expected, " + arguments.size() + " given to deserialize: " + object);
-
-					return ReflectionUtil.invokeStatic(deserialize, arguments.toArray());
-				}
-
-				final Method deserialize = ReflectionUtil.getMethod(classOf, "deserialize", SerializedMap.class);
-
-				if (deserialize != null)
-					return ReflectionUtil.invokeStatic(deserialize, mode == Mode.JSON ? SerializedMap.fromJson(object.toString()) : SerializedMap.of(object));
-
-				throw new SerializeFailedException("Unable to deserialize " + classOf.getSimpleName()
-				+ ", please write 'public static deserialize(SerializedMap map) or deserialize(SerializedMap map, X arg1, Y arg2, etc.) method to deserialize: " + object);
-			}
-
-			// Step 3 - Search for "getByName" method used by us or some Bukkit classes such as Enchantment
-			else if (object instanceof String) {
-				final Method method = ReflectionUtil.getMethod(classOf, "getByName", String.class);
-
-				if (method != null)
-					return ReflectionUtil.invokeStatic(method, object);
-			}
-
-			else if (classOf == Object.class) {
-				// Good
-			}
-
-			else
-				throw new SerializeFailedException("Does not know how to turn " + classOf + " into a serialized object from data: " + object);
-
-			return (T) object;
+			object = new HoverEvent(action, value);
 		}
+
+		else if (classOf == ClickEvent.class) {
+			final SerializedMap serialized = isJson ? SerializedMap.fromJson(object.toString()) : SerializedMap.of(object);
+			final ClickEvent.Action action = serialized.get("Action", ClickEvent.Action.class);
+			final String value = serialized.getString("Value");
+
+			object = new ClickEvent(action, value);
+		}
+
+		else if (Enchantment.class.isAssignableFrom(classOf)) {
+			String name = object.toString().toLowerCase();
+			Enchantment enchant = Enchantment.getByName(name);
+
+			if (enchant == null) {
+				name = name.toUpperCase();
+
+				enchant = Enchantment.getByName(name);
+			}
+
+			if (enchant == null) {
+				name = EnchantmentWrapper.toBukkit(name);
+				enchant = Enchantment.getByName(name);
+
+				if (enchant == null)
+					enchant = Enchantment.getByName(name.toLowerCase());
+
+				if (enchant == null)
+					enchant = Enchantment.getByName(name.toUpperCase());
+			}
+
+			Valid.checkNotNull(enchant, "Invalid enchantment '" + name + "'! For valid names, see: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/enchantments/Enchantment.html");
+			object = enchant;
+		}
+
+		else if (PotionEffectType.class.isAssignableFrom(classOf)) {
+			final String name = PotionWrapper.getBukkitName(object.toString());
+			final PotionEffectType potion = PotionEffectType.getByName(name);
+
+			Valid.checkNotNull(potion, "Invalid potion '" + name + "'! For valid names, see: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/potion/PotionEffectType.html");
+			object = potion;
+		}
+
+		else if (Enum.class.isAssignableFrom(classOf)) {
+			object = ReflectionUtil.lookupEnum((Class<Enum>) classOf, object.toString());
+
+			if (object == null)
+				return null;
+		}
+
+		else if (Color.class.isAssignableFrom(classOf))
+			object = CompChatColor.of(object.toString()).getColor();
+		else if (List.class.isAssignableFrom(classOf) && object instanceof List) {
+			// Good
+
+		} else if (Map.class.isAssignableFrom(classOf)) {
+			if (object instanceof Map)
+				return (T) object;
+
+			if (object instanceof MemorySection)
+				return (T) Common.getMapFromSection(object);
+
+			if (object instanceof ConfigSection)
+				return (T) ((ConfigSection) object).getValues(false);
+
+			if (isJson)
+				return (T) SerializedMap.fromJson(object.toString()).asMap();
+
+			throw new SerializeFailedException("Does not know how to turn " + object.getClass().getSimpleName() + " into a Map! (Keep in mind we can only serialize into Map<String, Object> Data: " + object);
+
+		} else if (ConfigurationSerializable.class.isAssignableFrom(classOf) && object instanceof ConfigurationSerializable) {
+
+			if (isJson)
+				throw new FoException("Deserializing JSON into " + classOf + " is not implemented, please do it manually");
+
+		} else if (classOf.isArray()) {
+			final Class<?> arrayType = classOf.getComponentType();
+			T[] array;
+
+			if (object instanceof List) {
+				final List<?> rawList = (List<?>) object;
+				array = (T[]) Array.newInstance(classOf.getComponentType(), rawList.size());
+
+				for (int i = 0; i < rawList.size(); i++) {
+					final Object element = rawList.get(i);
+
+					array[i] = element == null ? null : (T) deserialize(mode, arrayType, element, (Object[]) null);
+				}
+			}
+
+			else {
+				final Object[] rawArray = (Object[]) object;
+				array = (T[]) Array.newInstance(classOf.getComponentType(), rawArray.length);
+
+				for (int i = 0; i < array.length; i++)
+					array[i] = rawArray[i] == null ? null : (T) deserialize(mode, classOf.getComponentType(), rawArray[i], (Object[]) null);
+			}
+
+			return (T) array;
+
+		}
+
+		// Try to call our own serializers
+		else if (ConfigSerializable.class.isAssignableFrom(classOf)) {
+			if (parameters != null && parameters.length > 0) {
+				final List<Class<?>> argumentClasses = new ArrayList<>();
+				final List<Object> arguments = new ArrayList<>();
+
+				// Build parameters
+				argumentClasses.add(SerializedMap.class);
+				for (final Object param : parameters)
+					argumentClasses.add(param.getClass());
+
+				// Build parameter instances
+				arguments.add(isJson ? SerializedMap.fromJson(object.toString()) : SerializedMap.of(object));
+				Collections.addAll(arguments, parameters);
+
+				// Find deserialize(SerializedMap, args[]) method
+				final Method deserialize = ReflectionUtil.getMethod(classOf, "deserialize", argumentClasses.toArray(new Class[argumentClasses.size()]));
+
+				Valid.checkNotNull(deserialize,
+						"Expected " + classOf.getSimpleName() + " to have a public static deserialize(SerializedMap, " + Common.join(argumentClasses) + ") method to deserialize: " + object + " when params were given: " + Common.join(parameters));
+
+				Valid.checkBoolean(argumentClasses.size() == arguments.size(),
+						classOf.getSimpleName() + "#deserialize(SerializedMap, " + argumentClasses.size() + " args) expected, " + arguments.size() + " given to deserialize: " + object);
+
+				return ReflectionUtil.invokeStatic(deserialize, arguments.toArray());
+			}
+
+			final Method deserialize = ReflectionUtil.getMethod(classOf, "deserialize", SerializedMap.class);
+
+			if (deserialize != null)
+				return ReflectionUtil.invokeStatic(deserialize, isJson ? SerializedMap.fromJson(object.toString()) : SerializedMap.of(object));
+
+			throw new SerializeFailedException("Unable to deserialize " + classOf.getSimpleName()
+					+ ", please write 'public static deserialize(SerializedMap map) or deserialize(SerializedMap map, X arg1, Y arg2, etc.) method to deserialize: " + object);
+		}
+
+		// Step 3 - Search for "getByName" method used by us or some Bukkit classes such as Enchantment
+		else if (object instanceof String) {
+			final Method method = ReflectionUtil.getMethod(classOf, "getByName", String.class);
+
+			if (method != null)
+				return ReflectionUtil.invokeStatic(method, object);
+		}
+
+		else if (classOf == Object.class) {
+			// Good
+		}
+
+		else
+			throw new SerializeFailedException("Does not know how to turn " + classOf + " into a serialized object from data: " + object);
+
+		return (T) object;
 	}
 
 	/**
@@ -732,7 +777,7 @@ public final class SerializeUtil {
 	 * @param obj
 	 * @return
 	 */
-	private static ItemStack deserializeItemStack(@NonNull Object obj) {
+	private static ItemStack deserializeItemStack(@NonNull Mode mode, @NonNull Object obj) {
 		try {
 
 			if (obj instanceof ItemStack)
@@ -802,6 +847,14 @@ public final class SerializeUtil {
 
 			return null;
 		}
+	}
+
+	/**
+	 * How should we de/serialize the objects in this class?
+	 */
+	public enum Mode {
+		JSON,
+		YAML
 	}
 
 	/**

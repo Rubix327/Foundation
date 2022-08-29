@@ -31,7 +31,6 @@ import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.collection.StrictList;
 import org.mineacademy.fo.collection.expiringmap.ExpiringMap;
 import org.mineacademy.fo.command.SimpleCommandGroup.MainCommand;
-import org.mineacademy.fo.debug.Debugger;
 import org.mineacademy.fo.debug.LagCatcher;
 import org.mineacademy.fo.exception.CommandException;
 import org.mineacademy.fo.exception.EventHandledException;
@@ -270,14 +269,8 @@ public abstract class SimpleCommand extends Command {
 
 		final PluginCommand oldCommand = Bukkit.getPluginCommand(this.getLabel());
 
-		if (oldCommand != null && unregisterOldCommand) {
-			final String owningPlugin = oldCommand.getPlugin().getName();
-
-			if (!owningPlugin.equals(SimplePlugin.getNamed()))
-				Debugger.debug("command", "Command /" + this.getLabel() + " already (" + owningPlugin + "), overriding and unregistering /" + oldCommand.getLabel() + ", /" + String.join(", /", oldCommand.getAliases()));
-
+		if (oldCommand != null && unregisterOldCommand)
 			Remain.unregisterCommand(oldCommand.getLabel(), unregisterOldAliases);
-		}
 
 		Remain.registerCommand(this);
 		this.registered = true;
@@ -382,8 +375,8 @@ public abstract class SimpleCommand extends Command {
 					}
 
 					paginator
-					.setFoundationHeader(SimpleLocalization.Commands.LABEL_HELP_FOR.replace("{label}", this.getLabel() + sublabel))
-					.setPages(Common.toArray(pages));
+							.setFoundationHeader(SimpleLocalization.Commands.LABEL_HELP_FOR.replace("{label}", this.getLabel() + sublabel))
+							.setPages(Common.toArray(pages));
 
 					// Force sending on the main thread
 					Common.runLater(() -> paginator.send(sender));

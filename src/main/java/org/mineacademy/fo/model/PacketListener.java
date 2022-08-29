@@ -357,12 +357,9 @@ public abstract class PacketListener {
 
 			this.jsonMessage = Remain.toJson(message);
 
-			if (this.systemChat) {
+			if (this.systemChat)
 				event.getPacket().getStrings().writeSafely(0, this.jsonMessage);
-
-				System.out.println("Fixing: " + message);
-
-			} else if (this.isBaseComponent)
+			else if (this.isBaseComponent)
 				packet.writeSafely(this.adventure ? 2 : 1, Remain.toComponent(this.jsonMessage));
 
 			else if (MinecraftVersion.atLeast(V.v1_7))

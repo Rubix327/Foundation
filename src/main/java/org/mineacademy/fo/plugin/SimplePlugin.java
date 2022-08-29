@@ -222,7 +222,7 @@ public abstract class SimplePlugin extends JavaPlugin implements Listener {
 
 		final String version = Bukkit.getVersion();
 
-		if (suggestPaper() && !version.contains("Paper")
+		if (this.suggestPaper() && !version.contains("Paper")
 				&& !version.contains("Purpur")
 				&& !version.contains("NachoSpigot")
 				&& !version.contains("-Spigot")
@@ -505,7 +505,6 @@ public abstract class SimplePlugin extends JavaPlugin implements Listener {
 		messenger.registerOutgoingPluginChannel(this, bungee.getChannel());
 
 		this.reloadables.registerEvents(bungee);
-		Debugger.debug("bungee", "Registered BungeeCord listener on channel " + bungee.getChannel());
 	}
 
 	/**
@@ -903,13 +902,10 @@ public abstract class SimplePlugin extends JavaPlugin implements Listener {
 				if (con.getParameterCount() == 0) {
 					final T instance = (T) ReflectionUtil.instantiate(con);
 
-					Debugger.debug("auto-register", "Auto-registering events in " + pluginClass);
 					this.registerEvents(instance);
 
 					continue classLookup;
 				}
-
-			Debugger.debug("auto-register", "Skipping auto-registering events in " + pluginClass + " because it lacks at least one no arguments constructor");
 		}
 	}
 
@@ -963,18 +959,13 @@ public abstract class SimplePlugin extends JavaPlugin implements Listener {
 			if (pluginClass.isAnnotationPresent(AutoRegister.class))
 				continue;
 
-			if (SimpleSubCommand.class.isAssignableFrom(pluginClass)) {
-				Debugger.debug("auto-register", "Skipping auto-registering command " + pluginClass + " because sub-commands cannot be registered");
-
+			if (SimpleSubCommand.class.isAssignableFrom(pluginClass))
 				continue;
-			}
 
 			try {
 				for (final Constructor<?> con : pluginClass.getConstructors())
 					if (con.getParameterCount() == 0) {
 						final T instance = (T) ReflectionUtil.instantiate(con);
-
-						Debugger.debug("auto-register", "Auto-registering command " + pluginClass);
 
 						if (instance instanceof SimpleCommand)
 							this.registerCommand(instance);
@@ -988,8 +979,6 @@ public abstract class SimplePlugin extends JavaPlugin implements Listener {
 			} catch (final LinkageError ex) {
 				Common.log("Unable to register commands in '" + pluginClass.getSimpleName() + "' due to error: " + ex);
 			}
-
-			Debugger.debug("auto-register", "Skipping auto-registering command " + pluginClass + " because it lacks at least one no arguments constructor");
 		}
 	}
 
@@ -1065,7 +1054,7 @@ public abstract class SimplePlugin extends JavaPlugin implements Listener {
 	 * @return
 	 */
 	@Nullable
-	public final SimpleCommandGroup getMainCommand() {
+	public SimpleCommandGroup getMainCommand() {
 		return this.mainCommand;
 	}
 

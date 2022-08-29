@@ -26,6 +26,10 @@ public abstract class SimplePrompt extends ValidatingPrompt {
 	private boolean openMenu = true;
 
 	/**
+	 * See {@link SimpleConversation#isModal()}
+	 */
+
+	/**
 	 * The player who sees the input
 	 */
 	private Player player = null;
@@ -50,6 +54,15 @@ public abstract class SimplePrompt extends ValidatingPrompt {
 	 */
 	protected String getCustomPrefix() {
 		return null;
+	}
+
+	/**
+	 * @see {@link SimpleConversation#isModal()}
+	 *
+	 * @return
+	 */
+	protected boolean isModal() {
+		return true;
 	}
 
 	/**
@@ -219,6 +232,11 @@ public abstract class SimplePrompt extends ValidatingPrompt {
 			@Override
 			protected Prompt getFirstPrompt() {
 				return SimplePrompt.this;
+			}
+
+			@Override
+			protected boolean isModal() {
+				return SimplePrompt.this.isModal();
 			}
 
 			@Override

@@ -35,6 +35,8 @@ import org.mineacademy.fo.SerializeUtil.Mode;
 import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.collection.SerializedMap;
 import org.mineacademy.fo.collection.StrictList;
+import org.mineacademy.fo.command.SimpleCommand;
+import org.mineacademy.fo.command.SimpleCommandGroup;
 import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.model.BoxedMessage;
 import org.mineacademy.fo.model.ConfigSerializable;
@@ -1180,6 +1182,7 @@ public abstract class FileConfig {
 					this.load(new InputStreamReader(stream, StandardCharsets.UTF_8));
 
 				this.onLoad();
+				this.onLoadFinish();
 
 				if (this.shouldSave) {
 					this.loading = false;
@@ -1239,6 +1242,15 @@ public abstract class FileConfig {
 	}
 
 	/**
+	 * @see #onLoad()
+	 *
+	 * @deprecated Renamed to {@link #onLoad()}, use that instead.
+	 */
+	@Deprecated
+	protected void onLoadFinish() {
+	}
+
+	/**
 	 * Save the configuration to the file immediately (you need to call loadConfiguration(File) first)
 	 */
 	public final void save() {
@@ -1273,16 +1285,13 @@ public abstract class FileConfig {
 
 					final String data = this.saveToString();
 
-					if (data != null) {
-						final Writer writer = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8);
-
-						try {
+					if (data != null)
+						try (Writer writer = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)) {
 							writer.write(data);
 
-						} finally {
-							writer.close();
+						} catch (final Exception ex) {
+							Remain.sneaky(ex);
 						}
-					}
 
 					// Update file
 					this.file = file;
@@ -1308,6 +1317,10 @@ public abstract class FileConfig {
 	 */
 	protected void onSave() {
 		final SerializedMap map = this.saveToMap();
+		final SerializedMap legacy = this.serialize();
+
+		if (legacy != null)
+			map.put(legacy);
 
 		if (map != null)
 			for (final Map.Entry<String, Object> entry : map.entrySet())
@@ -1340,6 +1353,17 @@ public abstract class FileConfig {
 	 * @return
 	 */
 	public SerializedMap saveToMap() {
+		return null;
+	}
+
+	/**
+	 * @see #saveToMap()
+	 * @deprecated renamed, override {@link #saveToMap()} instead
+	 *
+	 * @return
+	 */
+	@Deprecated
+	protected SerializedMap serialize() {
 		return null;
 	}
 
@@ -1469,16 +1493,6 @@ public abstract class FileConfig {
 	 */
 	public final boolean isEmpty() {
 		return this.section.isEmpty();
-	}
-
-	/**
-	 * @deprecated unused, see {@link #saveToMap()}
-	 *
-	 * @return
-	 */
-	@Deprecated
-	public final SerializedMap serialize() {
-		throw new RuntimeException("serialize() is no longer used, override saveToMap() and use it manually instead. If you absolutely must use serialize, call getMap(\"\").serialize()");
 	}
 
 	// ------------------------------------------------------------------------------------

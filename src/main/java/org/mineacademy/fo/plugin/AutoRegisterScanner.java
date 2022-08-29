@@ -12,7 +12,6 @@ import org.mineacademy.fo.annotation.AutoRegister;
 import org.mineacademy.fo.bungee.BungeeListener;
 import org.mineacademy.fo.command.SimpleCommand;
 import org.mineacademy.fo.command.SimpleCommandGroup;
-import org.mineacademy.fo.debug.Debugger;
 import org.mineacademy.fo.event.SimpleListener;
 import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.menu.tool.Tool;
@@ -198,12 +197,11 @@ final class AutoRegisterScanner {
 		// A dirty solution to prioritize loading settings and then localization
 		final List<Class<?>> delayedLoading = new ArrayList<>();
 
-		for (final Class<?> customSettings : staticCustom) {
+		for (final Class<?> customSettings : staticCustom)
 			if (SimpleSettings.class.isAssignableFrom(customSettings))
 				YamlStaticConfig.load((Class<? extends YamlStaticConfig>) customSettings);
 			else
 				delayedLoading.add(customSettings);
-		}
 
 		for (final Class<?> delayedSettings : delayedLoading)
 			YamlStaticConfig.load((Class<? extends YamlStaticConfig>) delayedSettings);
@@ -241,7 +239,7 @@ final class AutoRegisterScanner {
 			if (printWarnings) {
 				Bukkit.getLogger().warning("**** WARNING ****");
 				Bukkit.getLogger().warning("SimpleEnchantment requires Minecraft 1.13.2 or greater. The following class will not be registered: " + clazz.getName()
-				+ ". To hide this message, put @AutoRegister(hideIncompatibilityWarnings=true) over the class.");
+						+ ". To hide this message, put @AutoRegister(hideIncompatibilityWarnings=true) over the class.");
 			}
 
 			return;
@@ -251,7 +249,7 @@ final class AutoRegisterScanner {
 			if (printWarnings) {
 				Bukkit.getLogger().warning("**** WARNING ****");
 				Bukkit.getLogger().warning("The following class requires DiscordSRV and won't be registered: " + clazz.getName()
-				+ ". To hide this message, put @AutoRegister(hideIncompatibilityWarnings=true) over the class.");
+						+ ". To hide this message, put @AutoRegister(hideIncompatibilityWarnings=true) over the class.");
 			}
 
 			return;
@@ -261,7 +259,7 @@ final class AutoRegisterScanner {
 			if (printWarnings && !clazz.equals(EnchantmentPacketListener.class)) {
 				Bukkit.getLogger().warning("**** WARNING ****");
 				Bukkit.getLogger().warning("The following class requires ProtocolLib and won't be registered: " + clazz.getName()
-				+ ". To hide this message, put @AutoRegister(hideIncompatibilityWarnings=true) over the class.");
+						+ ". To hide this message, put @AutoRegister(hideIncompatibilityWarnings=true) over the class.");
 			}
 
 			return;
@@ -295,10 +293,8 @@ final class AutoRegisterScanner {
 			eventsRegistered = true;
 		}
 
-		else if (SimpleCommand.class.isAssignableFrom(clazz)) {
+		else if (SimpleCommand.class.isAssignableFrom(clazz))
 			plugin.registerCommand((SimpleCommand) instance);
-		}
-
 		else if (SimpleCommandGroup.class.isAssignableFrom(clazz)) {
 			final SimpleCommandGroup group = (SimpleCommandGroup) instance;
 
@@ -331,12 +327,9 @@ final class AutoRegisterScanner {
 			((PacketListener) instance).onRegister();
 		}
 
-		else if (DiscordListener.class.isAssignableFrom(clazz)) {
-
+		else if (DiscordListener.class.isAssignableFrom(clazz))
 			// Automatically registered in its constructor
 			enforceModeFor(clazz, mode, FindInstance.SINGLETON);
-		}
-
 		else if (SimpleEnchantment.class.isAssignableFrom(clazz)) {
 
 			// Automatically registered in its constructor
@@ -351,12 +344,9 @@ final class AutoRegisterScanner {
 			enchantListenersRegistered = true;
 		}
 
-		else if (Tool.class.isAssignableFrom(clazz)) {
-
+		else if (Tool.class.isAssignableFrom(clazz))
 			// Automatically registered in its constructor
 			enforceModeFor(clazz, mode, FindInstance.SINGLETON);
-		}
-
 		else if (instance instanceof Listener) {
 			// Pass-through to register events later
 		}
@@ -367,8 +357,6 @@ final class AutoRegisterScanner {
 		// Register events if needed
 		if (!eventsRegistered && instance instanceof Listener)
 			plugin.registerEvents((Listener) instance);
-
-		Debugger.debug("auto-register", "Automatically registered " + clazz);
 	}
 
 	/*

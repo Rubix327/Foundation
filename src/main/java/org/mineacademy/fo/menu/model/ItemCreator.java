@@ -21,6 +21,7 @@ import org.mineacademy.fo.MinecraftVersion;
 import org.mineacademy.fo.MinecraftVersion.V;
 import org.mineacademy.fo.ReflectionUtil;
 import org.mineacademy.fo.Valid;
+import org.mineacademy.fo.model.SimpleEnchant;
 import org.mineacademy.fo.model.SimpleEnchantment;
 import org.mineacademy.fo.remain.*;
 import org.mineacademy.fo.remain.nbt.NBTItem;
@@ -141,7 +142,8 @@ public final class ItemCreator {
 	/**
 	 * If this is a book, you can set its new pages here.
 	 */
-	private final List<String> bookPages = new ArrayList<>();
+	@Nullable
+	private List<String> bookPages = null;
 
 	/**
 	 * If this a book, you can set its author here.
@@ -274,6 +276,16 @@ public final class ItemCreator {
 	/**
 	 * Add the given enchant to the item.
 	 *
+	 * @param enchant
+	 * @return
+	 */
+	public ItemCreator enchant(SimpleEnchant enchant) {
+		return this.enchant(enchant.getEnchant(), enchant.getLevel());
+	}
+
+	/**
+	 * Add the given enchant to the item.
+	 *
 	 * @param enchantment
 	 * @return
 	 */
@@ -292,6 +304,17 @@ public final class ItemCreator {
 		this.enchants.put(enchantment, level);
 
 		return this;
+	}
+
+	/**
+	 * @see #flags(CompItemFlag...)
+	 * @deprecated call {@link #flags(CompItemFlag...)} instead
+	 * @param flags
+	 * @return
+	 */
+	@Deprecated
+	public ItemCreator flag(CompItemFlag... flags) {
+		return this.flags(flags);
 	}
 
 	/**
@@ -477,6 +500,10 @@ public final class ItemCreator {
 	 * @return
 	 */
 	public ItemCreator bookPages(List<String> pages) {
+
+		if (this.bookPages == null)
+			this.bookPages = new ArrayList<>();
+
 		this.bookPages.addAll(pages);
 
 		return this;
@@ -524,6 +551,25 @@ public final class ItemCreator {
 	// ----------------------------------------------------------------------------------------
 
 	/**
+	 * @deprecated no longer needed, will simply return itself. Instead of calling "built().make()", now simple call "make()"
+	 * @return
+	 */
+	@Deprecated
+	public ItemCreator build() {
+		return this;
+	}
+
+	/**
+	 *
+	 * @deprecated simply returns {@link #make()} now, call that instead
+	 * @return
+	 */
+	@Deprecated
+	public ItemStack makeSurvival() {
+		return this.make();
+	}
+
+	/**
 	 * Make an unbreakable item with all attributes hidden, suitable for menu use.
 	 *
 	 * @return the new menu tool with all attributes hidden
@@ -562,48 +608,38 @@ public final class ItemCreator {
 
 		// Apply specific material color if possible
 		color:
-		if (this.color != null) {
-
+		if (this.color != null)
 			if (compiledItem.getType().toString().contains("LEATHER")) {
 				if (MinecraftVersion.atLeast(V.v1_4)) {
 					Valid.checkBoolean(compiledMeta instanceof LeatherArmorMeta, "Expected a leather item, cannot apply color to " + compiledItem);
 
 					((LeatherArmorMeta) compiledMeta).setColor(this.color.getColor());
 				}
-			}
+			} else // Hack: If you put WHITE_WOOL and a color, we automatically will change the material to the colorized version
+			if (MinecraftVersion.atLeast(V.v1_13)) {
+				final String dye = this.color.getDye().toString();
+				final List<String> colorableMaterials = Arrays.asList("BANNER", "BED", "CARPET", "CONCRETE", "GLAZED_TERRACOTTA", "SHULKER_BOX", "STAINED_GLASS",
+						"STAINED_GLASS_PANE", "TERRACOTTA", "WALL_BANNER", "WOOL");
 
-			else {
+				for (final String material : colorableMaterials) {
+					final String suffix = "_" + material;
 
-				// Hack: If you put WHITE_WOOL and a color, we automatically will change the material to the colorized version
-				if (MinecraftVersion.atLeast(V.v1_13)) {
-					final String dye = this.color.getDye().toString();
-					final List<String> colorableMaterials = Arrays.asList("BANNER", "BED", "CARPET", "CONCRETE", "GLAZED_TERRACOTTA", "SHULKER_BOX", "STAINED_GLASS",
-							"STAINED_GLASS_PANE", "TERRACOTTA", "WALL_BANNER", "WOOL");
+					if (compiledItem.getType().toString().endsWith(suffix)) {
+						compiledItem.setType(Material.valueOf(dye + suffix));
 
-					for (final String material : colorableMaterials) {
-						final String suffix = "_" + material;
-
-						if (compiledItem.getType().toString().endsWith(suffix)) {
-							compiledItem.setType(Material.valueOf(dye + suffix));
-
-							break color;
-						}
+						break color;
 					}
 				}
+			} else
+				try {
+					final byte dataValue = this.color.getDye().getWoolData();
 
-				else {
-					try {
-						final byte dataValue = this.color.getDye().getWoolData();
+					compiledItem.setData(new MaterialData(compiledItem.getType(), dataValue));
+					compiledItem.setDurability(dataValue);
 
-						compiledItem.setData(new MaterialData(compiledItem.getType(), dataValue));
-						compiledItem.setDurability(dataValue);
-
-					} catch (final NoSuchMethodError err) {
-						// Ancient MC, ignore
-					}
+				} catch (final NoSuchMethodError err) {
+					// Ancient MC, ignore
 				}
-			}
-		}
 
 		// Fix monster eggs
 		if (compiledItem.getType().toString().endsWith("SPAWN_EGG") || compiledItem.getType().toString().equals("MONSTER_EGG")) {
@@ -683,7 +719,7 @@ public final class ItemCreator {
 
 			// Fix "Corrupted NBT tag" error when any of these fields are not set
 			if (bookMeta.getPages() == null)
-				bookMeta.setPages("");
+				bookMeta.setPages(Arrays.asList(""));
 
 			if (bookMeta.getAuthor() == null)
 				bookMeta.setAuthor("Anonymous");
@@ -711,7 +747,7 @@ public final class ItemCreator {
 			}
 
 			if (this.name != null && !"".equals(this.name))
-				((ItemMeta) compiledMeta).setDisplayName(Common.colorize("&r&f" + name));
+				((ItemMeta) compiledMeta).setDisplayName(Common.colorize("&r&f" + this.name));
 
 			if (!this.lores.isEmpty()) {
 				final List<String> coloredLores = new ArrayList<>();
@@ -792,7 +828,7 @@ public final class ItemCreator {
 				compiledItem = CompMetadata.setMetadata(compiledItem, entry.getKey(), entry.getValue());
 
 		else if (!this.tags.isEmpty() && this.item != null)
-			Common.log("Item had unsupported tags " + tags + " that are not supported on MC " + MinecraftVersion.getServerVersion() + " Item: " + compiledItem);
+			Common.log("Item had unsupported tags " + this.tags + " that are not supported on MC " + MinecraftVersion.getServerVersion() + " Item: " + compiledItem);
 
 		return compiledItem;
 	}

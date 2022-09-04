@@ -456,15 +456,27 @@ public abstract class AdvancedMenu extends Menu {
      */
     protected void setup(){}
 
+    protected final boolean isButton(int slot){
+        return getButtons().containsKey(slot);
+    }
+
+    protected final boolean isItem(int slot){
+        return getItems().containsKey(slot);
+    }
+
+    protected final boolean isLockedSlot(int slot){
+        return getLockedSlots().contains(slot);
+    }
+
     @Override
     public ItemStack getItemAt(int slot) {
-        if (getItems().containsKey(slot)){
-            return getItems().get(slot);
-        }
-        if (getButtons().containsKey(slot)){
+        if (isButton(slot)){
             return getButtons().get(slot).getItem();
         }
-        if (lockedSlots.contains(slot)){
+        if (isItem(slot)){
+            return getItems().get(slot);
+        }
+        if (isLockedSlot(slot)){
             return getWrapperItem();
         }
         return null;
@@ -478,49 +490,49 @@ public abstract class AdvancedMenu extends Menu {
     /**
      * Send a message to the {@link #getPlayer()}
      */
-    public void tell(Object... messages) {
+    public final void tell(Object... messages) {
         Common.tell(this.player, Arrays.toString(messages));
     }
 
     /**
      * Send an information message to the {@link #getPlayer()}
      */
-    public void tellInfo(Object message) {
+    public final void tellInfo(Object message) {
         Messenger.info(this.player, message.toString());
     }
 
     /**
      * Send a success message to the {@link #getPlayer()}
      */
-    public void tellSuccess(Object message) {
+    public final void tellSuccess(Object message) {
         Messenger.success(this.player, message.toString());
     }
 
     /**
      * Send a warning message to the {@link #getPlayer()}
      */
-    public void tellWarn(Object message) {
+    public final void tellWarn(Object message) {
         Messenger.warn(this.player, message.toString());
     }
 
     /**
      * Send an error message to the {@link #getPlayer()}
      */
-    public void tellError(Object message) {
+    public final void tellError(Object message) {
         Messenger.error(this.player, message.toString());
     }
 
     /**
      * Send a question message to the {@link #getPlayer()}
      */
-    public void tellQuestion(Object message) {
+    public final void tellQuestion(Object message) {
         Messenger.question(this.player, message.toString());
     }
 
     /**
      * Send an announcement message to the {@link #getPlayer()}
      */
-    public void tellAnnounce(Object message) {
+    public final void tellAnnounce(Object message) {
         Messenger.announce(this.player, message.toString());
     }
 }

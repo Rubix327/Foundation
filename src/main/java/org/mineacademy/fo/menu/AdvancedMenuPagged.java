@@ -251,7 +251,7 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
      * Redraw the menu without moving the cursor to the center.
      */
     @Override
-    protected void refreshMenu(){
+    protected final void refreshMenu(){
         updateElements();
         redraw();
     }
@@ -260,11 +260,15 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
      * Display this menu to the player given in the constructor.
      */
     @Override
-    public void display(){
+    public final void display(){
         setup();
         initButtonsSlots();
         updateElements();
         displayTo(getPlayer());
+    }
+
+    protected final boolean isElement(int slot){
+        return elementsSlots.containsKey(slot);
     }
 
     /**
@@ -273,14 +277,8 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
      */
     @Override
     public ItemStack getItemAt(int slot){
-        if (getButtons().containsKey(slot)){
-            return getButtons().get(slot).getItem();
-        }
-        if (getItems().containsKey(slot)){
-            return getItems().get(slot);
-        }
-        if (getLockedSlots().contains(slot)){
-            return getWrapperItem();
+        if (super.getItemAt(slot) != null){
+            return super.getItemAt(slot);
         }
         else{
             if (cursorAt >= elementsItems.size()) return null;
@@ -294,10 +292,10 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
     protected void onMenuClick(Player player, int slot, InventoryAction action, ClickType click, ItemStack cursor, ItemStack clicked, boolean cancelled) {
         if (CompMaterial.isAir(clicked.getType())) return;
         int pagedSlot = slot + (currentPage - 1) * getSize();
-        boolean isElement = elementsSlots.containsKey(pagedSlot);
-        if (isElement) onElementClick(player,  elementsSlots.get(pagedSlot), slot, click);
-
-        if (getButtons().containsKey(slot)){
+        if (isElement(pagedSlot)) {
+            onElementClick(player, elementsSlots.get(pagedSlot), slot, click);
+        }
+        if (isButton(slot)){
             getButtons().get(slot).onClickedInMenu(player, this, click);
         }
     }

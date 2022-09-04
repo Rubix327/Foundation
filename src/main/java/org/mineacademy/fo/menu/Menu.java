@@ -6,6 +6,7 @@ import lombok.Setter;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -34,7 +35,6 @@ import javax.annotation.Nullable;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -211,7 +211,7 @@ public abstract class Menu {
 	 * @param player the player
 	 * @return the menu, or null if none
 	 */
-	public static final Menu getMenu(final Player player) {
+	public static Menu getMenu(final Player player) {
 		return getMenu0(player, FoConstants.NBT.TAG_MENU_CURRENT);
 	}
 
@@ -222,7 +222,7 @@ public abstract class Menu {
 	 * @return the menu, or none
 	 */
 	@Deprecated
-	public static final Menu getPreviousMenu(final Player player) {
+	public static Menu getPreviousMenu(final Player player) {
 		return getMenu0(player, FoConstants.NBT.TAG_MENU_PREVIOUS);
 	}
 
@@ -233,11 +233,9 @@ public abstract class Menu {
 	 * @return
 	 */
 	@Nullable
-	public static final Menu getLastClosedMenu(final Player player) {
+	public static Menu getLastClosedMenu(final Player player) {
 		if (player.hasMetadata(FoConstants.NBT.TAG_MENU_LAST_CLOSED)) {
-			final Menu menu = (Menu) player.getMetadata(FoConstants.NBT.TAG_MENU_LAST_CLOSED).get(0).value();
-
-			return menu;
+			return (Menu) player.getMetadata(FoConstants.NBT.TAG_MENU_LAST_CLOSED).get(0).value();
 		}
 
 		return null;
@@ -264,20 +262,6 @@ public abstract class Menu {
 	 */
 	final void registerButtons() {
 		this.registeredButtons.clear();
-
-		// Register buttons explicitly given
-		{
-			final List<Button> buttons = this.getButtonsToAutoRegister();
-
-			if (buttons != null) {
-				final Map<Button, Position> buttonsRemapped = new HashMap<>();
-
-				for (final Button button : buttons)
-					buttonsRemapped.put(button, null);
-
-				this.registeredButtons.putAll(buttonsRemapped);
-			}
-		}
 
 		// Register buttons declared as fields
 		{
@@ -320,21 +304,6 @@ public abstract class Menu {
 
 			this.buttonsRegistered = true;
 		}
-	}
-
-	/**
-	 * Returns a list of buttons that should be registered manually.
-	 *
-	 * NOTICE: Button fields in your class are registered automatically, do not add
-	 * them here
-	 *
-	 * @return button list, null by default
-	 *
-	 * @deprecated use {@link AdvancedMenu#addButton} to add an automatically registered button.
-	 */
-	@Deprecated
-	protected List<Button> getButtonsToAutoRegister() {
-		return null;
 	}
 
 	/**
@@ -550,59 +519,6 @@ public abstract class Menu {
 	}
 
 	// --------------------------------------------------------------------------------
-	// Convenience messenger functions
-	// --------------------------------------------------------------------------------
-
-	/**
-	 * Send a message to the {@link #getViewer()}
-	 */
-	public void tell(String... messages) {
-		Common.tell(this.viewer, messages);
-	}
-
-	/**
-	 * Send a message to the {@link #getViewer()}
-	 */
-	public void tellInfo(String message) {
-		Messenger.info(this.viewer, message);
-	}
-
-	/**
-	 * Send a message to the {@link #getViewer()}
-	 */
-	public void tellSuccess(String message) {
-		Messenger.success(this.viewer, message);
-	}
-
-	/**
-	 * Send a message to the {@link #getViewer()}
-	 */
-	public void tellWarn(String message) {
-		Messenger.warn(this.viewer, message);
-	}
-
-	/**
-	 * Send a message to the {@link #getViewer()}
-	 */
-	public void tellError(String message) {
-		Messenger.error(this.viewer, message);
-	}
-
-	/**
-	 * Send a message to the {@link #getViewer()}
-	 */
-	public void tellQuestion(String message) {
-		Messenger.question(this.viewer, message);
-	}
-
-	/**
-	 * Send a message to the {@link #getViewer()}
-	 */
-	public void tellAnnounce(String message) {
-		Messenger.announce(this.viewer, message);
-	}
-
-	// --------------------------------------------------------------------------------
 	// Animations
 	// --------------------------------------------------------------------------------
 
@@ -749,7 +665,6 @@ public abstract class Menu {
 	 * @param slot     the slot
 	 * @param clicked  the clicked item
 	 * @param cursor   the cursor
-	 * @param action   the inventory action
 	 *
 	 * @return if the action is cancelled in the {@link InventoryClickEvent}, false
 	 * by default

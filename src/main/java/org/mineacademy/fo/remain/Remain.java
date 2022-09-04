@@ -1,56 +1,24 @@
 package org.mineacademy.fo.remain;
 
-import static org.mineacademy.fo.ReflectionUtil.getNMSClass;
-import static org.mineacademy.fo.ReflectionUtil.getOBCClass;
-
-import java.io.File;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.GameRule;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.OfflinePlayer;
-import org.bukkit.Statistic;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.chat.ComponentSerializer;
+import org.bukkit.*;
 import org.bukkit.Statistic.Type;
-import org.bukkit.World;
 import org.bukkit.advancement.Advancement;
 import org.bukkit.advancement.AdvancementProgress;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Chest;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandMap;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.PluginCommand;
-import org.bukkit.command.SimpleCommandMap;
+import org.bukkit.command.*;
+import org.bukkit.configuration.MemorySection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.FallingBlock;
-import org.bukkit.entity.Item;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
@@ -66,17 +34,9 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Score;
-import org.mineacademy.fo.Common;
-import org.mineacademy.fo.FileUtil;
-import org.mineacademy.fo.ItemUtil;
-import org.mineacademy.fo.MathUtil;
-import org.mineacademy.fo.MinecraftVersion;
+import org.mineacademy.fo.*;
 import org.mineacademy.fo.MinecraftVersion.V;
-import org.mineacademy.fo.PlayerUtil;
-import org.mineacademy.fo.ReflectionUtil;
 import org.mineacademy.fo.ReflectionUtil.ReflectionException;
-import org.mineacademy.fo.TimeUtil;
-import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.collection.SerializedMap;
 import org.mineacademy.fo.collection.StrictMap;
 import org.mineacademy.fo.exception.FoException;
@@ -86,13 +46,20 @@ import org.mineacademy.fo.remain.internal.BossBarInternals;
 import org.mineacademy.fo.remain.internal.ChatInternals;
 import org.mineacademy.fo.remain.nbt.NBTEntity;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
+import java.io.File;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.BaseComponent;
-import net.md_5.bungee.api.chat.TextComponent;
-import net.md_5.bungee.chat.ComponentSerializer;
+import static org.mineacademy.fo.ReflectionUtil.getNMSClass;
+import static org.mineacademy.fo.ReflectionUtil.getOBCClass;
 
 /**
  * Our main cross-version compatibility class.
@@ -1044,7 +1011,7 @@ public final class Remain {
 		}
 
 		try {
-			player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(Common.colorize(text)));
+			player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(Common.colorize(text)));
 
 		} catch (final NoSuchMethodError err) {
 			ChatInternals.sendActionBarLegacy(player, text);
@@ -2158,7 +2125,8 @@ public final class Remain {
 	 */
 	public static void sendToast(final Player receiver, final String message, final CompMaterial icon, final CompToastStyle toastStyle) {
 		if (message != null && !message.isEmpty()) {
-			final String colorized = Common.colorize(message);
+//			final String colorized = Common.colorize(message);
+			final String colorized = (message);
 
 			if (!colorized.isEmpty()) {
 				Valid.checkSync("Toasts may only be sent from the main thread");
@@ -2181,7 +2149,6 @@ public final class Remain {
 	 * @param receivers
 	 * @param message you can replace player-specific variables in the message here
 	 * @param icon
-	 * @param goal
 	 */
 	public static void sendToast(final List<Player> receivers, final Function<Player, String> message, final CompMaterial icon) {
 		sendToast(receivers, message, icon, CompToastStyle.GOAL);
@@ -2793,7 +2760,7 @@ public final class Remain {
 
 	/**
 	 * Return if the server version supports {@link YamlConfiguration#load(java.io.Reader)}
-	 * otherwise you need to use just {@link InputStream}
+	 * otherwise you need to use just {@link java.io.InputStream}
 	 *
 	 * @return
 	 */
@@ -3017,20 +2984,20 @@ class AdvancementAccessor {
 		return new Gson().toJson(json);
 	}
 
-	private void grantAdvancement(final Player plazer) {
+	private void grantAdvancement(final Player player) {
 		final Advancement adv = this.getAdvancement();
-		final AdvancementProgress progress = plazer.getAdvancementProgress(adv);
+		final AdvancementProgress progress = player.getAdvancementProgress(adv);
 
 		if (!progress.isDone())
-			progress.getRemainingCriteria().forEach(crit -> progress.awardCriteria(crit));
+			progress.getRemainingCriteria().forEach(progress::awardCriteria);
 	}
 
-	private void revokeAdvancement(final Player plazer) {
+	private void revokeAdvancement(final Player player) {
 		final Advancement adv = this.getAdvancement();
-		final AdvancementProgress prog = plazer.getAdvancementProgress(adv);
+		final AdvancementProgress progress = player.getAdvancementProgress(adv);
 
-		if (prog.isDone())
-			prog.getAwardedCriteria().forEach(crit -> prog.revokeCriteria(crit));
+		if (progress.isDone())
+			progress.getAwardedCriteria().forEach(progress::revokeCriteria);
 	}
 
 	private void removeAdvancement() {
@@ -3060,13 +3027,13 @@ class PotionSetter {
 
 		try {
 			if (level > 0 && wrapped == null) {
-				final org.bukkit.potion.PotionData data = new org.bukkit.potion.PotionData(level > 0 && wrapped != null ? wrapped : PotionType.WATER);
+				final org.bukkit.potion.PotionData data = new org.bukkit.potion.PotionData(PotionType.WATER);
 
 				meta.setBasePotionData(data);
 				meta.addEnchant(Enchantment.DURABILITY, 1, true);
 			}
 
-		} catch (final NoSuchMethodError | NoClassDefFoundError ex) {
+		} catch (final NoSuchMethodError | NoClassDefFoundError ignored) {
 		}
 
 		// For some reason this does not get added so we have to add it manually on top of the lore

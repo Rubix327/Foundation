@@ -1,30 +1,34 @@
 package org.mineacademy.fo.annotation;
 
-import static java.lang.annotation.ElementType.TYPE;
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
-
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
+
+import static java.lang.annotation.ElementType.TYPE;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
  * Place this annotation over any of the following classes to make Foundation
  * automatically register it when the plugin starts, and properly reload it.
  *
  * Supported classes:
- * - SimpleListener
- * - PacketListener
- * - BungeeListener
- * - DiscordListener
- * - SimpleCommand
- * - SimpleCommandGroup
- * - SimpleExpansion
- * - YamlConfig (we will load your config when the plugin starts and reload it properly)
- * - any class that "implements Listener"
+ * <ul>
+ * <li>SimpleListener</li>
+ * <li>PacketListener</li>
+ * <li>BungeeListener</li>
+ * <li>DiscordListener</li>
+ * <li>SimpleCommand</li>
+ * <li>SimpleCommandGroup</li>
+ * <li>SimpleExpansion</li>
+ * <li>YamlConfig (we will load your config when the plugin starts and reload it properly)</li>
+ * <li>any class that "implements Listener"</li>
+ * </ul>
  *
  * In addition, the following classes will self-register automatically regardless
  * if you place this annotation on them or not:
- * - Tool (and its derivates such as Rocket)
- * - SimpleEnchantment
+ * <ul>
+ * <li>Tool (and its derivates such as Rocket)</li>
+ * <li>- SimpleEnchantment</li>
+ * </ul>
  */
 @Retention(RUNTIME)
 @Target(TYPE)

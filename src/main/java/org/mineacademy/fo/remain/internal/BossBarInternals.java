@@ -1,8 +1,6 @@
 package org.mineacademy.fo.remain.internal;
 
-import java.util.HashMap;
-import java.util.UUID;
-
+import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.BlockFace;
@@ -24,7 +22,8 @@ import org.mineacademy.fo.remain.CompBarColor;
 import org.mineacademy.fo.remain.CompBarStyle;
 import org.mineacademy.fo.remain.Remain;
 
-import lombok.Getter;
+import java.util.HashMap;
+import java.util.UUID;
 
 /**
  * The classes handling Boss Bar cross-server compatibility are based off of the
@@ -226,7 +225,7 @@ public final class BossBarInternals implements Listener {
 	 * @param style
 	 * @throws IllegalArgumentException If seconds is zero or below.
 	 */
-	public void setMessage(final Player player, final String message, final int seconds, final CompBarColor color, final CompBarStyle style) {
+	public void setMessage(final Player player, String message, final int seconds, final CompBarColor color, final CompBarStyle style) {
 		Valid.checkBoolean(seconds > 0, "Seconds must be > 1 ");
 
 		if (this.entityClass == null)
@@ -234,6 +233,8 @@ public final class BossBarInternals implements Listener {
 
 		if (this.hasBar(player))
 			this.removeBar(player);
+
+		message = Common.colorize(message);
 
 		final NMSDragon dragon = this.getDragon(player, message);
 

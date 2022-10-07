@@ -23,6 +23,7 @@ import org.mineacademy.fo.collection.SerializedMap;
 import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.jsonsimple.JSONObject;
 import org.mineacademy.fo.jsonsimple.JSONParser;
+import org.mineacademy.fo.menu.AdvancedMenu;
 import org.mineacademy.fo.menu.Menu;
 import org.mineacademy.fo.model.HookManager;
 import org.mineacademy.fo.plugin.SimplePlugin;
@@ -837,7 +838,7 @@ public final class PlayerUtil {
 			pending.cancel();
 
 		pending = Common.runLater(duration, () -> {
-			final Menu futureMenu = Menu.getMenu(player);
+			final AdvancedMenu futureMenu = AdvancedMenu.getMenu(player);
 
 			if (futureMenu != null && futureMenu.getClass().getName().equals(menu.getClass().getName()))
 				updateInventoryTitle(player, oldTitle);

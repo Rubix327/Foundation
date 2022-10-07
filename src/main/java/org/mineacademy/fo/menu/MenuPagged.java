@@ -25,7 +25,10 @@ import java.util.*;
  * An advanced menu listing items with automatic page support
  *
  * @param <T> the item that each page consists of
+ *
+ * @deprecated Use {@link AdvancedMenuPagged}
  */
+@Deprecated
 public abstract class MenuPagged<T> extends Menu {
 
 	/**

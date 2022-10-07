@@ -1,17 +1,12 @@
 package org.mineacademy.fo.conversation;
 
-import org.bukkit.conversations.Conversable;
-import org.bukkit.conversations.ConversationAbandonedEvent;
-import org.bukkit.conversations.ConversationContext;
-import org.bukkit.conversations.ConversationPrefix;
-import org.bukkit.conversations.Prompt;
-import org.bukkit.conversations.ValidatingPrompt;
+import org.bukkit.conversations.*;
 import org.bukkit.entity.Player;
 import org.mineacademy.fo.Common;
 import org.mineacademy.fo.Messenger;
 import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.exception.FoException;
-import org.mineacademy.fo.menu.Menu;
+import org.mineacademy.fo.menu.AdvancedMenu;
 import org.mineacademy.fo.model.Variables;
 import org.mineacademy.fo.settings.SimpleLocalization;
 
@@ -48,25 +43,20 @@ public abstract class SimplePrompt extends ValidatingPrompt {
 
 	/**
 	 * Return the prefix before tell messages
-	 *
-	 * @param ctx
-	 * @return
 	 */
 	protected String getCustomPrefix() {
 		return null;
 	}
 
 	/**
-	 * @see {@link SimpleConversation#isModal()}
-	 *
-	 * @return
+	 * @see SimpleConversation#isModal()
 	 */
 	protected boolean isModal() {
 		return true;
 	}
 
 	/**
-	 * @see SimpleConversation#setMenuAnimatedTitle(String)
+	 * @see SimpleConversation#getMenuAnimatedTitle()
 	 *
 	 * @return
 	 */
@@ -137,9 +127,6 @@ public abstract class SimplePrompt extends ValidatingPrompt {
 
 	/**
 	 * Send the player (in case any) the given message
-	 *
-	 * @param ctx
-	 * @param message
 	 */
 	protected final void tell(final String message) {
 		Valid.checkNotNull(this.player, "Cannot use tell() when player not yet set!");
@@ -265,7 +252,7 @@ public abstract class SimplePrompt extends ValidatingPrompt {
 		};
 
 		if (this.openMenu) {
-			final Menu menu = Menu.getMenu(player);
+			final AdvancedMenu menu = AdvancedMenu.getMenu(player);
 
 			if (menu != null)
 				conversation.setMenuToReturnTo(menu);

@@ -5,15 +5,14 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
-import org.mineacademy.fo.Common;
-import org.mineacademy.fo.ItemUtil;
-import org.mineacademy.fo.Messenger;
-import org.mineacademy.fo.SoundUtil;
+import org.mineacademy.fo.*;
+import org.mineacademy.fo.constants.FoConstants;
 import org.mineacademy.fo.menu.button.Button;
 import org.mineacademy.fo.menu.model.ItemCreator;
 import org.mineacademy.fo.menu.tool.Tool;
 import org.mineacademy.fo.remain.CompMaterial;
 
+import javax.annotation.Nullable;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,12 +49,8 @@ public abstract class AdvancedMenu extends Menu {
      */
     private List<Integer> lockedSlots = new ArrayList<>();
     /**
-     * The menu which is opened from {@link #getReturnBackButton}.
-     */
-    private Class<? extends AdvancedMenu> parentMenu = getClass();
-    /**
      * Convenient item that you can use to close some menu slots.<br>
-     * By default, displays on empty locked slots in MenuPaginated.<br>
+     * By default, displays on empty locked slots in AdvancedMenuPagged.<br>
      * Default item is gray stained-glass.
      * Set this item to whether you want by {@link #setWrapper}.
      * To disable item set it to null.
@@ -132,20 +127,20 @@ public abstract class AdvancedMenu extends Menu {
 
     /**
      * See {@link #setLockedSlots(Integer...)} for the detailed description.<br><br>
-     * Figures available: {@link LockedSlotsFigure}.
+     * Figures available: {@link MenuSlots.SizedShape}.
      */
-    protected final void setLockedSlots(LockedSlotsFigure figure){
+    protected final void setLockedSlots(MenuSlots.SizedShape figure){
         setLockedSlots(figure.getSlots());
     }
 
     /**
      * Set the automated slots locking depending on the figure and the size.<br>
-     * Figures available: {@link LockedSlotsFigure.Raw}.
-     * @param rawFigure the figure
+     * Figures available: {@link MenuSlots.Shape}.
+     * @param shape the shape you want to use
      * @param size the size of the menu
      */
-    protected final void setLockedSlots(LockedSlotsFigure.Raw rawFigure, int size){
-        setLockedSlots(LockedSlotsFigure.AUTO(rawFigure, size));
+    protected final void setLockedSlots(MenuSlots.Shape shape, int size){
+        setLockedSlots(MenuSlots.AUTO(shape, size));
     }
 
     /**
@@ -160,30 +155,22 @@ public abstract class AdvancedMenu extends Menu {
     }
 
     /**
-     * Get the {@link #parentMenu}.
-     */
-    protected final Class<? extends AdvancedMenu> getParentMenu(){
-        return this.parentMenu;
-    }
-
-    /**
-     * Set the {@link #parentMenu}.
-     */
-    protected final void setParent(Class<? extends AdvancedMenu> parent){
-        this.parentMenu = parent;
-    }
-
-    /**
      * Get the {@link #wrapperItem}
      */
     protected final ItemStack getWrapperItem(){
         return wrapperItem;
     }
 
+    /**
+     * Set the material of {@link #wrapperItem}
+     */
     protected final void setWrapper(CompMaterial material){
         wrapperItem = ItemCreator.of(material, "").make();
     }
 
+    /**
+     * Set the item of {@link #wrapperItem}
+     */
     protected final void setWrapper(ItemStack item){
         wrapperItem = item;
     }
@@ -196,27 +183,18 @@ public abstract class AdvancedMenu extends Menu {
         displayTo(getPlayer());
     }
 
-    /**
-     * Does the same as {@link #getReturnBackButton(ItemStack)}.
-     * Uses the default button from {@link MenuUtil#defaultReturnBackItem}.
-     */
-    protected final Button getReturnBackButton(){
-        return getReturnBackButton(MenuUtil.defaultReturnBackItem);
+    protected final Button getBackButton(){
+        return getBackButton(MenuUtil.defaultBackItem);
     }
 
-    /**
-     * Get the button that returns player to the parent menu given in the constructor.
-     * If the parent is not given it will return player to the same menu.
-     * If item is not given, it will get its item from {@link MenuUtil#defaultReturnBackItem}.<br><br>
-     * <b>NOTE</b> that this button returns player to the non-personalized menu.
-     * To use personalized menus, use {@link #getMenuButton}.<br><br>
-     * @return the return button
-     */
-    protected final Button getReturnBackButton(@NotNull ItemStack item){
+    protected final Button getBackButton(ItemStack item){
         return new Button() {
             @Override
             public void onClickedInMenu(Player player, AdvancedMenu menu, ClickType click) {
-                newInstanceOf(player, parentMenu).display();
+                AdvancedMenu previous = getPreviousMenu(player);
+                if (previous != null){
+                    getPreviousMenu(player).display();
+                }
             }
 
             @Override
@@ -307,7 +285,7 @@ public abstract class AdvancedMenu extends Menu {
         return new Button() {
             @Override
             public void onClickedInMenu(Player player, AdvancedMenu menu, ClickType click) {
-                newInstanceOf(player, to).display();
+                newInstanceOf(to, player).display();
             }
 
             @Override
@@ -315,22 +293,6 @@ public abstract class AdvancedMenu extends Menu {
                 return item;
             }
         };
-    }
-
-    /**
-     * Create a new instance of the menu from the given class.
-     */
-    private AdvancedMenu newInstanceOf(Player player, Class<? extends AdvancedMenu> menu){
-        try{
-            AdvancedMenu am = menu.getDeclaredConstructor(Player.class).newInstance(player);
-            am.setParent(menu);
-            return am;
-        }
-        catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e){
-            e.printStackTrace();
-        }
-        throw new NullPointerException("Could not create a new instance of " + menu.getName() + " class. " +
-                "Please create a constructor with only Player argument.");
     }
 
     /**
@@ -418,7 +380,7 @@ public abstract class AdvancedMenu extends Menu {
      */
     protected final Button getInfoButton(ItemStack item){
         return Button.makeDummy(ItemCreator.of(item).name(getInfoName())
-                .lore(Arrays.asList(getInfoLore())).hideTags(true));
+                .lore(getInfoLore()).hideTags(true));
     }
 
     /**
@@ -435,12 +397,10 @@ public abstract class AdvancedMenu extends Menu {
      * Override it to set your own lore (info).
      * @see #getInfoButton(ItemStack)
      */
-    protected String[] getInfoLore() {
-        return new String[]{
-                "",
+    protected List<String> getInfoLore() {
+        return Arrays.asList("",
                 "&7Override &fgetInfoName() &7and &fgetInfoLore()",
-                "&7in " + getClass().getSimpleName() + " &7to set your own menu description."
-        };
+                "&7in " + getClass().getSimpleName() + " &7to set your own menu description.");
     }
 
     @Override
@@ -454,7 +414,7 @@ public abstract class AdvancedMenu extends Menu {
      * Override this method and customize your menu here.
      * This method is automatically started just before displaying a menu to a player.
      */
-    protected void setup(){}
+    protected abstract void setup();
 
     protected final boolean isButton(int slot){
         return getButtons().containsKey(slot);
@@ -483,8 +443,74 @@ public abstract class AdvancedMenu extends Menu {
     }
 
     @Override
-    public AdvancedMenu newInstance() {
-        return this;
+    public final AdvancedMenu newInstance() {
+        return newInstanceOf(this.getClass(), this.player);
+    }
+
+    /**
+     * Create a new instance of the menu from the given class.
+     */
+    public static AdvancedMenu newInstanceOf(Class<? extends AdvancedMenu> menu, Player player){
+        try{
+            AdvancedMenu am = menu.getDeclaredConstructor(Player.class).newInstance(player);
+            return am;
+        }
+        catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e){
+            e.printStackTrace();
+        }
+        throw new NullPointerException("Could not create a new instance of " + menu.getName() + " class. " +
+                "Please create a constructor with only Player argument.");
+    }
+
+    /**
+     * Returns the current menu for player
+     *
+     * @param player the player
+     * @return the menu, or null if none
+     */
+    public static AdvancedMenu getMenu(final Player player) {
+        return getMenu0(player, FoConstants.NBT.TAG_MENU_CURRENT);
+    }
+
+    /**
+     * Returns the previous menu for player
+     *
+     * @param player the player
+     * @return the menu, or none
+     */
+    public static AdvancedMenu getPreviousMenu(final Player player) {
+        return getMenu0(player, FoConstants.NBT.TAG_MENU_PREVIOUS);
+    }
+
+    /**
+     * Returns the last closed menu, null if it exists.
+     */
+    @Nullable
+    public static AdvancedMenu getLastClosedMenu(final Player player) {
+        if (player.hasMetadata(FoConstants.NBT.TAG_MENU_LAST_CLOSED)) {
+            return (AdvancedMenu) player.getMetadata(FoConstants.NBT.TAG_MENU_LAST_CLOSED).get(0).value();
+        }
+
+        return null;
+    }
+
+    /**
+     * Returns the menu associated with the player's metadata, or null
+     */
+    private static AdvancedMenu getMenu0(final Player player, final String tag) {
+        if (player.hasMetadata(tag)) {
+            final AdvancedMenu menu = (AdvancedMenu) player.getMetadata(tag).get(0).value();
+            Valid.checkNotNull(menu, "Menu missing from " + player.getName() + "'s metadata '" + tag + "' tag!");
+
+            return menu;
+        }
+
+        return null;
+    }
+
+    @Override
+    protected final void finalize() throws Throwable {
+        super.finalize();
     }
 
     /**

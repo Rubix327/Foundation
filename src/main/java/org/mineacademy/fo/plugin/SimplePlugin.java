@@ -34,7 +34,7 @@ import org.mineacademy.fo.command.SimpleSubCommand;
 import org.mineacademy.fo.debug.Debugger;
 import org.mineacademy.fo.event.SimpleListener;
 import org.mineacademy.fo.exception.FoException;
-import org.mineacademy.fo.menu.Menu;
+import org.mineacademy.fo.menu.AdvancedMenu;
 import org.mineacademy.fo.menu.MenuListener;
 import org.mineacademy.fo.menu.tool.ToolsListener;
 import org.mineacademy.fo.metrics.Metrics;
@@ -693,7 +693,7 @@ public abstract class SimplePlugin extends JavaPlugin implements Listener {
 
 		try {
 			for (final Player online : Remain.getOnlinePlayers()) {
-				final Menu menu = Menu.getMenu(online);
+				final AdvancedMenu menu = AdvancedMenu.getMenu(online);
 
 				if (menu != null)
 					online.closeInventory();

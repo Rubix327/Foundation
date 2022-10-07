@@ -113,7 +113,9 @@ public final class ToolsListener implements Listener {
 
 			} catch (final Throwable t) {
 				if (initialAmount < finalAmount){
-					player.getInventory().addItem(tool.getItem());
+					for (int i = initialAmount; i < finalAmount; i++){
+						player.getInventory().addItem(tool.getItem());
+					}
 				}
 				event.setCancelled(true);
 

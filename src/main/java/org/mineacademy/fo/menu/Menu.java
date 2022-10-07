@@ -212,7 +212,7 @@ public abstract class Menu {
 	 * @param player the player
 	 * @return the menu, or null if none
 	 */
-	public static Menu getMenu(final Player player) {
+	protected static Menu getMenu(final Player player) {
 		return getMenu0(player, FoConstants.NBT.TAG_MENU_CURRENT);
 	}
 
@@ -222,16 +222,12 @@ public abstract class Menu {
 	 * @param player the player
 	 * @return the menu, or none
 	 */
-	@Deprecated
 	public static Menu getPreviousMenu(final Player player) {
 		return getMenu0(player, FoConstants.NBT.TAG_MENU_PREVIOUS);
 	}
 
 	/**
 	 * Returns the last closed menu, null if does not exist.
-	 *
-	 * @param player
-	 * @return
 	 */
 	@Nullable
 	public static Menu getLastClosedMenu(final Player player) {
@@ -313,6 +309,8 @@ public abstract class Menu {
 	 *
 	 * @param fromItem the itemstack to compare to
 	 * @return the button or null if not found
+	 *
+	 * @deprecated Do not use, internal only
 	 */
 	@Deprecated
 	protected final Button getButton(final ItemStack fromItem) {
@@ -366,14 +364,12 @@ public abstract class Menu {
 	// --------------------------------------------------------------------------------
 
 	/**
-	 * Display this menu to the player
+	 * Display this menu to the player.<br>
+	 * Internal use only. Use {@link AdvancedMenu#display()} to display the menu.
 	 *
 	 * @param player the player
-	 *
-	 * @deprecated use {@link AdvancedMenu#display()} to display the menu.
 	 */
-	@Deprecated
-	public final void displayTo(final Player player) {
+	protected final void displayTo(final Player player) {
 		Valid.checkNotNull(this.size, "Size not set in " + this + " (call setSize in your constructor)");
 		Valid.checkNotNull(this.title, "Title not set in " + this + " (call setTitle in your constructor)");
 
@@ -709,10 +705,10 @@ public abstract class Menu {
 	/**
 	 * Return the parent menu or null
 	 *
-	 * @deprecated use {@link AdvancedMenu#getParentMenu()} instead.
+	 * @deprecated
 	 */
 	@Deprecated
-	public final Menu getParent() {
+	private final Menu getParent() {
 		return this.parent;
 	}
 
@@ -857,7 +853,7 @@ public abstract class Menu {
 	 * Called automatically when a registered button is clicked
 	 *
 	 * <p>
-	 * By default this method parses the click into
+	 * By default, this method parses the click into
 	 * {@link Button#onClickedInMenu(Player, AdvancedMenu, ClickType)}
 	 *
 	 * @param player the player

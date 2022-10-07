@@ -42,9 +42,9 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
      */
     private List<ItemStack> elementsItems;
     /**
-     * Position of cursor in {@link #elementsItems} map that is being displayed now.
+     * Position at which the item setter is now.
      */
-    private int cursorAt = 0;
+    private int currentSlot = 0;
     /**
      * Current page opened in the player's menu.
      */
@@ -80,7 +80,6 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
      * It automatically runs when the menu opens.
      */
     private void updateElements(){
-        resetCursorAt();
         setElements();
         setElementsItems();
         setElementsSlots();
@@ -157,7 +156,6 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
                     return;
                 }
                 currentPage -= 1;
-                resetCursorAt();
                 redraw();
                 SoundUtil.Play.CLICK_LOW(player);
             }
@@ -181,7 +179,6 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
                     return;
                 }
                 currentPage += 1;
-                resetCursorAt();
                 redraw();
                 SoundUtil.Play.CLICK_HIGH(player);
             }
@@ -216,35 +213,31 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
     private void setElementsSlots(){
         elementsSlots.clear();
         for (T element : elements){
-            loopSlots(element);
+            putElementOnFreeSlot(element);
         }
     }
 
     /**
-     * Internal implementation of {@link #setElementsSlots()}.
+     * Put the element on the first found free slot.
+     * @param element
      */
-    private void loopSlots(T element){
-        for (int page = 1; page <= getMaxPage(); page++){
-            for (int slot = 0; slot < getSize(); slot++){
-                int finalSlot = (page - 1) * getSize() + slot;
+    private void putElementOnFreeSlot(T element){
+        int slot = currentSlot % 54;
+        for (int i = 0; i < 1; i++){
+            if (getButtons().containsKey(slot)) continue;
+            if (getItems().containsKey(slot)) continue;
+            if (getLockedSlots().contains(slot)) continue;
+            if (getPreviousButtonSlot() == slot) continue;
+            if (getNextButtonSlot() == slot) continue;
+            if (getElementsSlots().containsKey(this.currentSlot)) continue;
 
-                if (getItems().containsKey(slot)) continue;
-                if (getLockedSlots().contains(slot)) continue;
-                if (getPreviousButtonSlot() == slot) continue;
-                if (getNextButtonSlot() == slot) continue;
-                if (getElementsSlots().containsKey(finalSlot)) continue;
-
-                elementsSlots.put(finalSlot, element);
-                return;
-            }
+            elementsSlots.put(currentSlot, element);
+            currentSlot++;
+            return;
         }
-    }
 
-    /**
-     * Resets the {@link #cursorAt} to the first slot of this page.
-     */
-    private void resetCursorAt() {
-        this.cursorAt = (currentPage - 1) * getAvailableSlotsSize();
+        currentSlot++;
+        putElementOnFreeSlot(element);
     }
 
     /**
@@ -280,12 +273,12 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
         if (super.getItemAt(slot) != null){
             return super.getItemAt(slot);
         }
-        else{
-            if (cursorAt >= elementsItems.size()) return null;
-            ItemStack item = elementsItems.get(cursorAt);
-            cursorAt += 1;
-            return item;
+
+        slot = slot + (currentPage - 1) * getSize();
+        if (elementsSlots.containsKey(slot)){
+            return convertToItemStack(elementsSlots.get(slot));
         }
+        return null;
     }
 
     @Override

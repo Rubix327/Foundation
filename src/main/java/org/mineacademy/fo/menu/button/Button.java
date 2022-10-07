@@ -234,9 +234,9 @@ public abstract class Button {
 
 				setter.accept(!has);
 
-				final Menu newMenu = menu.newInstance();
+				final AdvancedMenu newMenu = menu.newInstance();
 
-				newMenu.displayTo(player);
+				newMenu.display();
 				newMenu.restartMenu((has ? "&4Disabled" : "&2Enabled") + " " + menuTitle + "!");
 			}
 

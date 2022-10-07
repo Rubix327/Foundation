@@ -1,30 +1,21 @@
 package org.mineacademy.fo.conversation;
 
-import java.util.concurrent.TimeUnit;
-
-import org.bukkit.conversations.Conversable;
-import org.bukkit.conversations.Conversation;
-import org.bukkit.conversations.ConversationAbandonedEvent;
-import org.bukkit.conversations.ConversationAbandonedListener;
-import org.bukkit.conversations.ConversationCanceller;
-import org.bukkit.conversations.ConversationContext;
-import org.bukkit.conversations.ConversationPrefix;
-import org.bukkit.conversations.InactivityConversationCanceller;
-import org.bukkit.conversations.Prompt;
+import lombok.AccessLevel;
+import lombok.Getter;
+import org.bukkit.conversations.*;
 import org.bukkit.entity.Player;
 import org.mineacademy.fo.Common;
 import org.mineacademy.fo.Messenger;
 import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.collection.expiringmap.ExpiringMap;
-import org.mineacademy.fo.menu.Menu;
+import org.mineacademy.fo.menu.AdvancedMenu;
 import org.mineacademy.fo.model.BoxedMessage;
 import org.mineacademy.fo.model.Variables;
 import org.mineacademy.fo.plugin.SimplePlugin;
 import org.mineacademy.fo.remain.CompSound;
 import org.mineacademy.fo.settings.SimpleLocalization;
 
-import lombok.AccessLevel;
-import lombok.Getter;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A simple way to communicate with the player
@@ -36,7 +27,7 @@ public abstract class SimpleConversation implements ConversationAbandonedListene
 	/**
 	 * The menu to return to, if any
 	 */
-	private Menu menuToReturnTo;
+	private AdvancedMenu menuToReturnTo;
 
 	/**
 	 * Creates a simple conversation
@@ -48,10 +39,8 @@ public abstract class SimpleConversation implements ConversationAbandonedListene
 	/**
 	 * Creates a simple conversation that opens the
 	 * menu when finished
-	 *
-	 * @param menuToReturnTo
 	 */
-	protected SimpleConversation(final Menu menuToReturnTo) {
+	protected SimpleConversation(final AdvancedMenu menuToReturnTo) {
 		this.menuToReturnTo = menuToReturnTo;
 	}
 
@@ -116,14 +105,14 @@ public abstract class SimpleConversation implements ConversationAbandonedListene
 			(event.gracefulExit() ? CompSound.SUCCESSFUL_HIT : CompSound.NOTE_BASS).play(player, 1F, 1F);
 
 			if (this.menuToReturnTo != null && this.reopenMenu()) {
-				final Menu newMenu = this.menuToReturnTo.newInstance();
+				final AdvancedMenu menu = AdvancedMenu.newInstanceOf(menuToReturnTo.getClass(), player);
 
-				newMenu.displayTo(player);
+				menu.display();
 
 				final String title = this.getMenuAnimatedTitle();
 
 				if (title != null)
-					Common.runLater(2, () -> newMenu.animateTitle(title));
+					Common.runLater(2, () -> menu.animateTitle(title));
 			}
 		}
 	}
@@ -220,10 +209,8 @@ public abstract class SimpleConversation implements ConversationAbandonedListene
 
 	/**
 	 * Sets the menu to return to after the end of this conversation
-	 *
-	 * @param menu
 	 */
-	public final void setMenuToReturnTo(final Menu menu) {
+	public final void setMenuToReturnTo(final AdvancedMenu menu) {
 		this.menuToReturnTo = menu;
 	}
 

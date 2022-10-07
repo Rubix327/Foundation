@@ -19,7 +19,10 @@ import java.util.List;
 /**
  * A standardized menu to display a list of tools player can toggle to get in
  * his inventory
+ *
+ * @deprecated Use {@link AdvancedMenuTools}
  */
+@Deprecated
 public abstract class MenuTools extends Menu {
 
 	/**

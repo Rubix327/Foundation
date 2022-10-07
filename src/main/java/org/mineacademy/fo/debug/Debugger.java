@@ -1,13 +1,9 @@
 package org.mineacademy.fo.debug;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import org.bukkit.Bukkit;
 import org.mineacademy.fo.Common;
 import org.mineacademy.fo.FileUtil;
@@ -17,10 +13,9 @@ import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.plugin.SimplePlugin;
 import org.mineacademy.fo.settings.SimpleSettings;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
+import java.io.File;
+import java.util.*;
+import java.util.logging.Level;
 
 /**
  * Utility class for solving problems and errors
@@ -355,6 +350,9 @@ public final class Debugger {
 
 	// Print a simple console message
 	private static void print(String message) {
-		System.out.println(message); // our instance may or may not be available yet to log
+		if (Bukkit.getConsoleSender() != null)
+			Bukkit.getConsoleSender().sendMessage(Common.colorize(message));
+		else
+			System.out.println(Common.stripColors(message)); // our instance may or may not be available yet to log
 	}
 }

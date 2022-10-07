@@ -1,41 +1,24 @@
 package org.mineacademy.fo;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileFilter;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
+import org.mineacademy.fo.exception.FoException;
+import org.mineacademy.fo.plugin.SimplePlugin;
+import org.mineacademy.fo.remain.Remain;
+
+import java.io.*;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Enumeration;
-import java.util.List;
+import java.nio.file.*;
+import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-
-import org.mineacademy.fo.exception.FoException;
-import org.mineacademy.fo.plugin.SimplePlugin;
-import org.mineacademy.fo.remain.Remain;
-
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
 
 /**
  * Utility class for managing files.
@@ -383,7 +366,7 @@ public final class FileUtil {
 		File file = new File(SimplePlugin.getData(), to);
 
 		final List<String> lines = getInternalFileContent(from);
-		Valid.checkNotNull(lines, "Inbuilt " + from + " not found! Did you reload?");
+		Valid.checkNotNull(lines, "Inbuilt " + file.getAbsolutePath() + " not found! Did you reload?");
 
 		if (file.exists())
 			return file;

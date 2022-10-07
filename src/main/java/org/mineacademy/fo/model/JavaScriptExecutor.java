@@ -124,6 +124,7 @@ public final class JavaScriptExecutor {
 	 * @return
 	 */
 	public static Object run(@NonNull String javascript, final CommandSender sender, final Event event) {
+		final String oldCode = new String(javascript);
 
 		// Cache for highest performance
 		Map<String, Object> cached = sender instanceof Player ? resultCache.get(((Player) sender).getUniqueId()) : null;
@@ -200,7 +201,7 @@ public final class JavaScriptExecutor {
 				throw new EventHandledException(true);
 			}
 
-			throw new RuntimeException(error + " '" + javascript + "'", ex);
+			throw new RuntimeException(error + " '" + oldCode + "'", ex);
 		}
 	}
 

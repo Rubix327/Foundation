@@ -1,25 +1,9 @@
 package org.mineacademy.fo;
 
-import java.io.File;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-
-import javax.annotation.Nullable;
-
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
+import lombok.SneakyThrows;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
@@ -33,10 +17,16 @@ import org.mineacademy.fo.plugin.SimplePlugin;
 import org.mineacademy.fo.remain.CompMaterial;
 import org.mineacademy.fo.remain.Remain;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.SneakyThrows;
+import javax.annotation.Nullable;
+import java.io.File;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 /**
  * Utility class for various reflection methods
@@ -165,7 +155,15 @@ public final class ReflectionUtil {
 			if (reflectionDataCache.containsKey(clazz))
 				return reflectionDataCache.get(clazz).getConstructor(params);
 
-			final Constructor<?> constructor = clazz.getConstructor(params);
+			Constructor<?> constructor;
+
+			try {
+				constructor = clazz.getConstructor(params);
+
+			} catch (final NoSuchMethodException err) {
+				constructor = clazz.getDeclaredConstructor(params);
+			}
+
 			constructor.setAccessible(true);
 
 			return constructor;
@@ -500,9 +498,7 @@ public final class ReflectionUtil {
 				constructor = ((ReflectionData<T>) reflectionDataCache.get(clazz)).getDeclaredConstructor();
 
 			else
-				constructor = clazz.getDeclaredConstructor();
-
-			constructor.setAccessible(true);
+				constructor = (Constructor<T>) ReflectionUtil.getConstructor(clazz);
 
 			return constructor.newInstance();
 
@@ -572,6 +568,8 @@ public final class ReflectionUtil {
 	 */
 	public static <T> T instantiate(final Constructor<T> constructor, final Object... params) {
 		try {
+			constructor.setAccessible(true);
+
 			return constructor.newInstance(params);
 
 		} catch (final ReflectiveOperationException ex) {

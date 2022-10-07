@@ -1,21 +1,12 @@
 package org.mineacademy.fo;
 
-import java.awt.Color;
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
-import java.math.BigDecimal;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.regex.Pattern;
-
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.HoverEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -36,32 +27,25 @@ import org.mineacademy.fo.collection.StrictCollection;
 import org.mineacademy.fo.collection.StrictMap;
 import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.exception.InvalidWorldException;
-import org.mineacademy.fo.jsonsimple.JSONArray;
-import org.mineacademy.fo.jsonsimple.JSONObject;
-import org.mineacademy.fo.jsonsimple.JSONParseException;
-import org.mineacademy.fo.jsonsimple.JSONParser;
-import org.mineacademy.fo.jsonsimple.Jsonable;
+import org.mineacademy.fo.jsonsimple.*;
 import org.mineacademy.fo.menu.model.ItemCreator;
-import org.mineacademy.fo.model.BoxedMessage;
-import org.mineacademy.fo.model.ConfigSerializable;
-import org.mineacademy.fo.model.IsInList;
-import org.mineacademy.fo.model.RangedSimpleTime;
-import org.mineacademy.fo.model.RangedValue;
-import org.mineacademy.fo.model.SimpleSound;
-import org.mineacademy.fo.model.SimpleTime;
+import org.mineacademy.fo.model.*;
 import org.mineacademy.fo.remain.CompChatColor;
 import org.mineacademy.fo.remain.CompMaterial;
 import org.mineacademy.fo.remain.JsonItemStack;
 import org.mineacademy.fo.remain.Remain;
 import org.mineacademy.fo.settings.ConfigSection;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import net.md_5.bungee.api.chat.BaseComponent;
-import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.HoverEvent;
+import java.awt.*;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+import java.math.BigDecimal;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.*;
+import java.util.function.Function;
+import java.util.regex.Pattern;
 
 /**
  * Utility class for serializing objects to writeable YAML data and back.
@@ -119,18 +103,7 @@ public final class SerializeUtil {
 		if (serializers.containsKey(object.getClass()))
 			return serializers.get(object.getClass()).apply(object);
 
-		if (object instanceof ConfigurationSerializable) {
-
-			if (isJson) {
-				if (object instanceof ItemStack)
-					return JsonItemStack.toJson((ItemStack) object);
-
-				throw new FoException("serializing " + object.getClass().getSimpleName() + " to JSON is not implemented! Please serialize it to string manually first!");
-			}
-
-			return object;
-
-		} else if (object instanceof ConfigSerializable)
+		if (object instanceof ConfigSerializable)
 			return serialize(mode, ((ConfigSerializable) object).serialize().serialize());
 
 		else if (object instanceof StrictCollection)
@@ -319,6 +292,19 @@ public final class SerializeUtil {
 			final BigDecimal big = (BigDecimal) object;
 
 			return big.toPlainString();
+		}
+
+		else if (object instanceof ConfigurationSerializable) {
+
+			if (isJson) {
+				if (object instanceof ItemStack)
+					return JsonItemStack.toJson((ItemStack) object);
+
+				throw new FoException("serializing " + object.getClass().getSimpleName() + " to JSON is not implemented! Please serialize it to string manually first!");
+			}
+
+			return object;
+
 		}
 
 		throw new SerializeFailedException("Does not know how to serialize " + object.getClass().getSimpleName() + "! Does it extends ConfigSerializable? Data: " + object);

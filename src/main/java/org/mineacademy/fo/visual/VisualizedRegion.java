@@ -1,10 +1,7 @@
 package org.mineacademy.fo.visual;
 
-import java.util.Map;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
+import lombok.Getter;
+import lombok.Setter;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -18,8 +15,9 @@ import org.mineacademy.fo.collection.StrictMap;
 import org.mineacademy.fo.region.Region;
 import org.mineacademy.fo.remain.CompParticle;
 
-import lombok.Getter;
-import lombok.Setter;
+import javax.annotation.Nullable;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * A simply way to visualize two locations in the world
@@ -220,6 +218,11 @@ public final class VisualizedRegion extends Region {
 	 * @return
 	 */
 	public static VisualizedRegion deserialize(final SerializedMap map) {
+
+		// Support loading an empty key with "{}" empty map
+		if (map.isEmpty())
+			return new VisualizedRegion();
+
 		Valid.checkBoolean(map.containsKey("Primary") && map.containsKey("Secondary"), "The region must have Primary and a Secondary location");
 
 		final String name = map.getString("Name");

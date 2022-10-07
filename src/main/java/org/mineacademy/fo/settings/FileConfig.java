@@ -1,30 +1,8 @@
 package org.mineacademy.fo.settings;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.Reader;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.Function;
-
-import javax.annotation.Nullable;
-
+import lombok.AccessLevel;
+import lombok.NonNull;
+import lombok.Setter;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -37,19 +15,17 @@ import org.mineacademy.fo.collection.SerializedMap;
 import org.mineacademy.fo.collection.StrictList;
 import org.mineacademy.fo.command.SimpleCommand;
 import org.mineacademy.fo.command.SimpleCommandGroup;
+import org.mineacademy.fo.exception.EventHandledException;
 import org.mineacademy.fo.exception.FoException;
-import org.mineacademy.fo.model.BoxedMessage;
-import org.mineacademy.fo.model.ConfigSerializable;
-import org.mineacademy.fo.model.IsInList;
-import org.mineacademy.fo.model.SimpleSound;
-import org.mineacademy.fo.model.SimpleTime;
-import org.mineacademy.fo.model.Tuple;
+import org.mineacademy.fo.model.*;
 import org.mineacademy.fo.remain.CompMaterial;
 import org.mineacademy.fo.remain.Remain;
 
-import lombok.AccessLevel;
-import lombok.NonNull;
-import lombok.Setter;
+import javax.annotation.Nullable;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.function.Function;
 
 /**
  * Represents any configuration that can be stored in a file
@@ -153,8 +129,11 @@ public abstract class FileConfig {
 	 *
 	 * @param deep
 	 * @return
+	 *
+	 * @deprecated it is recommended that you use getMap("") instead or for loop in getKeys(deep) and getMap(key) for each
+	 * 			   key and print out the results to console to understand the differences
 	 */
-	@NonNull
+	@Deprecated
 	public final Map<String, Object> getValues(boolean deep) {
 		return this.section.getValues(deep);
 	}
@@ -992,7 +971,18 @@ public abstract class FileConfig {
 		if (exists)
 			for (final Map.Entry<String, Object> entry : SerializedMap.of(this.section.retrieve(path))) {
 				final Key key = SerializeUtil.deserialize(this.mode, keyType, entry.getKey());
-				final Value value = SerializeUtil.deserialize(this.mode, valueType, entry.getValue(), valueDeserializeParams);
+				final Value value;
+
+				if (LocationList.class.isAssignableFrom(valueType)) {
+					final List<?> list = SerializeUtil.deserialize(this.mode, List.class, entry.getValue());
+					final List<Location> copy = new ArrayList<>();
+
+					list.forEach(locationRaw -> copy.add(SerializeUtil.deserializeLocation(locationRaw)));
+
+					value = (Value) new LocationList(this, copy);
+
+				} else
+					value = SerializeUtil.deserialize(this.mode, valueType, entry.getValue(), valueDeserializeParams);
 
 				// Ensure the pair values are valid for the given paramenters
 				this.checkAssignable(path, key, keyType);
@@ -1181,10 +1171,15 @@ public abstract class FileConfig {
 				} else
 					this.load(new InputStreamReader(stream, StandardCharsets.UTF_8));
 
-				this.onLoad();
-				this.onLoadFinish();
+				try {
+					this.onLoad();
+					this.onLoadFinish();
 
-				if (this.shouldSave) {
+				} catch (final EventHandledException ex) {
+					// Handled successfully in the polymorphism pipeline
+				}
+
+				if (this.shouldSave || this.alwaysSaveOnLoad()) {
 					this.loading = false;
 					this.save();
 
@@ -1237,6 +1232,8 @@ public abstract class FileConfig {
 	/**
 	 * Called automatically when the configuration has been loaded, used to load your
 	 * fields in your class here.
+	 *
+	 * You can throw {@link EventHandledException} here to indicate to your child class to interrupt loading
 	 */
 	protected void onLoad() {
 	}
@@ -1276,7 +1273,12 @@ public abstract class FileConfig {
 				this.onPreSave();
 
 				if (this.canSaveFile()) {
-					this.onSave();
+
+					try {
+						this.onSave();
+					} catch (final EventHandledException ex) {
+						// Ignore, indicated that we exited polymorphism inheritance prematurely by intention
+					}
 
 					final File parent = file.getCanonicalFile().getParentFile();
 
@@ -1301,6 +1303,15 @@ public abstract class FileConfig {
 				Remain.sneaky(ex);
 			}
 		}
+	}
+
+	/**
+	 * Return true if we should always save the file after loading it.
+	 *
+	 * @return
+	 */
+	protected boolean alwaysSaveOnLoad() {
+		return false;
 	}
 
 	/**
@@ -1612,6 +1623,10 @@ public abstract class FileConfig {
 
 		private final FileConfig settings;
 		private final List<Location> points;
+
+		public LocationList(final FileConfig settings) {
+			this(settings, new ArrayList<>());
+		}
 
 		private LocationList(final FileConfig settings, final List<Location> points) {
 			this.settings = settings;

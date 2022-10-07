@@ -1,21 +1,19 @@
 package org.mineacademy.fo.visual;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.mineacademy.fo.Messenger;
-import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.menu.tool.BlockTool;
 import org.mineacademy.fo.region.Region;
 import org.mineacademy.fo.remain.CompMaterial;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A class that can visualize selection of blocks in the arena
@@ -44,6 +42,7 @@ public abstract class VisualTool extends BlockTool {
 
 	/**
 	 * Handles block clicking. Any changes here will be reflected automatically in the visualization
+	 * You need to override this method if you want to save the selected region or block clicked!
 	 *
 	 * @param player
 	 * @param click
@@ -54,18 +53,20 @@ public abstract class VisualTool extends BlockTool {
 		final Location location = block.getLocation();
 
 		final Region region = this.getVisualizedRegion(player);
-		Valid.checkNotNull(region, "Got null region on block clicking for player " + player.getName());
 
-		// If you place primary location over a secondary location point, remove secondary
-		if (!isPrimary && region.hasPrimary() && region.isPrimary(location))
-			region.setPrimary(null);
+		if (region != null) {
 
-		// ...and vice versa
-		if (isPrimary && region.hasSecondary() && region.isSecondary(location))
-			region.setSecondary(null);
+			// If you place primary location over a secondary location point, remove secondary
+			if (!isPrimary && region.hasPrimary() && region.isPrimary(location))
+				region.setPrimary(null);
 
-		final boolean removed = !region.toggleLocation(location, click);
-		Messenger.success(player, (isPrimary ? "&cPrimary" : "&6Secondary") + " &7location has been " + (removed ? "&cremoved" : "&2set") + "&7.");
+			// ...and vice versa
+			if (isPrimary && region.hasSecondary() && region.isSecondary(location))
+				region.setSecondary(null);
+
+			final boolean removed = !region.toggleLocation(location, click);
+			Messenger.success(player, (isPrimary ? "&cPrimary" : "&6Secondary") + " &7location has been " + (removed ? "&cremoved" : "&2set") + "&7.");
+		}
 	}
 
 	/**
@@ -96,7 +97,7 @@ public abstract class VisualTool extends BlockTool {
 	 * @see org.mineacademy.fo.menu.tool.Tool#onHotbarFocused(org.bukkit.entity.Player)
 	 */
 	@Override
-	protected final void onHotbarFocused(final Player player) {
+	protected void onHotbarFocused(final Player player) {
 		this.visualize(player);
 	}
 
@@ -104,12 +105,12 @@ public abstract class VisualTool extends BlockTool {
 	 * @see org.mineacademy.fo.menu.tool.Tool#onHotbarDefocused(org.bukkit.entity.Player)
 	 */
 	@Override
-	protected final void onHotbarDefocused(final Player player) {
+	protected void onHotbarDefocused(final Player player) {
 		this.stopVisualizing(player);
 	}
 
 	/**
-	 * Return a list of points we should render in this visualization
+	 * Return a list of points or a single point we should render in this visualization
 	 *
 	 * @param player
 	 *

@@ -1,33 +1,15 @@
 package org.mineacademy.fo.command;
 
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
+import lombok.Getter;
+import lombok.NonNull;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.PluginCommand;
-import org.bukkit.command.TabCompleter;
+import org.bukkit.command.*;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
-import org.mineacademy.fo.Common;
-import org.mineacademy.fo.Messenger;
-import org.mineacademy.fo.PlayerUtil;
-import org.mineacademy.fo.ReflectionUtil;
-import org.mineacademy.fo.TabUtil;
-import org.mineacademy.fo.Valid;
+import org.mineacademy.fo.*;
 import org.mineacademy.fo.collection.StrictList;
 import org.mineacademy.fo.collection.expiringmap.ExpiringMap;
 import org.mineacademy.fo.command.SimpleCommandGroup.MainCommand;
@@ -35,18 +17,17 @@ import org.mineacademy.fo.debug.LagCatcher;
 import org.mineacademy.fo.exception.CommandException;
 import org.mineacademy.fo.exception.EventHandledException;
 import org.mineacademy.fo.exception.InvalidCommandArgException;
-import org.mineacademy.fo.model.ChatPaginator;
-import org.mineacademy.fo.model.Replacer;
-import org.mineacademy.fo.model.SimpleComponent;
-import org.mineacademy.fo.model.SimpleTime;
-import org.mineacademy.fo.model.Variables;
+import org.mineacademy.fo.model.*;
 import org.mineacademy.fo.plugin.SimplePlugin;
 import org.mineacademy.fo.remain.CompMaterial;
 import org.mineacademy.fo.remain.Remain;
 import org.mineacademy.fo.settings.SimpleLocalization;
 
-import lombok.Getter;
-import lombok.NonNull;
+import java.lang.reflect.InvocationTargetException;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * A simple command used to replace all Bukkit/Spigot command functionality
@@ -353,25 +334,52 @@ public abstract class SimpleCommand extends Command {
 					final String usage = this.getMultilineUsageMessage() != null ? String.join("\n&c", this.getMultilineUsageMessage()) : this.getUsage() != null ? this.getUsage() : null;
 					Valid.checkNotNull(usage, "getUsage() nor getMultilineUsageMessage() not implemented for '/" + this.getLabel() + sublabel + "' command!");
 
+					String description = this.replacePlaceholders("&c" + this.getDescription());
+					List<String> usages = new ArrayList<>();
+					String singleLineUsage = null;
+
 					final ChatPaginator paginator = new ChatPaginator(SimpleLocalization.Commands.HEADER_SECONDARY_COLOR);
 					final List<String> pages = new ArrayList<>();
 
 					if (!Common.getOrEmpty(this.getDescription()).isEmpty()) {
 						pages.add(this.replacePlaceholders(SimpleLocalization.Commands.LABEL_DESCRIPTION));
-						pages.add(this.replacePlaceholders("&c" + this.getDescription()));
+						pages.add(description);
 					}
 
 					if (this.getMultilineUsageMessage() != null) {
 						pages.add("");
 						pages.add(this.replacePlaceholders(SimpleLocalization.Commands.LABEL_USAGES));
 
-						for (final String usagePart : usage.split("\n"))
-							pages.add(this.replacePlaceholders("&c" + usagePart));
+						for (String usagePart : usage.split("\n")) {
+							usagePart = this.replacePlaceholders("&c" + usagePart);
+
+							usages.add(usagePart);
+							pages.add(usagePart);
+						}
 
 					} else {
+						singleLineUsage = "&c" + this.replacePlaceholders("/" + label + sublabel + (!usage.startsWith("/") ? " " + Common.stripColors(usage) : ""));
+
 						pages.add("");
 						pages.add(SimpleLocalization.Commands.LABEL_USAGE);
-						pages.add("&c" + this.replacePlaceholders("/" + label + sublabel + (!usage.startsWith("/") ? " " + Common.stripColors(usage) : "")));
+						pages.add(singleLineUsage);
+					}
+
+					if (SimpleLocalization.Commands.SIMPLE_HELP_DESIGN) {
+						Common.tellNoPrefix(sender, addSpaceIfNeeded(SimpleLocalization.Commands.LABEL_DESCRIPTION) + description);
+
+						if (usages.isEmpty())
+							Common.tellNoPrefix(sender, addSpaceIfNeeded(SimpleLocalization.Commands.LABEL_USAGE) + singleLineUsage);
+
+						else {
+							Common.tellNoPrefix(sender, SimpleLocalization.Commands.LABEL_USAGES);
+
+							for (String usagePart : usages)
+								Common.tellNoPrefix(sender, usagePart);
+
+						}
+
+						return;
 					}
 
 					paginator
@@ -423,6 +431,10 @@ public abstract class SimpleCommand extends Command {
 		}
 
 		return true;
+	}
+
+	private String addSpaceIfNeeded(String message) {
+		return message + (Common.stripColors(message).endsWith(" ") ? "" : " ");
 	}
 
 	/*
@@ -1656,7 +1668,7 @@ public abstract class SimpleCommand extends Command {
 	}
 
 	@Override
-	public final String toString() {
+	public String toString() {
 		return "Command{label=/" + this.label + "}";
 	}
 }

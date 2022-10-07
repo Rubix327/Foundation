@@ -1,13 +1,12 @@
 package org.mineacademy.fo.command;
 
-import java.util.Arrays;
-
-import org.mineacademy.fo.Valid;
-import org.mineacademy.fo.plugin.SimplePlugin;
-
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import org.mineacademy.fo.Valid;
+import org.mineacademy.fo.plugin.SimplePlugin;
+
+import java.util.Arrays;
 
 /**
  * A simple subcommand belonging to a {@link SimpleCommandGroup}
@@ -89,6 +88,11 @@ public abstract class SimpleSubCommand extends SimpleCommand {
 	@Override
 	protected String replacePlaceholders(String message) {
 		return super.replacePlaceholders(message).replace("{sublabel}", this.getSublabel());
+	}
+
+	@Override
+	public String toString() {
+		return "SubCommand{parent=/" + this.getLabel() + ", label=" + this.getSublabel() + "}";
 	}
 
 	@Override

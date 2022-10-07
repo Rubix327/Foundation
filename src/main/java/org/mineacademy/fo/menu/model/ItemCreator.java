@@ -4,6 +4,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.enchantments.Enchantment;
@@ -544,6 +545,15 @@ public final class ItemCreator {
 	 */
 	public void give(final Player player) {
 		player.getInventory().addItem(this.make());
+	}
+
+	/**
+	 * Convenience method for dropping this item at the given location
+	 *
+	 * @param location
+	 */
+	public void drop(final Location location) {
+		location.getWorld().dropItem(location, this.make());
 	}
 
 	// ----------------------------------------------------------------------------------------

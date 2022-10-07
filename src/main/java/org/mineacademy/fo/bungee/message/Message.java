@@ -1,14 +1,13 @@
 package org.mineacademy.fo.bungee.message;
 
-import java.util.UUID;
-
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.bungee.BungeeListener;
 import org.mineacademy.fo.bungee.BungeeMessageType;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import java.util.UUID;
 
 /**
  * Represents a in/out message with a given action and server name
@@ -132,7 +131,7 @@ abstract class Message {
 	 *
 	 * @return
 	 */
-	public final String getChannel() {
+	public String getChannel() {
 		return this.listener.getChannel();
 	}
 }

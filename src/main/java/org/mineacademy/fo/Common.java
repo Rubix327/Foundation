@@ -1,27 +1,10 @@
 package org.mineacademy.fo;
 
-import java.io.IOException;
-import java.lang.reflect.Array;
-import java.lang.reflect.InvocationTargetException;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.StringTokenizer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
-
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -34,6 +17,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.Listener;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -44,6 +29,7 @@ import org.mineacademy.fo.MinecraftVersion.V;
 import org.mineacademy.fo.collection.SerializedMap;
 import org.mineacademy.fo.collection.StrictList;
 import org.mineacademy.fo.collection.StrictMap;
+import org.mineacademy.fo.constants.FoConstants;
 import org.mineacademy.fo.debug.Debugger;
 import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.exception.RegexTimeoutException;
@@ -52,16 +38,23 @@ import org.mineacademy.fo.model.HookManager;
 import org.mineacademy.fo.model.Replacer;
 import org.mineacademy.fo.plugin.SimplePlugin;
 import org.mineacademy.fo.remain.CompChatColor;
+import org.mineacademy.fo.remain.CompMaterial;
 import org.mineacademy.fo.remain.Remain;
+import org.mineacademy.fo.remain.nbt.NBTItem;
 import org.mineacademy.fo.settings.ConfigSection;
 import org.mineacademy.fo.settings.SimpleLocalization;
 import org.mineacademy.fo.settings.SimpleSettings;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import net.md_5.bungee.api.chat.TextComponent;
+import java.io.IOException;
+import java.lang.reflect.Array;
+import java.lang.reflect.InvocationTargetException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 /**
  * Our main utility class hosting a large variety of different convenience functions
@@ -948,7 +941,11 @@ public final class Common {
 				"datum", "data",
 				"index", "indices",
 				"entry", "entries",
-				"boss", "bosses");
+				"boss", "bosses",
+				"iron", "iron",
+				"Iron", "Iron",
+				"gold", "gold",
+				"Gold", "Gold");
 
 		return exceptions.containsKey(ofWhat) ? count + " " + (count == 0 || count > 1 ? exceptions.getString(ofWhat) : ofWhat) : null;
 	}
@@ -999,11 +996,56 @@ public final class Common {
 	/**
 	 * Formats the vector location to one digit decimal points
 	 *
+	 * DO NOT USE FOR SAVING, ONLY INTENDED FOR DEBUGGING
+	 *
 	 * @param vec
 	 * @return
 	 */
 	public static String shortLocation(final Vector vec) {
 		return " [" + MathUtil.formatOneDigit(vec.getX()) + ", " + MathUtil.formatOneDigit(vec.getY()) + ", " + MathUtil.formatOneDigit(vec.getZ()) + "]";
+	}
+
+	/**
+	 * Formats the item stack into a readable useful console log
+	 * printing only its name, lore and nbt tags
+	 *
+	 * DO NOT USE FOR SAVING, ONLY INTENDED FOR DEBUGGING
+	 *
+	 * @param item
+	 * @return
+	 */
+	public static String shortItemStack(ItemStack item) {
+		if (item == null)
+			return "null";
+
+		if (CompMaterial.isAir(item.getType()))
+			return "Air";
+
+		String name = ItemUtil.bountifyCapitalized(item.getType());
+
+		if (Remain.hasItemMeta() && item.hasItemMeta()) {
+			ItemMeta meta = item.getItemMeta();
+
+			name += "{";
+
+			if (meta.hasDisplayName())
+				name += "name='" + Common.stripColors(meta.getDisplayName()) + "', ";
+
+			if (meta.hasLore())
+				name += "lore=[" + Common.stripColors(String.join(", ", meta.getLore())) + "], ";
+
+			final NBTItem nbt = new NBTItem(item);
+
+			if (nbt.hasTag(FoConstants.NBT.TAG))
+				name += "tags=" + nbt.getCompound(FoConstants.NBT.TAG) + ", ";
+
+			if (name.endsWith(", "))
+				name = name.substring(0, name.length() - 2);
+
+			name += "}";
+		}
+
+		return name;
 	}
 
 	/**

@@ -1,17 +1,6 @@
 package org.mineacademy.fo.settings;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-
+import lombok.NonNull;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
@@ -26,7 +15,12 @@ import org.yaml.snakeyaml.nodes.Node;
 import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
 
-import lombok.NonNull;
+import javax.annotation.Nullable;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.logging.Level;
 
 /**
  * The core settings class. Fully compatible with Minecraft 1.7.10 to the
@@ -64,7 +58,15 @@ public class YamlConfig extends FileConfig {
 
 			try {
 				final LoaderOptions loaderOptions = new LoaderOptions();
+
 				loaderOptions.setMaxAliasesForCollections(Integer.MAX_VALUE);
+
+				try {
+					loaderOptions.setCodePointLimit(Integer.MAX_VALUE);
+				} catch (Throwable t) {
+					// Thankfully unsupported
+					// https://i.imgur.com/wAgKukK.png
+				}
 
 				yaml = new Yaml(constructor, representer, dumperOptions, loaderOptions);
 
@@ -327,6 +329,16 @@ public class YamlConfig extends FileConfig {
 		final String string = result.toString();
 
 		return string.trim().isEmpty() ? "" : string + "\n";
+	}
+
+	@Override
+	public int hashCode() {
+		return this.getFileName().hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		return obj instanceof YamlConfig && ((YamlConfig) obj).getFileName().equals(this.getFileName());
 	}
 
 	// -----------------------------------------------------------------------------------------------------

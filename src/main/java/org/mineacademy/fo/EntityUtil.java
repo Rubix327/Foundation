@@ -1,27 +1,10 @@
 package org.mineacademy.fo;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.entity.Animals;
-import org.bukkit.entity.Creature;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.ExperienceOrb;
-import org.bukkit.entity.FallingBlock;
-import org.bukkit.entity.Ghast;
-import org.bukkit.entity.Item;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
-import org.bukkit.entity.Slime;
-import org.bukkit.entity.Wolf;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -33,8 +16,12 @@ import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.model.HookManager;
 import org.mineacademy.fo.remain.Remain;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * Utility class for managing entities.
@@ -60,7 +47,7 @@ public final class EntityUtil {
 	public static <T extends LivingEntity> T findNearestEntity(Location center, double range3D, Class<T> entityClass) {
 		final List<T> found = new ArrayList<>();
 
-		for (final Entity nearby : center.getWorld().getNearbyEntities(center, range3D, range3D, range3D))
+		for (final Entity nearby : Remain.getNearbyEntities(center, range3D))
 			if (nearby instanceof LivingEntity && entityClass.isAssignableFrom(nearby.getClass()))
 				found.add((T) nearby);
 

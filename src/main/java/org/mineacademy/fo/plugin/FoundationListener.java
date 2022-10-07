@@ -1,8 +1,5 @@
 package org.mineacademy.fo.plugin;
 
-import java.util.List;
-import java.util.Map;
-
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -14,18 +11,13 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.server.ServiceRegisterEvent;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.Plugin;
-import org.mineacademy.fo.Common;
-import org.mineacademy.fo.MathUtil;
-import org.mineacademy.fo.Messenger;
-import org.mineacademy.fo.MinecraftVersion;
+import org.mineacademy.fo.*;
 import org.mineacademy.fo.MinecraftVersion.V;
-import org.mineacademy.fo.PlayerUtil;
-import org.mineacademy.fo.model.ChatPaginator;
-import org.mineacademy.fo.model.HookManager;
-import org.mineacademy.fo.model.SimpleComponent;
-import org.mineacademy.fo.model.SimpleScoreboard;
-import org.mineacademy.fo.model.SpigotUpdater;
+import org.mineacademy.fo.model.*;
 import org.mineacademy.fo.settings.SimpleLocalization;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * Listens for some events we handle for you automatically
@@ -181,9 +173,10 @@ final class FoundationListener implements Listener {
 		if (!player.hasMetadata("vanished")) {
 			final boolean essVanished = HookManager.isVanishedEssentials(player);
 			final boolean cmiVanished = HookManager.isVanishedCMI(player);
+			final boolean advVanished = HookManager.isVanishedAdvancedVanish(player);
 
-			if (essVanished || cmiVanished) {
-				final Plugin plugin = Bukkit.getPluginManager().getPlugin(essVanished ? "Essentials" : "CMI");
+			if (essVanished || cmiVanished || advVanished) {
+				final Plugin plugin = Bukkit.getPluginManager().getPlugin(essVanished ? "Essentials" : cmiVanished ? "CMI" : "AdvancedVanish");
 
 				player.setMetadata("vanished", new FixedMetadataValue(plugin, true));
 			}

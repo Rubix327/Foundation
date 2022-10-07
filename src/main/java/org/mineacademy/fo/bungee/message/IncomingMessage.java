@@ -1,19 +1,18 @@
 package org.mineacademy.fo.bungee.message;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.util.UUID;
-
+import com.google.common.io.ByteArrayDataInput;
+import com.google.common.io.ByteStreams;
+import lombok.Getter;
 import org.bukkit.entity.Player;
 import org.mineacademy.fo.ReflectionUtil;
 import org.mineacademy.fo.bungee.BungeeListener;
+import org.mineacademy.fo.bungee.BungeeMessageType;
 import org.mineacademy.fo.collection.SerializedMap;
 import org.mineacademy.fo.plugin.SimplePlugin;
 
-import com.google.common.io.ByteArrayDataInput;
-import com.google.common.io.ByteStreams;
-
-import lombok.Getter;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.UUID;
 
 /**
  * Represents an incoming plugin message.
@@ -33,12 +32,18 @@ public final class IncomingMessage extends Message {
 	/**
 	 * The input we use to read our data array
 	 */
-	private final ByteArrayDataInput input;
+	private ByteArrayDataInput input;
 
 	/**
 	 * The internal stream
 	 */
 	private final ByteArrayInputStream stream;
+
+	/**
+	 * Channel name
+	 */
+	@Getter
+	private final String channel;
 
 	/**
 	 * Create a new incoming message from the given array
@@ -64,16 +69,29 @@ public final class IncomingMessage extends Message {
 	 * @param data
 	 */
 	public IncomingMessage(BungeeListener listener, byte[] data) {
+		this(listener, listener.getChannel(), data);
+	}
+
+	private IncomingMessage(BungeeListener listener, String channel, byte[] data) {
 		super(listener);
 
+		this.channel = channel;
 		this.data = data;
 		this.stream = new ByteArrayInputStream(data);
-		this.input = ByteStreams.newDataInput(this.stream);
 
+		try {
+			this.input = ByteStreams.newDataInput(this.stream);
+
+		} catch (final Throwable t) {
+			this.input = ByteStreams.newDataInput(data);
+		}
 		// -----------------------------------------------------------------
 		// We are automatically reading the first two strings assuming the
 		// first is the senders server name and the second is the action
 		// -----------------------------------------------------------------
+
+		// Read channel name, dispose, set above
+		this.input.readUTF();
 
 		// Read senders UUID
 		this.setSenderUid(this.input.readUTF());
@@ -200,7 +218,7 @@ public final class IncomingMessage extends Message {
 	 *
 	 * @return
 	 */
-	public int writeInt() {
+	public int readInt() {
 		this.moveHead(Integer.class);
 
 		return this.input.readInt();
@@ -234,6 +252,6 @@ public final class IncomingMessage extends Message {
 	 * @param player
 	 */
 	public void forward(Player player) {
-		player.sendPluginMessage(SimplePlugin.getInstance(), this.getChannel(), this.data);
+		player.sendPluginMessage(SimplePlugin.getInstance(), "BungeeCord", this.data);
 	}
 }

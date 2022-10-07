@@ -18,8 +18,6 @@ import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.plugin.SimplePlugin;
 import org.mineacademy.fo.remain.Remain;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.util.UUID;
 
 /**
@@ -73,9 +71,10 @@ public final class BungeeUtil {
 	 *
 	 * OBS! The data written always start with:
 	 *
-	 * 1. The recipient UUID
-	 * 2. {@link Remain#getServerName()}
-	 * 3. The action parameter
+	 * 1. The channel name (to avoid "Unknown custom packed identifier: plugin:chcred" console spam we use "BungeeCord")
+	 * 2. The recipient UUID
+	 * 3. {@link Remain#getServerName()}
+	 * 4. The action parameter
 	 *
 	 *
 	 * @param <T>
@@ -104,6 +103,7 @@ public final class BungeeUtil {
 
 		final ByteArrayDataOutput out = ByteStreams.newDataOutput();
 
+		out.writeUTF(channel);
 		out.writeUTF(sender.getUniqueId().toString());
 		out.writeUTF(Remain.getServerName());
 		out.writeUTF(action.toString());
@@ -197,7 +197,7 @@ public final class BungeeUtil {
 		final byte[] byteArray = out.toByteArray();
 
 		try {
-			sender.sendPluginMessage(SimplePlugin.getInstance(), channel, byteArray);
+			sender.sendPluginMessage(SimplePlugin.getInstance(), "BungeeCord", byteArray);
 
 		} catch (final ChannelNotRegisteredException ex) {
 			Common.log("Cannot send Bungee '" + action + "' message because channel '" + channel + "' is not registered. "
@@ -211,6 +211,18 @@ public final class BungeeUtil {
 	}
 
 	/**
+	 * Sends a plugin message that will re-connect the player to another server on Bungee
+	 *
+	 * @param player     the living non-dead player
+	 * @param serverName the server name as you have in config.yml of your BungeeCord
+	 */
+	public static void connect(@NonNull Player player, @NonNull String serverName) {
+		sendBungeeMessage(player,
+				"Connect",
+				serverName);
+	}
+
+	/**
 	 * Sends message via a channel to the bungee network (upstreams). You need an
 	 * implementation in bungee to handle it, otherwise nothing will happen.
 	 *
@@ -220,7 +232,7 @@ public final class BungeeUtil {
 	 * @param sender the player to send the message as
 	 * @param data  the data
 	 */
-	public static void sendMessage(@NonNull Player sender, Object... data) {
+	public static void sendBungeeMessage(@NonNull Player sender, Object... data) {
 		Valid.checkBoolean(data != null && data.length >= 1, "");
 
 		final ByteArrayDataOutput out = ByteStreams.newDataOutput();
@@ -247,47 +259,20 @@ public final class BungeeUtil {
 		sender.sendPluginMessage(SimplePlugin.getInstance(), "BungeeCord", out.toByteArray());
 	}
 
-	/**
-	 * Sends a plugin message that will re-connect the player to another server on Bungee
-	 *
-	 * @param player     the living non-dead player
-	 * @param serverName the server name as you have in config.yml of your BungeeCord
-	 */
-	public static void connect(@NonNull Player player, @NonNull String serverName) {
-		final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
-		final DataOutputStream out = new DataOutputStream(byteArray);
-
-		try {
-			out.writeUTF("Connect");
-			out.writeUTF(serverName);
-
-		} catch (final Throwable t) {
-			Common.error(t,
-					"Unable to connect " + player.getName() + " to server " + serverName,
-					"Error: %error");
-		}
-
-		player.sendPluginMessage(SimplePlugin.getInstance(), "BungeeCord", byteArray.toByteArray());
-	}
-
-	/**
+	/*
 	 * Return either the first online player or the server itself
 	 * through which we send the bungee message as
-	 *
-	 * @return
 	 */
 	private static Player findFirstPlayer() {
 		return Remain.getOnlinePlayers().isEmpty() ? null : Remain.getOnlinePlayers().iterator().next();
 	}
 
-	/**
+	/*
 	 * Ensures we are reading in the correct order as the given {@link BungeeMessageType}
 	 * specifies in its {@link BungeeMessageType#getContent()} getter.
 	 * <p>
 	 * This also ensures we are reading the correct data type (both primitives and wrappers
 	 * are supported).
-	 *
-	 * @param typeOf
 	 */
 	private static void moveHead(int actionHead, BungeeMessageType action, Class<?> typeOf, Object[] data) throws Throwable {
 		Valid.checkNotNull(action, "Action not set!");

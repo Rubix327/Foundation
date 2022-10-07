@@ -1,48 +1,5 @@
 package org.mineacademy.fo.model;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.annotation.Nullable;
-
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.OfflinePlayer;
-import org.bukkit.World;
-import org.bukkit.block.Block;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.RegisteredServiceProvider;
-import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitTask;
-import org.mineacademy.fo.Common;
-import org.mineacademy.fo.MinecraftVersion;
-import org.mineacademy.fo.MinecraftVersion.V;
-import org.mineacademy.fo.PlayerUtil;
-import org.mineacademy.fo.ReflectionUtil;
-import org.mineacademy.fo.Valid;
-import org.mineacademy.fo.collection.StrictSet;
-import org.mineacademy.fo.debug.Debugger;
-import org.mineacademy.fo.exception.FoException;
-import org.mineacademy.fo.plugin.SimplePlugin;
-import org.mineacademy.fo.region.Region;
-import org.mineacademy.fo.remain.Remain;
-
 import com.Zrips.CMI.CMI;
 import com.Zrips.CMI.Containers.CMIUser;
 import com.Zrips.CMI.Modules.TabList.TabListManager;
@@ -50,13 +7,10 @@ import com.bekvon.bukkit.residence.Residence;
 import com.bekvon.bukkit.residence.protection.ClaimedResidence;
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
+import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketListener;
-import com.earth2me.essentials.CommandSource;
-import com.earth2me.essentials.Essentials;
-import com.earth2me.essentials.IUser;
-import com.earth2me.essentials.User;
-import com.earth2me.essentials.UserMap;
+import com.earth2me.essentials.*;
 import com.gmail.nossr50.datatypes.chat.ChatChannel;
 import com.gmail.nossr50.datatypes.party.Party;
 import com.gmail.nossr50.datatypes.player.McMMOPlayer;
@@ -68,13 +22,8 @@ import com.massivecraft.massivecore.ps.PS;
 import com.onarandombox.MultiverseCore.MultiverseCore;
 import com.onarandombox.MultiverseCore.api.MultiverseWorld;
 import com.palmergames.bukkit.towny.TownyUniverse;
-import com.palmergames.bukkit.towny.object.Nation;
-import com.palmergames.bukkit.towny.object.Resident;
-import com.palmergames.bukkit.towny.object.Town;
-import com.palmergames.bukkit.towny.object.TownBlock;
-import com.palmergames.bukkit.towny.object.WorldCoord;
+import com.palmergames.bukkit.towny.object.*;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
-
 import fr.xephi.authme.api.v3.AuthMeApi;
 import github.scarsz.discordsrv.DiscordSRV;
 import github.scarsz.discordsrv.dependencies.jda.api.entities.TextChannel;
@@ -83,6 +32,7 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import me.clip.placeholderapi.PlaceholderAPI;
+import me.clip.placeholderapi.PlaceholderAPIPlugin;
 import me.clip.placeholderapi.PlaceholderHook;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import me.clip.placeholderapi.expansion.Relational;
@@ -93,9 +43,36 @@ import net.citizensnpcs.api.npc.NPCRegistry;
 import net.milkbowl.vault.chat.Chat;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.*;
+import org.bukkit.block.Block;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.RegisteredServiceProvider;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
+import org.mineacademy.fo.*;
+import org.mineacademy.fo.MinecraftVersion.V;
+import org.mineacademy.fo.collection.StrictSet;
+import org.mineacademy.fo.debug.Debugger;
+import org.mineacademy.fo.exception.FoException;
+import org.mineacademy.fo.plugin.SimplePlugin;
+import org.mineacademy.fo.region.Region;
+import org.mineacademy.fo.remain.Remain;
 import world.bentobox.bentobox.BentoBox;
 import world.bentobox.bentobox.database.objects.Island;
+import world.bentobox.bentobox.managers.IslandsManager;
 import world.bentobox.bentobox.managers.RanksManager;
+
+import javax.annotation.Nullable;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+import java.util.*;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Our main class hooking into different plugins, providing you
@@ -108,6 +85,7 @@ public final class HookManager {
 	// Store hook classes separately for below, avoiding no such method/field errors
 	// ------------------------------------------------------------------------------------------------------------
 
+	private static AdvancedVanishHook advancedVanishHook;
 	private static AuthMeHook authMeHook;
 	private static BanManagerHook banManagerHook;
 	private static BentoBoxHook bentoBoxHook;
@@ -148,6 +126,9 @@ public final class HookManager {
 	 * Detect various plugins and load their methods into this library so you can use it later
 	 */
 	public static void loadDependencies() {
+
+		if (Common.doesPluginExist("AdvancedVanish"))
+			advancedVanishHook = new AdvancedVanishHook();
 
 		if (Common.doesPluginExist("AuthMe"))
 			authMeHook = new AuthMeHook();
@@ -316,6 +297,15 @@ public final class HookManager {
 	// ------------------------------------------------------------------------------------------------------------
 	// Methods for determining which plugins were loaded after you call the load method
 	// ------------------------------------------------------------------------------------------------------------
+
+	/**
+	 * Is AdvancedVanish loaded?
+	 *
+	 * @return
+	 */
+	public static boolean isAdvancedVanishLoaded() {
+		return advancedVanishHook != null;
+	}
 
 	/**
 	 * Is AuthMe Reloaded loaded? We only support the latest version
@@ -666,83 +656,83 @@ public final class HookManager {
 	// ------------------------------------------------------------------------------------------------------------
 
 	/**
-	 * Return BentoBox island members if the given location is an island, or empty set if null
+	 * Return BentoBox island visitors for the specified player's island, or empty set if null
 	 *
-	 * @param islandLocation
+	 * @param player
 	 * @return
 	 */
-	public static Set<UUID> getBentoBoxVisitors(Location islandLocation) {
-		return isBentoBoxLoaded() ? bentoBoxHook.getIslandVisitors(islandLocation) : new HashSet<>();
+	public static Set<UUID> getBentoBoxVisitors(Player player) {
+		return isBentoBoxLoaded() ? bentoBoxHook.getIslandVisitors(player) : new HashSet<>();
 	}
 
 	/**
-	 * Return BentoBox island members if the given location is an island, or empty set if null
+	 * Return BentoBox island coops for the specified player's island, or empty set if null
 	 *
-	 * @param islandLocation
+	 * @param player
 	 * @return
 	 */
-	public static Set<UUID> getBentoBoxCoops(Location islandLocation) {
-		return isBentoBoxLoaded() ? bentoBoxHook.getIslandCoops(islandLocation) : new HashSet<>();
+	public static Set<UUID> getBentoBoxCoops(Player player) {
+		return isBentoBoxLoaded() ? bentoBoxHook.getIslandCoops(player) : new HashSet<>();
 	}
 
 	/**
-	 * Return BentoBox island members if the given location is an island, or empty set if null
+	 * Return BentoBox island trustees for the specified player's island, or empty set if null
 	 *
-	 * @param islandLocation
+	 * @param player
 	 * @return
 	 */
-	public static Set<UUID> getBentoBoxTrustees(Location islandLocation) {
-		return isBentoBoxLoaded() ? bentoBoxHook.getIslandTrustees(islandLocation) : new HashSet<>();
+	public static Set<UUID> getBentoBoxTrustees(Player player) {
+		return isBentoBoxLoaded() ? bentoBoxHook.getIslandTrustees(player) : new HashSet<>();
 	}
 
 	/**
-	 * Return BentoBox island members if the given location is an island, or empty set if null
+	 * Return BentoBox island members for the specified player's island, or empty set if null
 	 *
-	 * @param islandLocation
+	 * @param player
 	 * @return
 	 */
-	public static Set<UUID> getBentoBoxMembers(Location islandLocation) {
-		return isBentoBoxLoaded() ? bentoBoxHook.getIslandMembers(islandLocation) : new HashSet<>();
+	public static Set<UUID> getBentoBoxMembers(Player player) {
+		return isBentoBoxLoaded() ? bentoBoxHook.getIslandMembers(player) : new HashSet<>();
 	}
 
 	/**
-	 * Return BentoBox island members if the given location is an island, or empty set if null
+	 * Return BentoBox island subowners for the specified player's island, or empty set if null
 	 *
-	 * @param islandLocation
+	 * @param player
 	 * @return
 	 */
-	public static Set<UUID> getBentoBoxSubOwners(Location islandLocation) {
-		return isBentoBoxLoaded() ? bentoBoxHook.getIslandSubOwners(islandLocation) : new HashSet<>();
+	public static Set<UUID> getBentoBoxSubOwners(Player player) {
+		return isBentoBoxLoaded() ? bentoBoxHook.getIslandSubOwners(player) : new HashSet<>();
 	}
 
 	/**
-	 * Return BentoBox island members if the given location is an island, or empty set if null
+	 * Return BentoBox island owners for the specified player's island, or empty set if null
 	 *
-	 * @param islandLocation
+	 * @param player
 	 * @return
 	 */
-	public static Set<UUID> getBentoBoxOwners(Location islandLocation) {
-		return isBentoBoxLoaded() ? bentoBoxHook.getIslandOwners(islandLocation) : new HashSet<>();
+	public static Set<UUID> getBentoBoxOwners(Player player) {
+		return isBentoBoxLoaded() ? bentoBoxHook.getIslandOwners(player) : new HashSet<>();
 	}
 
 	/**
-	 * Return BentoBox island members if the given location is an island, or empty set if null
+	 * Return BentoBox island moderators for the specified player's island, or empty set if null
 	 *
-	 * @param islandLocation
+	 * @param player
 	 * @return
 	 */
-	public static Set<UUID> getBentoBoxMods(Location islandLocation) {
-		return isBentoBoxLoaded() ? bentoBoxHook.getIslandMods(islandLocation) : new HashSet<>();
+	public static Set<UUID> getBentoBoxMods(Player player) {
+		return isBentoBoxLoaded() ? bentoBoxHook.getIslandMods(player) : new HashSet<>();
 	}
 
 	/**
-	 * Return BentoBox island members if the given location is an island, or empty set if null
+	 * Return BentoBox island admins for the specified player's island, or empty set if null
 	 *
-	 * @param islandLocation
+	 * @param player
 	 * @return
 	 */
-	public static Set<UUID> getBentoBoxAdmins(Location islandLocation, int rank) {
-		return isBentoBoxLoaded() ? bentoBoxHook.getIslandAdmins(islandLocation) : new HashSet<>();
+	public static Set<UUID> getBentoBoxAdmins(Player player) {
+		return isBentoBoxLoaded() ? bentoBoxHook.getIslandAdmins(player) : new HashSet<>();
 	}
 
 	// ------------------------------------------------------------------------------------------------------------
@@ -760,7 +750,7 @@ public final class HookManager {
 	}
 
 	// ------------------------------------------------------------------------------------------------------------
-	// EssentialsX or CMI
+	// EssentialsX, CMI or AdvancedVanish
 	// ------------------------------------------------------------------------------------------------------------
 
 	/**
@@ -801,19 +791,34 @@ public final class HookManager {
 	}
 
 	/**
-	 * Sets the vanish status for player in CMI and Essentials
+	 * Return true if the given player is vanished in AdvancedVanish
+	 *
+	 * @deprecated this does not call metadata check for most plugins nor NMS check, see {@link PlayerUtil#isVanished(Player)}
+	 * @param player
+	 * @return
+	 */
+	@Deprecated
+	public static boolean isVanishedAdvancedVanish(final Player player) {
+		return isAdvancedVanishLoaded() && advancedVanishHook.isVanished(player);
+	}
+
+	/**
+	 * Sets the vanish status for player in CMI, Essentials and AdvancedVanish
 	 *
 	 * @deprecated this does not remove vanish metadata and NMS invisibility, use {@link PlayerUtil#setVanished(Player, boolean)} for that
 	 * @param player
 	 * @param vanished
 	 */
 	@Deprecated
-	public static void setVanished(Player player, boolean vanished) {
+	public static void setVanished(@NonNull Player player, boolean vanished) {
 		if (isEssentialsLoaded())
 			essentialsHook.setVanished(player.getName(), vanished);
 
 		if (isCMILoaded())
 			CMIHook.setVanished(player, vanished);
+
+		if (isAdvancedVanishLoaded())
+			advancedVanishHook.setVanished(player, vanished);
 	}
 
 	/**
@@ -1662,6 +1667,36 @@ public final class HookManager {
 //
 // ------------------------------------------------------------------------------------------------------------
 
+class AdvancedVanishHook {
+
+	boolean isVanished(Player player) {
+		final Class<?> clazz = ReflectionUtil.lookupClass("me.quantiom.advancedvanish.util.AdvancedVanishAPI");
+		final Object instance = ReflectionUtil.getStaticFieldContent(clazz, "INSTANCE");
+
+		final Method isPlayerVanished = ReflectionUtil.getMethod(clazz, "isPlayerVanished", Player.class);
+
+		return ReflectionUtil.invoke(isPlayerVanished, instance, player);
+	}
+
+	void setVanished(Player player, boolean vanished) {
+		final Class<?> clazz = ReflectionUtil.lookupClass("me.quantiom.advancedvanish.util.AdvancedVanishAPI");
+		final Object instance = ReflectionUtil.getStaticFieldContent(clazz, "INSTANCE");
+
+		if (vanished) {
+			if (!this.isVanished(player)) {
+				final Method vanishPlayer = ReflectionUtil.getMethod(clazz, "vanishPlayer", Player.class, boolean.class);
+
+				ReflectionUtil.invoke(vanishPlayer, instance, player, false);
+			}
+
+		} else if (this.isVanished(player)) {
+			final Method unVanishPlayer = ReflectionUtil.getMethod(clazz, "unVanishPlayer", Player.class, boolean.class);
+
+			ReflectionUtil.invoke(unVanishPlayer, instance, player, false);
+		}
+	}
+}
+
 class AuthMeHook {
 
 	boolean isLogged(final Player player) {
@@ -2275,7 +2310,11 @@ class PlaceholderAPIHook {
 
 	private String setPlaceholders(final OfflinePlayer player, String text) {
 		final String oldText = text;
-		final Map<String, PlaceholderHook> hooks = PlaceholderAPI.getPlaceholders();
+		final Map<String, PlaceholderExpansion> hooks = new HashMap<>();
+
+		// MineAcademy edit: Case insensitive
+		for (final PlaceholderExpansion expansion : PlaceholderAPIPlugin.getInstance().getLocalExpansionManager().getExpansions())
+			hooks.put(expansion.getIdentifier().toLowerCase(), expansion);
 
 		if (hooks.isEmpty())
 			return text;
@@ -2286,7 +2325,7 @@ class PlaceholderAPIHook {
 		return text;
 	}
 
-	private String setPlaceholders(OfflinePlayer player, String oldText, String text, Map<String, PlaceholderHook> hooks, Matcher matcher) {
+	private String setPlaceholders(OfflinePlayer player, String oldText, String text, Map<String, PlaceholderExpansion> hooks, Matcher matcher) {
 		while (matcher.find()) {
 			String format = matcher.group(1);
 			boolean frontSpace = false;
@@ -2309,7 +2348,7 @@ class PlaceholderAPIHook {
 			if (index <= 0 || index >= format.length())
 				continue;
 
-			final String identifier = format.substring(0, index);
+			final String identifier = format.substring(0, index).toLowerCase();
 			final String params = format.substring(index + 1);
 			final String finalFormat = format;
 
@@ -3347,45 +3386,60 @@ class BanManagerHook {
 
 class BentoBoxHook {
 
-	Set<UUID> getIslandVisitors(Location islandLocation) {
-		return this.getIslandUsers(islandLocation, RanksManager.VISITOR_RANK);
+	Set<UUID> getIslandVisitors(Player player) {
+		return this.getIslandUsers(player, RanksManager.VISITOR_RANK);
 	}
 
-	Set<UUID> getIslandCoops(Location islandLocation) {
-		return this.getIslandUsers(islandLocation, RanksManager.COOP_RANK);
+	Set<UUID> getIslandCoops(Player player) {
+		return this.getIslandUsers(player, RanksManager.COOP_RANK);
 	}
 
-	Set<UUID> getIslandTrustees(Location islandLocation) {
-		return this.getIslandUsers(islandLocation, RanksManager.TRUSTED_RANK);
+	Set<UUID> getIslandTrustees(Player player) {
+		return this.getIslandUsers(player, RanksManager.TRUSTED_RANK);
 	}
 
-	Set<UUID> getIslandMembers(Location islandLocation) {
-		return this.getIslandUsers(islandLocation, RanksManager.MEMBER_RANK);
+	Set<UUID> getIslandMembers(Player player) {
+		return this.getIslandUsers(player, RanksManager.MEMBER_RANK);
 	}
 
-	Set<UUID> getIslandSubOwners(Location islandLocation) {
-		return this.getIslandUsers(islandLocation, RanksManager.SUB_OWNER_RANK);
+	Set<UUID> getIslandSubOwners(Player player) {
+		return this.getIslandUsers(player, RanksManager.SUB_OWNER_RANK);
 	}
 
-	Set<UUID> getIslandOwners(Location islandLocation) {
-		return this.getIslandUsers(islandLocation, RanksManager.OWNER_RANK);
+	Set<UUID> getIslandOwners(Player player) {
+		return this.getIslandUsers(player, RanksManager.OWNER_RANK);
 	}
 
-	Set<UUID> getIslandMods(Location islandLocation) {
-		return this.getIslandUsers(islandLocation, RanksManager.MOD_RANK);
+	Set<UUID> getIslandMods(Player player) {
+		return this.getIslandUsers(player, RanksManager.MOD_RANK);
 	}
 
-	Set<UUID> getIslandAdmins(Location islandLocation) {
-		return this.getIslandUsers(islandLocation, RanksManager.ADMIN_RANK);
+	Set<UUID> getIslandAdmins(Player player) {
+		return this.getIslandUsers(player, RanksManager.ADMIN_RANK);
 	}
 
-	private Set<UUID> getIslandUsers(Location islandLocation, int rank) {
-		final Optional<Island> maybeIsland = BentoBox.getInstance().getIslands().getIslandAt(islandLocation);
+	private Set<UUID> getIslandUsers(Player player, int rank) {
+		final IslandsManager manager = BentoBox.getInstance().getIslands();
+		final Optional<Island> maybeIsland = manager.getIslandAt(player.getLocation());
 
 		if (maybeIsland.isPresent()) {
 			final Island island = maybeIsland.get();
 
 			return island.getMemberSet(rank);
+
+		} else {
+			final UUID uniqueId = player.getUniqueId();
+
+			for (World world : Bukkit.getWorlds()) {
+				try {
+					Island island = manager.getIsland(world, uniqueId);
+
+					if (island != null)
+						return island.getMemberSet(rank);
+
+				} catch (Throwable t) {
+				}
+			}
 		}
 
 		return new HashSet<>();
@@ -3522,16 +3576,16 @@ class LiteBansHook {
 		/*try {
 			final Class<?> api = ReflectionUtil.lookupClass("litebans.api.Database");
 			final Object instance = ReflectionUtil.invokeStatic(api, "get");
-		
+
 			return ReflectionUtil.invoke("isPlayerMuted", instance, player.getUniqueId());
-		
+
 		} catch (final Throwable t) {
 			if (!t.toString().contains("Could not find class")) {
 				Common.log("Unable to check if " + player.getName() + " is muted at LiteBans. Is the API hook outdated? See console error:");
-		
+
 				t.printStackTrace();
 			}
-		
+
 			return false;
 		}*/
 	}

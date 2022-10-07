@@ -61,10 +61,11 @@ public abstract class Menu {
 	// --------------------------------------------------------------------------------
 
 	/**
-	 * The default sound when switching between menus.
+	 * The default sound when switching between menus. Set to null to disable
 	 */
 	@Getter
 	@Setter
+	@Nullable
 	private static SimpleSound sound = new SimpleSound(CompSound.NOTE_STICKS.getSound(), .4F);
 
 	/**
@@ -321,9 +322,11 @@ public abstract class Menu {
 			// TODO rewrite to use cache instead of for loop so that two buttons that are the same won't collide
 			for (final Button button : this.registeredButtons.keySet()) {
 				Valid.checkNotNull(button, "Menu button is null at " + this.getClass().getSimpleName());
-				Valid.checkNotNull(button.getItem(), "Menu " + this.getTitle() + " contained button " + button + " with empty item!");
 
-				if (ItemUtil.isSimilar(fromItem, button.getItem()))
+				ItemStack item = button.getItem();
+				Valid.checkNotNull(item, "Menu " + this.getTitle() + " contained button " + button.getClass().getSimpleName() + " with empty item!");
+
+				if (ItemUtil.isSimilar(fromItem, item))
 					return button;
 			}
 
@@ -417,7 +420,8 @@ public abstract class Menu {
 		}
 
 		// Play the pop sound
-		sound.play(player);
+		if (sound != null)
+			sound.play(player);
 
 		// Register previous menu if exists
 		{
@@ -485,8 +489,11 @@ public abstract class Menu {
 	 */
 	public final void restartMenu(final String animatedTitle) {
 
-		final Inventory inventory = this.getViewer().getOpenInventory().getTopInventory();
-		Valid.checkBoolean(inventory.getType() == InventoryType.CHEST, this.getViewer().getName() + "'s inventory closed in the meanwhile (now == " + inventory.getType() + ").");
+		final Player player = this.getViewer();
+		Valid.checkNotNull(player, "Cannot restartMenu if it was not yet shown to a player! Menu: " + this);
+
+		final Inventory inventory = player.getOpenInventory().getTopInventory();
+		Valid.checkBoolean(inventory.getType() == InventoryType.CHEST, player.getName() + "'s inventory closed in the meanwhile (now == " + inventory.getType() + ").");
 
 		this.registerButtons();
 
@@ -499,7 +506,11 @@ public abstract class Menu {
 			this.animateTitle(animatedTitle);
 	}
 
-	void onRestart() {}
+	/*
+	 * Internal hook before calling getItemAt
+	 */
+	void onRestart() {
+	}
 
 	/**
 	 * Redraws the bottom bar and updates inventory

@@ -10,10 +10,8 @@ import org.bukkit.*;
 import org.bukkit.Statistic.Type;
 import org.bukkit.advancement.Advancement;
 import org.bukkit.advancement.AdvancementProgress;
-import org.bukkit.block.Biome;
-import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.Chest;
+import org.bukkit.block.*;
+import org.bukkit.block.data.type.Bed;
 import org.bukkit.command.*;
 import org.bukkit.configuration.MemorySection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -513,6 +511,23 @@ public final class Remain {
 	}
 
 	/**
+	 * Returns the player's view distance
+	 *
+	 * @param player
+	 * @return
+	 */
+	public static int getViewDistance(Player player) {
+		try {
+			return player.getClientViewDistance();
+
+		} catch (NoSuchMethodError err) {
+			Method getViewDistance = ReflectionUtil.getMethod(player.spigot().getClass(), "getViewDistance");
+
+			return ReflectionUtil.invoke(getViewDistance, player.spigot());
+		}
+	}
+
+	/**
 	 * Spawn a falling block at the given block location
 	 *
 	 * @param block
@@ -685,6 +700,66 @@ public final class Remain {
 			} catch (final ReflectiveOperationException ex) {
 				ex.printStackTrace();
 			}
+	}
+
+	/**
+	 * This will attempt to place a bed block to the initial block and the other head block in the facing direction
+	 *
+	 * Use {@link PlayerUtil#getFacing(Player)} to get where a player is looking at
+	 *
+	 * @param initialLocation
+	 * @param facing
+	 */
+	public static void setBed(Location initialLocation, BlockFace facing) {
+		setBed(initialLocation.getBlock(), facing);
+	}
+
+	/**
+	 * This will attempt to place a bed block to the initial block and the other head block in the facing direction
+	 *
+	 * Use {@link PlayerUtil#getFacing(Player)} to get where a player is looking at
+	 *
+	 * @param initialBlock
+	 * @param facing
+	 */
+	public static void setBed(Block initialBlock, BlockFace facing) {
+
+		if (MinecraftVersion.atLeast(V.v1_13))
+			for (final Bed.Part part : Bed.Part.values()) {
+				initialBlock.setBlockData(Bukkit.createBlockData(CompMaterial.WHITE_BED.getMaterial(), data -> {
+					((Bed) data).setPart(part);
+					((Bed) data).setFacing(facing);
+				}));
+
+				initialBlock = initialBlock.getRelative(facing.getOppositeFace());
+			}
+
+		else {
+			initialBlock = initialBlock.getRelative(facing);
+
+			final Material bedMaterial = Material.valueOf("BED_BLOCK");
+			final Block bedFootBlock = initialBlock.getRelative(facing.getOppositeFace());
+
+			final BlockState bedFootState = bedFootBlock.getState();
+			bedFootState.setType(bedMaterial);
+
+			final org.bukkit.material.Bed bedFootData = new org.bukkit.material.Bed(bedMaterial);
+			bedFootData.setHeadOfBed(false);
+			bedFootData.setFacingDirection(facing);
+
+			bedFootState.setData(bedFootData);
+			bedFootState.update(true);
+
+			final BlockState bedHeadState = initialBlock.getState();
+			bedHeadState.setType(bedMaterial);
+
+			final org.bukkit.material.Bed bedHeadData = new org.bukkit.material.Bed(bedMaterial);
+			bedHeadData.setHeadOfBed(true);
+			bedHeadData.setFacingDirection(facing);
+
+			bedHeadState.setData(bedHeadData);
+			bedHeadState.update(true);
+		}
 	}
 
 	/**
@@ -2124,8 +2199,7 @@ public final class Remain {
 	 */
 	public static void sendToast(final Player receiver, final String message, final CompMaterial icon, final CompToastStyle toastStyle) {
 		if (message != null && !message.isEmpty()) {
-//			final String colorized = Common.colorize(message);
-			final String colorized = (message);
+			final String colorized = Common.colorize(message);
 
 			if (!colorized.isEmpty()) {
 				Valid.checkSync("Toasts may only be sent from the main thread");
@@ -2328,6 +2402,34 @@ public final class Remain {
 	}
 
 	/**
+	 * Attempts to resolve the hit block from projectile hit event
+	 *
+	 * @param event
+	 * @return
+	 */
+	public static Block getHitBlock(ProjectileHitEvent event) {
+		try {
+			return event.getHitBlock();
+
+		} catch (final Throwable t) {
+
+			final Block entityBlock = event.getEntity().getLocation().getBlock();
+
+			if (!CompMaterial.isAir(entityBlock))
+				return entityBlock;
+
+			for (final BlockFace face : Arrays.asList(BlockFace.UP, BlockFace.DOWN, BlockFace.WEST, BlockFace.EAST, BlockFace.NORTH, BlockFace.SOUTH)) {
+				final Block adjucentBlock = entityBlock.getRelative(face);
+
+				if (!CompMaterial.isAir(adjucentBlock))
+					return adjucentBlock;
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * Return nearby entities in a location
 	 *
 	 * @param location
@@ -2385,32 +2487,29 @@ public final class Remain {
 		if (MinecraftVersion.atLeast(V.v1_15))
 			item.setAmount(item.getAmount() - 1);
 
-		else
-			Common.runLater(() -> {
-				if (item.getAmount() > 1)
-					item.setAmount(item.getAmount() - 1);
-				else if (MinecraftVersion.atLeast(V.v1_9))
-					item.setAmount(0);
+		else {
+			if (item.getAmount() > 1)
+				item.setAmount(item.getAmount() - 1);
 
-				// Explanation: For some weird reason there is a bug not removing 1 piece of ItemStack in 1.8.8
-				else {
-					final ItemStack[] content = player.getInventory().getContents();
+			// Explanation: For some weird reason there is a bug not removing 1 piece of ItemStack in 1.8.8
+			else {
+				final ItemStack[] content = player.getInventory().getContents();
 
-					for (int i = 0; i < content.length; i++) {
-						final ItemStack c = content[i];
+				for (int slot = 0; slot < content.length; slot++) {
+					final ItemStack slotItem = content[slot];
 
-						if (c != null && c.equals(item)) {
-							content[i] = null;
+					if (slotItem != null && slotItem.equals(item)) {
+						content[slot] = null;
 
-							break;
-						}
+						break;
 					}
-
-					player.getInventory().setContents(content);
 				}
 
-				player.updateInventory();
-			});
+				player.getInventory().setContents(content);
+			}
+
+			player.updateInventory();
+		}
 	}
 
 	/**

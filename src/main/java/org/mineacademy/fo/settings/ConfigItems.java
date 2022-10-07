@@ -1,17 +1,6 @@
 package org.mineacademy.fo.settings;
 
-import java.io.File;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Modifier;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
-import javax.annotation.Nullable;
-
+import lombok.NonNull;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.mineacademy.fo.ChatUtil;
 import org.mineacademy.fo.Common;
@@ -19,7 +8,13 @@ import org.mineacademy.fo.FileUtil;
 import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.collection.StrictMap;
 
-import lombok.NonNull;
+import javax.annotation.Nullable;
+import java.io.File;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Modifier;
+import java.util.*;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * A special class that can store loaded {@link YamlConfig} files
@@ -49,9 +44,15 @@ public final class ConfigItems<T extends YamlConfig> {
 	private final String folder;
 
 	/**
-	 * The class we are loading in the list
-	 * <p>
-	 * *MUST* have a private constructor without any arguments
+	 * How we are going to instantiate a single class from file?
+	 *
+	 * This is for advanced use only, by default, each config item is the same class
+	 * for example in Boss plugin, each boss in bosses/ folder will make a Boss class.
+	 *
+	 * Examples where this can be useful: If you have a minigame plugin and want to store
+	 * different minigames in one folder such as MobArena and BedWars both in games/ folder,
+	 * then you will read the "Type" key in each arena file by opening the file name provided
+	 * in the function as config and returning the specific arena class from a key in that file.
 	 */
 	private final Function<String, Class<T>> prototypeCreator;
 
@@ -84,7 +85,7 @@ public final class ConfigItems<T extends YamlConfig> {
 	 * @return
 	 */
 	public static <P extends YamlConfig> ConfigItems<P> fromFolder(String folder, Class<P> prototypeClass) {
-		return fromFolder(folder, s -> prototypeClass);
+		return fromFolder(folder, fileName -> prototypeClass);
 	}
 
 	/**
@@ -109,7 +110,7 @@ public final class ConfigItems<T extends YamlConfig> {
 	 * @return
 	 */
 	public static <P extends YamlConfig> ConfigItems<P> fromFile(String path, String file, Class<P> prototypeClass) {
-		return fromFile(path, file, s -> prototypeClass);
+		return fromFile(path, file, fileName -> prototypeClass);
 	}
 
 	/**
@@ -145,7 +146,6 @@ public final class ConfigItems<T extends YamlConfig> {
 		if (this.singleFile) {
 			final File file = FileUtil.extract(this.folder);
 			final YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
-			//Valid.checkBoolean(config.isSet(this.type), "Unable to locate configuration section " + this.type + " in " + file);
 
 			if (config.isSet(this.type))
 				for (final String name : config.getConfigurationSection(this.type).getKeys(false))
@@ -217,7 +217,9 @@ public final class ConfigItems<T extends YamlConfig> {
 					nameConstructor = false;
 				}
 
-				Valid.checkBoolean(Modifier.isPrivate(constructor.getModifiers()), "Your class " + prototypeClass + " must have private constructor taking a String or nothing!");
+				Valid.checkBoolean(Modifier.isPrivate(constructor.getModifiers()) || Modifier.isProtected(constructor.getModifiers()),
+						"Your class " + prototypeClass + " must have a private or protected constructor taking a String or nothing!");
+
 				constructor.setAccessible(true);
 
 				try {
@@ -301,8 +303,8 @@ public final class ConfigItems<T extends YamlConfig> {
 	 *
 	 * @return
 	 */
-	public Collection<T> getItems() {
-		return Collections.unmodifiableCollection(this.loadedItemsMap.values());
+	public List<T> getItems() {
+		return Collections.unmodifiableList(new ArrayList<>(this.loadedItemsMap.values()));
 	}
 
 	/**

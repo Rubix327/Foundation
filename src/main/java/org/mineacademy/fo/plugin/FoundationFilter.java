@@ -1,10 +1,8 @@
 package org.mineacademy.fo.plugin;
 
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.LogRecord;
-
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Marker;
@@ -15,9 +13,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.plugin.Plugin;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.LogRecord;
 
 /**
  * Represents the console filtering module
@@ -78,6 +77,11 @@ final class FoundationFilter {
 
 		// One less spammy message for server owners
 		if (message.endsWith("which is not a depend, softdepend or loadbefore of this plugin."))
+			return true;
+
+		// Disable some annoying hikaripool or discordsrv messages
+		if (message.contains("HikariPool-1 - Starting...") || message.contains("HikariPool-1 - Start completed.")
+				|| message.contains("[DiscordSRV] [JDA] Login Successful!") || message.contains("[DiscordSRV] [JDA] Connected to WebSocket"))
 			return true;
 
 		message = message.toLowerCase();

@@ -1,9 +1,5 @@
 package org.mineacademy.fo.remain.internal;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.mineacademy.fo.Common;
@@ -15,6 +11,10 @@ import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.collection.SerializedMap;
 import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.remain.Remain;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
 /**
  * Reflection class for handling chat-related methods
@@ -202,7 +202,7 @@ public class ChatInternals {
 	}
 
 	// http://wiki.vg/Protocol#Chat_Message
-	private static void sendChat(final Player pl, final String text, final byte type) {
+	private static void sendChat(final Player player, final String text, final byte type) {
 		try {
 			final Object message = serializeText(text);
 			Valid.checkNotNull(message, "Message cannot be null!");
@@ -217,10 +217,10 @@ public class ChatInternals {
 			} else
 				packet = chatMessageConstructor.newInstance(message, type);
 
-			Remain.sendPacket(pl, packet);
+			Remain.sendPacket(player, packet);
 
 		} catch (final ReflectiveOperationException ex) {
-			Common.error(ex, "Failed to send chat packet type " + type + " to " + pl.getName() + ", message: " + text);
+			Common.error(ex, "Failed to send chat packet type " + type + " to " + player.getName() + ", message: " + text);
 		}
 	}
 

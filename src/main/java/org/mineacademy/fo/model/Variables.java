@@ -1,5 +1,19 @@
 package org.mineacademy.fo.model;
 
+import org.bukkit.ChatColor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.entity.Player;
+import org.mineacademy.fo.*;
+import org.mineacademy.fo.GeoAPI.GeoResponse;
+import org.mineacademy.fo.collection.StrictList;
+import org.mineacademy.fo.collection.StrictMap;
+import org.mineacademy.fo.collection.expiringmap.ExpiringMap;
+import org.mineacademy.fo.plugin.SimplePlugin;
+import org.mineacademy.fo.remain.Remain;
+import org.mineacademy.fo.settings.SimpleLocalization;
+import org.mineacademy.fo.settings.SimpleSettings;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -8,25 +22,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.bukkit.ChatColor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.ConsoleCommandSender;
-import org.bukkit.entity.Player;
-import org.mineacademy.fo.Common;
-import org.mineacademy.fo.GeoAPI;
-import org.mineacademy.fo.GeoAPI.GeoResponse;
-import org.mineacademy.fo.Messenger;
-import org.mineacademy.fo.MinecraftVersion;
-import org.mineacademy.fo.PlayerUtil;
-import org.mineacademy.fo.TimeUtil;
-import org.mineacademy.fo.collection.StrictList;
-import org.mineacademy.fo.collection.StrictMap;
-import org.mineacademy.fo.collection.expiringmap.ExpiringMap;
-import org.mineacademy.fo.plugin.SimplePlugin;
-import org.mineacademy.fo.remain.Remain;
-import org.mineacademy.fo.settings.SimpleLocalization;
-import org.mineacademy.fo.settings.SimpleSettings;
 
 /**
  * A simple engine that replaces variables in a message.
@@ -67,7 +62,7 @@ public final class Variables {
 	 * Should we replace javascript placeholders from variables/ folder automatically?
 	 * Used internally to prevent race condition
 	 */
-	static boolean REPLACE_JAVASCRIPT = true;
+	volatile static boolean REPLACE_JAVASCRIPT = true;
 
 	// ------------------------------------------------------------------------------------------------------------
 	// Custom variables
@@ -240,67 +235,69 @@ public final class Variables {
 	 * @return
 	 */
 	public static String replace(String message, CommandSender sender, Map<String, Object> replacements, boolean colorize) {
-		if (message == null || message.isEmpty())
-			return "";
+		synchronized (cache) {
+			if (message == null || message.isEmpty())
+				return "";
 
-		final String original = message;
-		final boolean senderIsPlayer = sender instanceof Player;
+			final String original = message;
+			final boolean senderIsPlayer = sender instanceof Player;
 
-		// Replace custom variables first
-		if (replacements != null && !replacements.isEmpty())
-			message = Replacer.replaceArray(message, replacements);
+			// Replace custom variables first
+			if (replacements != null && !replacements.isEmpty())
+				message = Replacer.replaceArray(message, replacements);
 
-		if (senderIsPlayer) {
+			if (senderIsPlayer) {
 
-			// Already cached ? Return.
-			final Map<String, String> cached = cache.get(sender.getName());
-			final String cachedVar = cached != null ? cached.get(message) : null;
+				// Already cached ? Return.
+				final Map<String, String> cached = cache.get(sender.getName());
+				final String cachedVar = cached != null ? cached.get(message) : null;
 
-			if (cachedVar != null)
-				return cachedVar;
-		}
-
-		// Custom placeholders
-		if (REPLACE_JAVASCRIPT) {
-			REPLACE_JAVASCRIPT = false;
-
-			try {
-				message = replaceJavascriptVariables0(message, sender, replacements);
-
-			} finally {
-				REPLACE_JAVASCRIPT = true;
+				if (cachedVar != null)
+					return cachedVar;
 			}
+
+			// Custom placeholders
+			if (REPLACE_JAVASCRIPT) {
+				REPLACE_JAVASCRIPT = false;
+
+				try {
+					message = replaceJavascriptVariables0(message, sender, replacements);
+
+				} finally {
+					REPLACE_JAVASCRIPT = true;
+				}
+			}
+
+			// PlaceholderAPI and MvdvPlaceholderAPI
+			if (senderIsPlayer)
+				message = HookManager.replacePlaceholders((Player) sender, message);
+
+			else if (sender instanceof DiscordSender)
+				message = HookManager.replacePlaceholders(((DiscordSender) sender).getOfflinePlayer(), message);
+
+			// Default
+			message = replaceHardVariables0(sender, message);
+
+			// Support the & color system and replacing variables in variables
+			if (!message.startsWith("[JSON]")) {
+				message = Common.colorize(message);
+
+				if (!original.equals(message) && ((message.contains("{") && message.contains("}")) || message.contains("%")))
+					return replace(message, sender, replacements, colorize);
+
+			}
+
+			if (senderIsPlayer) {
+				final Map<String, String> map = cache.get(sender.getName());
+
+				if (map != null)
+					map.put(original, message);
+				else
+					cache.put(sender.getName(), Common.newHashMap(original, message));
+			}
+
+			return message;
 		}
-
-		// PlaceholderAPI and MvdvPlaceholderAPI
-		if (senderIsPlayer)
-			message = HookManager.replacePlaceholders((Player) sender, message);
-
-		else if (sender instanceof DiscordSender)
-			message = HookManager.replacePlaceholders(((DiscordSender) sender).getOfflinePlayer(), message);
-
-		// Default
-		message = replaceHardVariables0(sender, message);
-
-		// Support the & color system and replacing variables in variables
-		if (!message.startsWith("[JSON]")) {
-			message = Common.colorize(message);
-
-			if (!original.equals(message) && ((message.contains("{") && message.contains("}")) || message.contains("%")))
-				return replace(message, sender, replacements, colorize);
-
-		}
-
-		if (senderIsPlayer) {
-			final Map<String, String> map = cache.get(sender.getName());
-
-			if (map != null)
-				map.put(original, message);
-			else
-				cache.put(sender.getName(), Common.newHashMap(original, message));
-		}
-
-		return message;
 	}
 
 	/*

@@ -1,9 +1,7 @@
 package org.mineacademy.fo.bungee.message;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
+import com.google.common.io.ByteArrayDataOutput;
+import com.google.common.io.ByteStreams;
 import org.bukkit.entity.Player;
 import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.bungee.BungeeListener;
@@ -13,8 +11,9 @@ import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.plugin.SimplePlugin;
 import org.mineacademy.fo.remain.Remain;
 
-import com.google.common.io.ByteArrayDataOutput;
-import com.google.common.io.ByteStreams;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 /**
  * NB: This uses the standardized Foundation model where the first
@@ -57,6 +56,7 @@ public final class OutgoingMessage extends Message {
 		// first is the senders server name and the second is the action
 		// -----------------------------------------------------------------
 
+		this.queue.add(listener.getChannel());
 		this.queue.add(senderUid);
 		this.queue.add(this.getServerName());
 		this.queue.add(this.getAction().name());
@@ -176,7 +176,7 @@ public final class OutgoingMessage extends Message {
 	 * @param player
 	 */
 	public void send(Player player) {
-		player.sendPluginMessage(SimplePlugin.getInstance(), this.getChannel(), this.compileData());
+		player.sendPluginMessage(SimplePlugin.getInstance(), "BungeeCord", this.compileData());
 	}
 
 	/**

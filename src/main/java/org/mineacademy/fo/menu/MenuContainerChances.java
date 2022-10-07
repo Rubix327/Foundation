@@ -26,9 +26,6 @@ import org.mineacademy.fo.remain.CompMaterial;
  *
  * It also provides a way to set a "chance" for each item. For example you can
  * use this as drop chances for your drop tables for custom entities.
- *
- * You are recommended to follow a video guide on implementing this. We provide
- * a complete GUI training at mineacademy.org in our programs.
  */
 public abstract class MenuContainerChances extends Menu implements MenuQuantitable {
 

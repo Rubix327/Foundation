@@ -1,19 +1,6 @@
 package org.mineacademy.fo.settings;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
+import lombok.NonNull;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -25,7 +12,10 @@ import org.mineacademy.fo.remain.Remain;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
-import lombok.NonNull;
+import javax.annotation.Nullable;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 /**
  * A class to update/add new sections/keys to your config while keeping your current values and keeping your comments
@@ -37,7 +27,6 @@ import lombok.NonNull;
  * @author tchristofferson, kangarko
  *
  * Source: https://github.com/tchristofferson/Config-Updater
- * Modified by MineAcademy.org
  */
 final class YamlComments {
 

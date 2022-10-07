@@ -1,9 +1,10 @@
 package org.mineacademy.fo;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.util.UUID;
-
+import com.google.common.io.ByteArrayDataOutput;
+import com.google.common.io.ByteStreams;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.messaging.ChannelNotRegisteredException;
@@ -17,12 +18,9 @@ import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.plugin.SimplePlugin;
 import org.mineacademy.fo.remain.Remain;
 
-import com.google.common.io.ByteArrayDataOutput;
-import com.google.common.io.ByteStreams;
-
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.util.UUID;
 
 /**
  * Utility class for sending messages to BungeeCord.
@@ -89,7 +87,7 @@ public final class BungeeUtil {
 	@SafeVarargs
 	public static <T> void sendPluginMessage(Player sender, String channel, BungeeMessageType action, T... data) {
 		Valid.checkBoolean(data.length == action.getContent().length, "Data count != valid values count in " + action + "! Given data: " + data.length + " vs needed: " + action.getContent().length);
-		Valid.checkBoolean(Remain.isServerNameChanged(), "Please configure your 'server-name' in server.properties according to mineacademy.org/server-properties first before using BungeeCord features");
+		Valid.checkBoolean(Remain.isServerNameChanged(), "Please configure your 'server-name' in server.properties the same as in your BungeeCord config.yml");
 
 		if (!action.name().equals("PLAYERS_CLUSTER_DATA"))
 			Debugger.put("bungee", "Server '" + Remain.getServerName() + "' sent bungee message [" + channel + ", " + action + "]: ");

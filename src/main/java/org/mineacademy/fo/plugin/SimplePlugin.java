@@ -10,16 +10,8 @@
  */
 package org.mineacademy.fo.plugin;
 
-import java.io.File;
-import java.lang.reflect.Constructor;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
+import lombok.Getter;
+import lombok.NonNull;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -32,12 +24,8 @@ import org.bukkit.event.Event;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.Messenger;
-import org.mineacademy.fo.Common;
-import org.mineacademy.fo.FileUtil;
-import org.mineacademy.fo.MinecraftVersion;
+import org.mineacademy.fo.*;
 import org.mineacademy.fo.MinecraftVersion.V;
-import org.mineacademy.fo.ReflectionUtil;
-import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.annotation.AutoRegister;
 import org.mineacademy.fo.bungee.BungeeListener;
 import org.mineacademy.fo.command.SimpleCommand;
@@ -50,24 +38,16 @@ import org.mineacademy.fo.menu.Menu;
 import org.mineacademy.fo.menu.MenuListener;
 import org.mineacademy.fo.menu.tool.ToolsListener;
 import org.mineacademy.fo.metrics.Metrics;
-import org.mineacademy.fo.model.DiscordListener;
-import org.mineacademy.fo.model.FolderWatcher;
-import org.mineacademy.fo.model.HookManager;
-import org.mineacademy.fo.model.JavaScriptExecutor;
-import org.mineacademy.fo.model.SimpleHologram;
-import org.mineacademy.fo.model.SimpleScoreboard;
-import org.mineacademy.fo.model.SpigotUpdater;
+import org.mineacademy.fo.model.*;
 import org.mineacademy.fo.remain.CompMetadata;
 import org.mineacademy.fo.remain.Remain;
-import org.mineacademy.fo.settings.FileConfig;
-import org.mineacademy.fo.settings.Lang;
-import org.mineacademy.fo.settings.SimpleLocalization;
-import org.mineacademy.fo.settings.SimpleSettings;
-import org.mineacademy.fo.settings.YamlConfig;
+import org.mineacademy.fo.settings.*;
 import org.mineacademy.fo.visual.BlockVisualizer;
 
-import lombok.Getter;
-import lombok.NonNull;
+import javax.annotation.Nullable;
+import java.io.File;
+import java.lang.reflect.Constructor;
+import java.util.*;
 
 /**
  * Represents a basic Java plugin using enhanced library functionality,
@@ -580,7 +560,7 @@ public abstract class SimplePlugin extends JavaPlugin implements Listener {
 			Bukkit.getLogger().severe("Gson (by Google) found: " + gson);
 			Bukkit.getLogger().severe(" ");
 			Bukkit.getLogger().severe("To fix that, please install BungeeChatAPI:");
-			Bukkit.getLogger().severe("https://mineacademy.org/plugins/#misc");
+			Bukkit.getLogger().severe("https://bitbucket.org/kangarko/bungeechatapi/downloads/");
 			Bukkit.getLogger().severe(Common.consoleLine());
 		}
 
@@ -997,8 +977,6 @@ public abstract class SimplePlugin extends JavaPlugin implements Listener {
 
 	/**
 	 * Shortcut for calling {@link SimpleCommandGroup#register()}
-	 *
-	 * @param labelAndAliases
 	 * @param group
 	 */
 	protected final void registerCommands(final SimpleCommandGroup group) {
@@ -1207,7 +1185,7 @@ public abstract class SimplePlugin extends JavaPlugin implements Listener {
 	}
 
 	/**
-	 * Should we listen for {@link Tool} in this plugin and
+	 * Should we listen for {@link org.mineacademy.fo.menu.tool.Tool} in this plugin and
 	 * handle clicking events automatically? Disable to increase performance
 	 * if you do not want to use our tool system. Enabled by default.
 	 *

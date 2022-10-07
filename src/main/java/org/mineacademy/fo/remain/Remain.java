@@ -309,8 +309,7 @@ public final class Remain {
 				throw new FoException(
 						"&cYour server version (&f" + Bukkit.getBukkitVersion().replace("-SNAPSHOT", "") + "&c) doesn't\n" +
 								" &cinclude &elibraries required&c for this plugin to\n" +
-								" &crun. Install the following plugin for compatibility:\n" +
-								" &fhttps://mineacademy.org/plugins/#misc");
+								" &crun. Install the plugin for compatibility.");
 			}
 
 			try {
@@ -2571,7 +2570,7 @@ public final class Remain {
 				}
 
 			if (!hasServerName) {
-				serverName = previousName == null ? "Undefined - see mineacademy.org/server-properties to configure" : previousName;
+				serverName = previousName == null ? "Undefined" : previousName;
 				lines.add("server-name=" + serverName);
 
 				Files.write(serverProperties.toPath(), lines, StandardOpenOption.TRUNCATE_EXISTING);
@@ -2590,7 +2589,7 @@ public final class Remain {
 	 * @return
 	 */
 	public static String getServerName() {
-		Valid.checkBoolean(isServerNameChanged(), "Detected getServerName call, please configure your 'server-name' in server.properties according to mineacademy.org/server-properties");
+		Valid.checkBoolean(isServerNameChanged(), "Detected getServerName call, please configure your 'server-name' in server.properties the same as in your BungeeCord config.yml.");
 
 		return serverName;
 	}
@@ -2601,7 +2600,7 @@ public final class Remain {
 	 * @return
 	 */
 	public static boolean isServerNameChanged() {
-		return !"see mineacademy.org/server-properties to configure".contains(serverName) && !"undefined".equals(serverName) && !"Unknown Server".equals(serverName);
+		return !"undefined".equals(serverName) && !"Unknown Server".equals(serverName);
 	}
 
 	/**

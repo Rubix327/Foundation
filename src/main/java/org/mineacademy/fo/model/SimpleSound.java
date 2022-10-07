@@ -1,16 +1,15 @@
 package org.mineacademy.fo.model;
 
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NonNull;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.mineacademy.fo.MinecraftVersion;
 import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.remain.CompSound;
-
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NonNull;
 
 /**
  * A class holding a sound, volume and a pitch
@@ -88,7 +87,7 @@ public final class SimpleSound {
 		final String[] values = line.contains(", ") ? line.split(", ") : line.split(" ");
 		final CompSound compSound = CompSound.fromName(values[0]);
 
-		Valid.checkNotNull(compSound, "Sound '" + values[0] + "' does not exists (in your Minecraft version " + MinecraftVersion.getServerVersion() + ")! Pick one from mineacademy.org/sounds");
+		Valid.checkNotNull(compSound, "Sound '" + values[0] + "' does not exists (in your Minecraft version " + MinecraftVersion.getServerVersion() + ")! Pick one from CompSound class.");
 		this.sound = compSound.getSound();
 
 		if (values.length == 1) {

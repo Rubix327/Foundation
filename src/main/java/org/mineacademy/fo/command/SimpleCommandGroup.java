@@ -1,25 +1,10 @@
 package org.mineacademy.fo.command;
 
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-
-import javax.annotation.Nullable;
-
+import lombok.Getter;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
-import org.mineacademy.fo.Common;
-import org.mineacademy.fo.MathUtil;
-import org.mineacademy.fo.Messenger;
-import org.mineacademy.fo.MinecraftVersion;
+import org.mineacademy.fo.*;
 import org.mineacademy.fo.MinecraftVersion.V;
-import org.mineacademy.fo.RandomUtil;
-import org.mineacademy.fo.ReflectionUtil;
-import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.collection.StrictList;
 import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.model.ChatPaginator;
@@ -29,7 +14,9 @@ import org.mineacademy.fo.plugin.SimplePlugin;
 import org.mineacademy.fo.settings.SimpleLocalization;
 import org.mineacademy.fo.settings.SimpleSettings;
 
-import lombok.Getter;
+import javax.annotation.Nullable;
+import java.lang.reflect.Modifier;
+import java.util.*;
 
 /**
  * A command group contains a set of different subcommands
@@ -258,10 +245,6 @@ public abstract class SimpleCommandGroup {
 	 * <p>
 	 * If you specify "author" in your plugin.yml we display author information
 	 * If you override {@link SimplePlugin#getFoundedYear()} we display copyright
-	 *
-	 * @param sender the command sender that requested this to be shown to him
-	 *               may be null
-	 * @return
 	 */
 	protected List<SimpleComponent> getNoParamsHeader() {
 		final int foundedYear = SimplePlugin.getInstance().getFoundedYear();
@@ -270,7 +253,7 @@ public abstract class SimpleCommandGroup {
 		final List<String> messages = new ArrayList<>();
 
 		messages.add("&8" + Common.chatLineSmooth());
-		messages.add(this.getHeaderPrefix() + "  " + SimplePlugin.getNamed() + this.getTrademark() + " &7" + SimplePlugin.getVersion());
+		messages.add(this.getHeaderPrefix() + "  " + SimplePlugin.getNamed() + " &7" + SimplePlugin.getVersion());
 		messages.add(" ");
 
 		{
@@ -302,11 +285,6 @@ public abstract class SimpleCommandGroup {
 		return false;
 	}
 
-	// Return the TM symbol in case we have it for kangarko's plugins
-	private String getTrademark() {
-		return SimplePlugin.getInstance().getDescription().getAuthors().contains("kangarko") ? this.getHeaderPrefix() + "&8\u2122" : "";
-	}
-
 	/**
 	 * Get a part of the {@link #getNoParamsHeader()} typically showing
 	 * your website where the user can find more information about this command
@@ -315,7 +293,7 @@ public abstract class SimpleCommandGroup {
 	 * @return
 	 */
 	protected String getCredits() {
-		return "&7Visit &fmineacademy.org &7for more information.";
+		return "&7Visit &fgoogle.com &7for more information.";
 	}
 
 	/**
@@ -342,7 +320,7 @@ public abstract class SimpleCommandGroup {
 		return new String[] {
 				"&8",
 				"&8" + Common.chatLineSmooth(),
-				this.getHeaderPrefix() + "  " + SimplePlugin.getNamed() + this.getTrademark() + " &7" + SimplePlugin.getVersion(),
+				this.getHeaderPrefix() + "  " + SimplePlugin.getNamed() + " &7" + SimplePlugin.getVersion(),
 				" ",
 				"&2  [] &f= " + SimpleLocalization.Commands.LABEL_OPTIONAL_ARGS,
 				this.getTheme() + "  <> &f= " + SimpleLocalization.Commands.LABEL_REQUIRED_ARGS,

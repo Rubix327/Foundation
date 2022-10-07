@@ -76,7 +76,7 @@ public final class JavaScriptExecutor {
 				warningMessage.addAll(Arrays.asList(
 						"",
 						"To fix this, install the NashornPlus",
-						"plugin from mineacademy.org/nashorn"));
+						"plugin from https://bitbucket.org/kangarko/nashornplus/downloads/"));
 			else
 				warningMessage.addAll(Arrays.asList(
 						"",
@@ -138,7 +138,7 @@ public final class JavaScriptExecutor {
 		if (engine == null) {
 			if (!SimpleSettings.HIDE_NASHORN_WARNINGS){
 				Common.warning("Not running script" + (sender == null ? "" : " for " + sender.getName()) + " because JavaScript library is missing "
-						+ "(install Oracle Java 8, 11 or 16 and download mineacademy.org/nashorn): " + javascript);
+						+ "(install Oracle Java 8, 11 or 16 and download Nashorn - https://bitbucket.org/kangarko/nashornplus/downloads/): " + javascript);
 			}
 
 			return null;
@@ -228,7 +228,7 @@ public final class JavaScriptExecutor {
 		if (engine == null) {
 			if (!SimpleSettings.HIDE_NASHORN_WARNINGS){
 				Common.warning("Not running script because JavaScript library is missing "
-						+ "(install Oracle Java 8, 11 or 16 and download mineacademy.org/nashorn): " + javascript);
+						+ "(install Oracle Java 8, 11 or 16 and download Nashorn - https://bitbucket.org/kangarko/nashornplus/downloads/): " + javascript);
 			}
 
 			return javascript;

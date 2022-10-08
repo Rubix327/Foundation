@@ -129,8 +129,12 @@ public abstract class AdvancedMenu extends Menu {
      * See {@link #setLockedSlots(Integer...)} for the detailed description.<br><br>
      * Figures available: {@link MenuSlots.SizedShape}.
      */
-    protected final void setLockedSlots(MenuSlots.SizedShape figure){
-        setLockedSlots(figure.getSlots());
+    protected final void setLockedSlots(MenuSlots.SizedShape sizedShape){
+        setLockedSlots(sizedShape.getSlots());
+    }
+
+    protected final void setLockedSlots(MenuSlots.Shape shape){
+        setLockedSlots(shape, getSize());
     }
 
     /**

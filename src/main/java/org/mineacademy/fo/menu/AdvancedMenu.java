@@ -127,19 +127,24 @@ public abstract class AdvancedMenu extends Menu {
 
     /**
      * See {@link #setLockedSlots(Integer...)} for the detailed description.<br><br>
-     * Figures available: {@link MenuSlots.SizedShape}.
+     * Shapes available: {@link MenuSlots.SizedShape}.
      */
     protected final void setLockedSlots(MenuSlots.SizedShape sizedShape){
         setLockedSlots(sizedShape.getSlots());
     }
 
+    /**
+     * Set the automated locked slots depending on the shape and the menu size.<br>
+     * Shapes available: {@link MenuSlots.Shape}.
+     * @param shape the shape you want to use
+     */
     protected final void setLockedSlots(MenuSlots.Shape shape){
         setLockedSlots(shape, getSize());
     }
 
     /**
-     * Set the automated slots locking depending on the figure and the size.<br>
-     * Figures available: {@link MenuSlots.Shape}.
+     * Set the automated locked slots depending on the shape and the given size.<br>
+     * Shapes available: {@link MenuSlots.Shape}.
      * @param shape the shape you want to use
      * @param size the size of the menu
      */

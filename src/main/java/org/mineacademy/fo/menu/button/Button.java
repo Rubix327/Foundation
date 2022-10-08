@@ -82,7 +82,7 @@ public abstract class Button {
 	 * @param description the description of the button
 	 * @return the button
 	 */
-	public static final DummyButton makeInfo(final String... description) {
+	public static DummyButton makeInfo(final String... description) {
 		final List<String> lores = new ArrayList<>();
 		lores.add(" ");
 

@@ -23,7 +23,7 @@ import java.util.List;
  * @deprecated Use {@link AdvancedMenuTools}
  */
 @Deprecated
-public abstract class MenuTools extends Menu {
+public abstract class MenuTools extends AdvancedMenu {
 
 	/**
 	 * The list of tools
@@ -39,11 +39,9 @@ public abstract class MenuTools extends Menu {
 
 	/**
 	 * Make a new tools menu with parent
-	 *
-	 * @param parent
 	 */
-	protected MenuTools(final Menu parent) {
-		super(parent);
+	protected MenuTools(Player player) {
+		super(player);
 
 		this.tools = this.compile0(this.compileTools());
 
@@ -68,9 +66,6 @@ public abstract class MenuTools extends Menu {
 	 * class and return those who contain the given field:
 	 * <p>
 	 * public static Tool instance = new X() (X = the class)
-	 *
-	 * @param extendingClass
-	 * @return
 	 */
 	protected Object[] lookupTools(final Class<? extends Tool> extendingClass) {
 		final List<Object> instances = new ArrayList<>();
@@ -136,29 +131,15 @@ public abstract class MenuTools extends Menu {
 		return null;
 	}
 
-	protected int getInfoButtonPosition() {
-		return this.getSize() - 1;
-	}
-
-	/**
-	 * @see org.mineacademy.fo.menu.Menu#getInfo()
-	 */
-	@Override
-	protected String[] getInfo() {
-		return null;
-	}
-
 	/**
 	 * Compiles an automated tools menu and shows to player.
 	 *
-	 * @param player
 	 * @param pluginToolClasses We will scan your plugin for this kind of class and
 	 *                          all classes extending it will be loaded into the
 	 *                          menu
 	 * @param description       the menu description
-	 * @return
 	 */
-	public static final void display(final Player player, final Class<? extends Tool> pluginToolClasses, final String... description) {
+	public static void display(final Player player, final Class<? extends Tool> pluginToolClasses, final String... description) {
 		of(pluginToolClasses, description).displayTo(player);
 	}
 
@@ -169,19 +150,15 @@ public abstract class MenuTools extends Menu {
 	 *                          all classes extending it will be loaded into the
 	 *                          menu
 	 * @param description       the menu description
-	 * @return
 	 */
-	public static final MenuTools of(final Class<? extends Tool> pluginToolClasses, final String... description) {
+	public static MenuTools of(final Class<? extends Tool> pluginToolClasses, final String... description) {
 		return new MenuTools() {
+			@Override
+			protected void setup() {}
 
 			@Override
 			protected Object[] compileTools() {
 				return this.lookupTools(pluginToolClasses);
-			}
-
-			@Override
-			protected String[] getInfo() {
-				return description;
 			}
 		};
 	}
@@ -234,7 +211,6 @@ final class ToggleableTool {
 	 * Returns the itemstack automatically, different if the player has or does not
 	 * have it already
 	 *
-	 * @param player
 	 * @return the item
 	 */
 	ItemStack get(final Player player) {

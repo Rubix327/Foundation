@@ -728,19 +728,6 @@ public abstract class Menu {
 	}
 
 	/**
-	 * Get the menu's description
-	 *
-	 * <p>
-	 * Used to create an info bottom in bottom left corner, see
-	 * {@link Button#makeInfo(String...)}
-	 *
-	 * return info the info to set
-	 */
-	protected String[] getInfo() {
-		return null;
-	}
-
-	/**
 	 * Get the viewer that this instance of this menu is associated with
 	 *
 	 * @return the viewer of this instance, or null

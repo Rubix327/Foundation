@@ -21,13 +21,16 @@ import org.mineacademy.fo.menu.model.MenuQuantity;
 import org.mineacademy.fo.model.Tuple;
 import org.mineacademy.fo.remain.CompMaterial;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * A menu that lets players put items into the container and save them.
  *
  * It also provides a way to set a "chance" for each item. For example you can
  * use this as drop chances for your drop tables for custom entities.
  */
-public abstract class MenuContainerChances extends Menu implements MenuQuantitable {
+public abstract class MenuContainerChances extends AdvancedMenu implements MenuQuantitable {
 
 	/**
 	 * Temporary store of the edited drop chances here
@@ -54,21 +57,9 @@ public abstract class MenuContainerChances extends Menu implements MenuQuantitab
 
 	/**
 	 * Create a new menu that can edit chances of the items you put inside.
-	 *
-	 * @param parent
 	 */
-	protected MenuContainerChances(Menu parent) {
-		this(parent, false);
-	}
-
-	/**
-	 * Create a new menu that can edit chances of the items you put inside.
-	 *
-	 * @param parent
-	 * @param returnMakesNewInstance
-	 */
-	protected MenuContainerChances(Menu parent, boolean returnMakesNewInstance) {
-		super(parent, returnMakesNewInstance);
+	protected MenuContainerChances(Player player) {
+		super(player);
 
 		// Default the size to 3 rows (+ 1 bottom row is added automatically)
 		this.setSize(9 * 3);
@@ -185,17 +176,11 @@ public abstract class MenuContainerChances extends Menu implements MenuQuantitab
 	/**
 	 * Return the item that should appear at the given slot,
 	 * you should load items from your data file or cache here.
-	 *
-	 * @param slot
-	 * @return
 	 */
 	protected abstract ItemStack getDropAt(int slot);
 
 	/**
 	 * Return the item's drop chance loaded from the disk or cache here.
-	 *
-	 * @param slot
-	 * @return
 	 */
 	protected abstract double getDropChance(int slot);
 
@@ -222,18 +207,9 @@ public abstract class MenuContainerChances extends Menu implements MenuQuantitab
 
 	/**
 	 * Return true for the slots you want players to be able to edit.
-	 * By default we enable them to edit anything above the bottom bar.
-	 *
+	 * By default, we enable them to edit anything above the bottom bar.
 	 * This is called from {@link #isActionAllowed(MenuClickLocation, int, ItemStack, ItemStack, InventoryAction)} and
 	 * by defaults forwards the call to {@link #canEditItem(int)}
-	 *
-	 * @param location
-	 * @param slot
-	 * @param clicked
-	 * @param cursor
-	 * @param action
-	 *
-	 * @return
 	 */
 	protected boolean canEditItem(final MenuClickLocation location, final int slot, final ItemStack clicked, final ItemStack cursor, InventoryAction action) {
 		return this.canEditItem(slot);
@@ -243,12 +219,8 @@ public abstract class MenuContainerChances extends Menu implements MenuQuantitab
 	 * Return the slot numbers for which you want to allow
 	 * items to get edited in your menu (if you do not want
 	 * to allow editing the entire container window).
-	 *
 	 * If you want users to edit chances for all items except
 	 * bottom bar, simply always return true here.
-	 *
-	 * @param slot
-	 * @return
 	 */
 	protected boolean canEditItem(int slot) {
 		return true;
@@ -326,8 +298,6 @@ public abstract class MenuContainerChances extends Menu implements MenuQuantitab
 	/**
 	 * Called automatically when you should save all editable slots stored in the map
 	 * by slot, with their items (nullable) and new drop chances)
-	 *
-	 * @param items
 	 */
 	protected abstract void onMenuClose(StrictMap<Integer, Tuple<ItemStack, Double>> items);
 
@@ -335,28 +305,31 @@ public abstract class MenuContainerChances extends Menu implements MenuQuantitab
 	// Decoration
 	// ------------------------------------------------------------------------------------------------------------
 
-	/**
-	 * @see org.mineacademy.fo.menu.Menu#getInfo()
-	 */
+
 	@Override
-	protected String[] getInfo() {
+	protected String getInfoName() {
+		return "Menu Container Chances";
+	}
+
+	@Override
+	protected List<String> getInfoLore() {
 		if (this.mode == EditMode.ITEM)
-			return new String[] {
+			return Arrays.asList(
 					"This menu allows you to drop",
 					"items to this container.",
 					"",
 					"Simply &2drag and drop &7items",
 					"from your inventory here."
-			};
+			);
 
 		else
-			return new String[] {
+			return Arrays.asList(
 					"This menu allows you to edit drop",
 					"chances for items in this container.",
 					"",
 					"&2Right or left click &7on items",
 					"to adjust their drop chance."
-			};
+			);
 	}
 
 	// ------------------------------------------------------------------------------------------------------------
@@ -390,8 +363,6 @@ public abstract class MenuContainerChances extends Menu implements MenuQuantitab
 
 		/**
 		 * Get the next mode to refresh the menu.
-		 *
-		 * @return
 		 */
 		private EditMode next() {
 			return Common.getNext(this, EditMode.values(), true);

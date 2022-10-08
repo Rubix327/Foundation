@@ -1,7 +1,5 @@
 package org.mineacademy.fo.menu;
 
-import javax.annotation.Nullable;
-
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
@@ -13,13 +11,17 @@ import org.mineacademy.fo.menu.model.ItemCreator;
 import org.mineacademy.fo.menu.model.MenuClickLocation;
 import org.mineacademy.fo.remain.CompMaterial;
 
+import javax.annotation.Nullable;
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * A simple menu allowing players to drop or take items.
  *
  * from the container. You can connect this with your file storing
  * system to save or load items edited by players in the container.
  */
-public abstract class MenuContainer extends Menu {
+public abstract class MenuContainer extends AdvancedMenu {
 
 	/**
 	 * The filler item we fill the bottom bar with for safety.
@@ -28,12 +30,9 @@ public abstract class MenuContainer extends Menu {
 
 	/**
 	 * Create a new menu that can edit chances of the items you put inside.
-	 *
-	 * @param parent
-	 * @param startMode
 	 */
-	protected MenuContainer(Menu parent) {
-		super(parent);
+	protected MenuContainer(Player player) {
+		super(player);
 
 		// Default the size to 3 rows (+ 1 bottom row is added automatically)
 		this.setSize(9 * 3);
@@ -199,17 +198,19 @@ public abstract class MenuContainer extends Menu {
 	// Decoration
 	// ------------------------------------------------------------------------------------------------------------
 
-	/**
-	 * @see org.mineacademy.fo.menu.Menu#getInfo()
-	 */
 	@Override
-	protected String[] getInfo() {
-		return new String[] {
+	protected String getInfoName() {
+		return "Menu Container";
+	}
+
+	@Override
+	protected List<String> getInfoLore() {
+		return Arrays.asList(
 				"This menu allows you to drop",
 				"items to this container.",
 				"",
 				"Simply &2drag and drop &7items",
 				"from your inventory here."
-		};
+		);
 	}
 }

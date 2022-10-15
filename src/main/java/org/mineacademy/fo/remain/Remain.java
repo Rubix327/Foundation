@@ -151,7 +151,7 @@ public final class Remain {
 	private static boolean hasInventoryLocation = true;
 
 	/**
-	 * Does the current server version support permanent scoreboard tags?M
+	 * Does the current server version support permanent scoreboard tags?
 	 */
 	private static boolean hasScoreboardTags = true;
 

@@ -1,8 +1,8 @@
 package org.mineacademy.fo.constants;
 
-import java.util.UUID;
-
 import org.mineacademy.fo.plugin.SimplePlugin;
+
+import java.util.UUID;
 
 /**
  * Stores constants for this plugin
@@ -113,7 +113,7 @@ public final class FoConstants {
 	public static final class NBT {
 
 		/**
-		 * Represents our NBT tag used in {@link CompMetadata}
+		 * Represents our NBT tag used in {@link org.mineacademy.fo.remain.CompMetadata}
 		 */
 		public static final String TAG = SimplePlugin.getNamed() + "_NbtTag";
 

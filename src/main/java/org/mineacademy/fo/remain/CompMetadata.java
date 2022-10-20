@@ -517,7 +517,7 @@ public final class CompMetadata {
 				this.blockMetadataMap.clear();
 
 				for (final String locationRaw : this.getMap("Block").keySet()) {
-					final Location location = SerializeUtil.deserializeLocation(locationRaw);
+					final Location location = SerializeUtil.deserializeLoc(locationRaw);
 					final BlockCache blockCache = this.get("Block." + locationRaw, BlockCache.class);
 
 					final Block block = location.getBlock();
@@ -580,8 +580,6 @@ public final class CompMetadata {
 
 					blockCache.getMetadata().add(formatted);
 				}
-
-				System.out.println(this.blockMetadataMap);
 
 				// Save
 				for (final Map.Entry<Location, BlockCache> entry : this.blockMetadataMap.entrySet()){

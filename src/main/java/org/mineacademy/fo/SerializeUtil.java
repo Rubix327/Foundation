@@ -7,10 +7,7 @@ import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.MemorySection;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
@@ -36,7 +33,7 @@ import org.mineacademy.fo.remain.JsonItemStack;
 import org.mineacademy.fo.remain.Remain;
 import org.mineacademy.fo.settings.ConfigSection;
 
-import java.awt.*;
+import java.awt.Color;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -307,7 +304,7 @@ public final class SerializeUtil {
 
 		}
 
-		throw new SerializeFailedException("Does not know how to serialize " + object.getClass().getSimpleName() + "! Does it extends ConfigSerializable? Data: " + object);
+		throw new SerializeFailedException("Does not know how to serialize " + object.getClass().getSimpleName() + "! Does it implement ConfigSerializable? Data: " + object);
 	}
 
 	/*
@@ -341,7 +338,7 @@ public final class SerializeUtil {
 
 	/**
 	 * Converts a {@link Location} into "world x y z yaw pitch" string
-	 * Decimals not supported, use {@link #deserializeLocationD(Object)} for them
+	 * Decimals not supported, use {@link #deserializeLocD(Object)} for them
 	 *
 	 * @param loc
 	 * @return
@@ -465,7 +462,7 @@ public final class SerializeUtil {
 			object = new BoxedMessage(object.toString());
 
 		else if (classOf == Location.class)
-			object = deserializeLocation(object);
+			object = deserializeLoc(object);
 
 		else if (classOf == PotionEffectType.class)
 			object = PotionEffectType.getByName(object.toString());
@@ -478,6 +475,9 @@ public final class SerializeUtil {
 
 		else if (classOf == CompMaterial.class)
 			object = CompMaterial.fromStringStrict(object.toString());
+
+		else if (classOf == Material.class)
+			object = Material.getMaterial(object.toString());
 
 		else if (classOf == SimpleSound.class)
 			object = new SimpleSound(object.toString());
@@ -672,13 +672,13 @@ public final class SerializeUtil {
 	}
 
 	/**
-	 * Converts a string into location, see {@link #deserializeLocation(Object)} for how strings are saved
-	 * Decimals not supported, use {@link #deserializeLocationD(Object)} to use them
+	 * Converts a string into location, see {@link #deserializeLoc(Object)} for how strings are saved
+	 * Decimals not supported, use {@link #deserializeLocD(Object)} to use them
 	 *
 	 * @param raw
 	 * @return
 	 */
-	public static Location deserializeLocation(Object raw) {
+	public static Location deserializeLoc(Object raw) {
 		if (raw == null)
 			return null;
 
@@ -708,7 +708,7 @@ public final class SerializeUtil {
 	 * @param raw
 	 * @return
 	 */
-	public static Location deserializeLocationD(Object raw) {
+	public static Location deserializeLocD(Object raw) {
 		if (raw == null)
 			return null;
 

@@ -18,6 +18,8 @@ import org.yaml.snakeyaml.representer.Representer;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.logging.Level;
@@ -149,6 +151,7 @@ public class YamlConfig extends FileConfig {
 	 */
 	public final void loadConfiguration(@Nullable String from, String to) {
 		File file;
+		boolean justCreated = !FileUtil.getFile(to).exists();
 
 		if (from != null) {
 
@@ -169,10 +172,40 @@ public class YamlConfig extends FileConfig {
 			this.defaultsPath = from;
 		}
 
-		else
+		else {
 			file = FileUtil.getOrMakeFile(to);
+			this.file = file;
+		}
 
-		this.load(file);
+		if (!justCreated){
+			this.load(file);
+		}
+	}
+
+	/**
+	 * Load all files from the given folder and try to cast them to the given class which extends YamlConfig.<br>
+	 * <b>Your class must contain a no-arguments constructor.</b> It may be of any access level.<br><br>
+	 * <b>Used when one object = one file. Do not use if all of your objects are in a one single file.</b>
+	 */
+	public static void loadAll(String folder, Class<? extends YamlConfig> clazz){
+		File dir = FileUtil.getFile(folder);
+		File[] directoryListing = dir.listFiles();
+		if (directoryListing != null){
+			for (File file : directoryListing){
+				if (file.isDirectory()) continue;
+
+				YamlConfig t;
+				try{
+					Constructor<? extends YamlConfig> constructor = clazz.getDeclaredConstructor();
+					constructor.setAccessible(true);
+					t = constructor.newInstance();
+				} catch (NoSuchMethodException | InstantiationException | IllegalAccessException |
+						 InvocationTargetException e){
+					throw new RuntimeException("Your class " + clazz.getName() + " must contain a no-arguments constructor.");
+				}
+				t.loadConfiguration(null, folder + "/" + file.getName());
+			}
+		}
 	}
 
 	/**

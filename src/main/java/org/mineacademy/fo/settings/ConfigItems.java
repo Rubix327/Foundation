@@ -250,7 +250,7 @@ public final class ConfigItems<T extends YamlConfig> {
 	 * @param item
 	 */
 	public void removeItem(@NonNull final T item) {
-		this.removeItemByName(item.getName());
+		this.removeItemByName(item.getCleanFileName());
 	}
 
 	/**

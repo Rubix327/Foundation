@@ -1,16 +1,19 @@
 package org.mineacademy.fo.settings;
 
+import com.google.common.base.CaseFormat;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.mineacademy.fo.Common;
 import org.mineacademy.fo.SerializeUtil;
-import org.mineacademy.fo.SerializeUtil.Mode;
 import org.mineacademy.fo.Valid;
+import org.mineacademy.fo.annotation.AutoConfig;
 import org.mineacademy.fo.collection.SerializedMap;
 import org.mineacademy.fo.collection.StrictList;
 import org.mineacademy.fo.command.SimpleCommand;
@@ -23,7 +26,9 @@ import org.mineacademy.fo.remain.Remain;
 
 import javax.annotation.Nullable;
 import java.io.*;
+import java.lang.reflect.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.function.Function;
 
@@ -49,7 +54,7 @@ public abstract class FileConfig {
 	 *
 	 * TODO Implement JSON settings storage
 	 */
-	final SerializeUtil.Mode mode = Mode.YAML;
+	final SerializeUtil.Mode mode = SerializeUtil.Mode.YAML;
 
 	/*
 	 * The file that is being used
@@ -212,7 +217,7 @@ public abstract class FileConfig {
 			final Object object = this.defaults.retrieve(path);
 			Valid.checkNotNull(object, "Inbuilt config " + this.getFileName() + " lacks " + (object == null ? "key" : object.getClass().getSimpleName()) + " at \"" + path + "\". Is it outdated?");
 
-			Common.log("&7Updating " + this.getFileName() + " at &b\'&f" + path + "&b\' &7-> " + (object == null ? "&ckey removed" : "&b\'&f" + object.toString().replace("\n", ", ") + "&b\'") + "&r");
+			Common.log("&7Updating " + this.getFileName() + " at &b'&f" + path + "&b' &7-> " + "&b'&f" + object.toString().replace("\n", ", ") + "&b'" + "&r");
 			this.section.store(path, object);
 			this.shouldSave = true;
 		}
@@ -283,7 +288,7 @@ public abstract class FileConfig {
 			return Objects.toString(object);
 
 		else if (object instanceof Number)
-			return ((Number) object).toString();
+			return object.toString();
 
 		else if (object instanceof String)
 			return (String) object;
@@ -608,23 +613,32 @@ public abstract class FileConfig {
 	/**
 	 * Return material from the key at the given path
 	 * (see {@link #get(String, Class, Object, Object...)}).
-	 *
-	 * @param path
-	 * @return
 	 */
-	public final CompMaterial getMaterial(final String path) {
-		return this.getMaterial(path, null);
+	public final Material getMaterial(final String path){
+		return getMaterial(path, null);
 	}
 
 	/**
 	 * Return material from the key at the given path, or supply with default
 	 * (see {@link #get(String, Class, Object, Object...)}).
-	 *
-	 * @param path
-	 * @param def
-	 * @return
 	 */
-	public final CompMaterial getMaterial(final String path, CompMaterial def) {
+	public final Material getMaterial(final String path, Material def){
+		return this.get(path, Material.class, def);
+	}
+
+	/**
+	 * Return CompMaterial from the key at the given path
+	 * (see {@link #get(String, Class, Object, Object...)}).
+	 */
+	public final CompMaterial getCompMaterial(final String path) {
+		return this.getCompMaterial(path, null);
+	}
+
+	/**
+	 * Return CompMaterial from the key at the given path, or supply with default
+	 * (see {@link #get(String, Class, Object, Object...)}).
+	 */
+	public final CompMaterial getCompMaterial(final String path, CompMaterial def) {
 		return this.get(path, CompMaterial.class, def);
 	}
 
@@ -825,11 +839,16 @@ public abstract class FileConfig {
 	/**
 	 * Return a list of materials from the key at the given path
 	 * (see {@link #get(String, Class, Object, Object...)}).
-	 *
-	 * @param path
-	 * @return
 	 */
-	public final List<CompMaterial> getMaterialList(final String path) {
+	public final List<Material> getMaterialList(final String path){
+		return this.getList(path, Material.class);
+	}
+
+	/**
+	 * Return a list of CompMaterials from the key at the given path
+	 * (see {@link #get(String, Class, Object, Object...)}).
+	 */
+	public final List<CompMaterial> getCompMaterialList(final String path) {
 		return this.getList(path, CompMaterial.class);
 	}
 
@@ -977,7 +996,7 @@ public abstract class FileConfig {
 					final List<?> list = SerializeUtil.deserialize(this.mode, List.class, entry.getValue());
 					final List<Location> copy = new ArrayList<>();
 
-					list.forEach(locationRaw -> copy.add(SerializeUtil.deserializeLocation(locationRaw)));
+					list.forEach(locationRaw -> copy.add(SerializeUtil.deserializeLoc(locationRaw)));
 
 					value = (Value) new LocationList(this, copy);
 
@@ -1160,20 +1179,21 @@ public abstract class FileConfig {
 					loadedSections.put(path, section);
 				}
 
-				else
+				else {
 					loadedBefore = true;
+				}
 
 				this.section = section;
 				this.file = file;
 
-				if (loadedBefore && !this.alwaysLoad) {
-					// Do not load
-				} else
+				if (!loadedBefore || this.alwaysLoad){
 					this.load(new InputStreamReader(stream, StandardCharsets.UTF_8));
+				}
 
 				try {
+					this.onPreLoad();
+					this.loadFields();
 					this.onLoad();
-					this.onLoadFinish();
 
 				} catch (final EventHandledException ex) {
 					// Handled successfully in the polymorphism pipeline
@@ -1188,7 +1208,6 @@ public abstract class FileConfig {
 
 			} catch (final Exception ex) {
 				Common.throwError(ex, "Error loading " + file + ": " + ex);
-
 			} finally {
 				this.loading = false;
 			}
@@ -1198,7 +1217,7 @@ public abstract class FileConfig {
 	/*
 	 * Helper to load configuration from a reader
 	 */
-	private final void load(@NonNull Reader reader) {
+	private void load(@NonNull Reader reader) {
 		try {
 			final BufferedReader input = reader instanceof BufferedReader ? (BufferedReader) reader : new BufferedReader(reader);
 			final StringBuilder builder = new StringBuilder();
@@ -1230,21 +1249,18 @@ public abstract class FileConfig {
 	abstract void loadFromString(@NonNull String contents);
 
 	/**
-	 * Called automatically when the configuration has been loaded, used to load your
-	 * fields in your class here.
-	 *
-	 * You can throw {@link EventHandledException} here to indicate to your child class to interrupt loading
+	 * Called automatically right before the configuration is loaded.
 	 */
-	protected void onLoad() {
+	protected void onPreLoad(){
 	}
 
 	/**
-	 * @see #onLoad()
-	 *
-	 * @deprecated Renamed to {@link #onLoad()}, use that instead.
+	 * Called automatically when the configuration has been loaded, used to load your
+	 * fields in your class here if @AutoConfig is not used.
+	 * <br>
+	 * You can throw {@link EventHandledException} here to indicate to your child class to interrupt loading
 	 */
-	@Deprecated
-	protected void onLoadFinish() {
+	protected void onLoad() {
 	}
 
 	/**
@@ -1275,8 +1291,9 @@ public abstract class FileConfig {
 				if (this.canSaveFile()) {
 
 					try {
+						this.saveFields();
 						this.onSave();
-					} catch (final EventHandledException ex) {
+					} catch (final EventHandledException ignored) {
 						// Ignore, indicated that we exited polymorphism inheritance prematurely by intention
 					}
 
@@ -1287,13 +1304,12 @@ public abstract class FileConfig {
 
 					final String data = this.saveToString();
 
-					if (data != null)
-						try (Writer writer = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)) {
-							writer.write(data);
+					try (Writer writer = new OutputStreamWriter(Files.newOutputStream(file.toPath()), StandardCharsets.UTF_8)) {
+						writer.write(data);
 
-						} catch (final Exception ex) {
-							Remain.sneaky(ex);
-						}
+					} catch (final Exception ex) {
+						Remain.sneaky(ex);
+					}
 
 					// Update file
 					this.file = file;
@@ -1323,7 +1339,7 @@ public abstract class FileConfig {
 	/**
 	 * Called automatically on saving the configuration, you can call "set(path, value)" methods here
 	 * to save your class fields. We automatically save what you have in {@link #saveToMap()} if not null.
-	 *
+	 * <br>
 	 * Called after {@link #canSaveFile()}
 	 */
 	protected void onSave() {
@@ -1339,7 +1355,211 @@ public abstract class FileConfig {
 	}
 
 	/**
-	 * Return if the file can be saved when calling {@link #save()}e
+	 * Get values from file and set them to fields annotated with @AutoConfig
+	 */
+	private void loadFields(){
+		for (Field field : getFieldsToAutoLoad()) {
+			field.setAccessible(true);
+
+			try {
+				Object value = getBasedOnClass(getFormattedFieldName(field), field);
+				if (value != null){
+					field.set(this, value);
+				}
+			} catch (IllegalAccessException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
+	/**
+	 * Get fields for which we should set values from a file.
+	 * Skips static fields and grabs all the fields which are annotated or whose class is annotated with @AutoConfig.
+	 */
+	private List<Field> getFieldsToAutoLoad() {
+		List<Field> fieldsToLoad = new ArrayList<>();
+		boolean isAboveClass = false;
+
+		// Do nothing if AutoConfig is disabled for the whole class
+		if (this.getClass().isAnnotationPresent(AutoConfig.class)){
+			isAboveClass = true;
+			if (!this.getClass().getAnnotation(AutoConfig.class).value()){
+				return new ArrayList<>();
+			}
+		}
+
+		for (Field field : this.getClass().getDeclaredFields()){
+			boolean hasAnnotation = field.isAnnotationPresent(AutoConfig.class);
+			boolean isEnabled = false;
+			if (hasAnnotation){
+				AutoConfig ann = field.getAnnotation(AutoConfig.class);
+				isEnabled = ann.value() && ann.autoLoad();
+			}
+
+			if (Modifier.isStatic(field.getModifiers())) continue;
+			if (checkAnnotation(isAboveClass, hasAnnotation, isEnabled)) fieldsToLoad.add(field);
+		}
+
+		return fieldsToLoad;
+	}
+
+	/**
+	 * Set values annotated with @AutoConfig from a YamlConfig and save them to a file.
+	 */
+	private void saveFields() {
+		for (Field field : getFieldsToAutoSave()) {
+			field.setAccessible(true);
+
+			try {
+				Object value = field.get(this);
+				if (value != null){
+					set(getFormattedFieldName(field), value);
+				}
+			} catch (IllegalAccessException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
+	/**
+	 * Get fields which should be saved to a file.
+	 * Skips static fields and grabs all the fields which are annotated or whose class is annotated with @AutoConfig.
+	 */
+	private List<Field> getFieldsToAutoSave() {
+		List<Field> fieldsToSave = new ArrayList<>();
+		boolean isAboveClass = false;
+
+		// Do nothing if AutoConfig is disabled for the whole class
+		if (this.getClass().isAnnotationPresent(AutoConfig.class)){
+			isAboveClass = true;
+			if (!this.getClass().getAnnotation(AutoConfig.class).value()){
+				return new ArrayList<>();
+			}
+		}
+
+		for (Field field : this.getClass().getDeclaredFields()){
+			boolean hasAnnotation = field.isAnnotationPresent(AutoConfig.class);
+			boolean isEnabled = false;
+			if (hasAnnotation){
+				AutoConfig ann = field.getAnnotation(AutoConfig.class);
+				isEnabled = ann.value() && ann.autoSave();
+			}
+
+			if (Modifier.isStatic(field.getModifiers())) continue;
+			if (checkAnnotation(isAboveClass, hasAnnotation, isEnabled)) fieldsToSave.add(field);
+		}
+
+		return fieldsToSave;
+	}
+
+	/**
+	 * Returns true if class is annotated OR field itself is annotated and enabled.
+	 */
+	private boolean checkAnnotation(boolean isAboveClass, boolean hasAnnotation, boolean isEnabled){
+		if (isAboveClass){
+			return !hasAnnotation || isEnabled;
+		}
+		else{
+			return hasAnnotation && isEnabled;
+		}
+	}
+
+	/**
+	 * Get the deserialized object from the given path depending on its field class type.
+	 */
+	private Object getBasedOnClass(String path, Field field){
+		Class<?> fieldType = field.getType();
+
+		// ***
+		// If type name does not correspond with its getter method, we use TypeMethod enum
+		// ***
+
+		// Convert field name to UPPER_UNDERSCORE to correspond with TypeMethod enum
+		String name = CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_UNDERSCORE, fieldType.getSimpleName());
+		TypeMethod typeMethod = null;
+		try{
+			typeMethod = TypeMethod.valueOf(name);
+		} catch (IllegalArgumentException ignored){}
+		if (typeMethod != null){
+			try {
+				return this.getClass().getMethod(typeMethod.getMethod(), String.class).invoke(this, path);
+			} catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		// ***
+		// If field is a list or a map
+		// ***
+
+		try{
+			if (fieldType == List.class){
+				Type type = ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+				return getList(path, Class.forName(type.getTypeName()));
+			}
+			else if (fieldType == Map.class){
+				Type[] types = ((ParameterizedType) field.getGenericType()).getActualTypeArguments();
+				return getMap(path, Class.forName(types[0].getTypeName()), Class.forName(types[1].getTypeName()));
+			}
+			else if (fieldType == Tuple.class){
+				Type[] types = ((ParameterizedType) field.getGenericType()).getActualTypeArguments();
+				return getTuple(path, Class.forName(types[0].getTypeName()), Class.forName(types[1].getTypeName()));
+			}
+		}
+		catch (ClassNotFoundException c){
+			c.printStackTrace();
+		}
+
+		// ***
+		// Try to get field value by 'getSomething' method
+		// ***
+
+		try {
+			String str = fieldType.getSimpleName();
+			name = str.substring(0, 1).toUpperCase() + str.substring(1);
+			if (fieldType == int.class) {
+				name = "Integer";
+			}
+
+			Method method = this.getClass().getMethod("get" + name, String.class);
+			return method.invoke(this, path);
+		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+			throw new RuntimeException("We don't know how to auto-deserialize class "
+					+ fieldType.getSimpleName() + " at path " + path + ". If you don't know how to resolve " +
+					"the issue please use manual deserialization for that field.");
+		}
+	}
+
+	/**
+	 * Types whose getters names do not match their names.
+	 */
+	enum TypeMethod {
+		ACCUSATIVE_HELPER("getAccusativePeriod"),
+		SIMPLE_SOUND("getSound"),
+		TITLE_HELPER("getTitle"),
+		SIMPLE_TIME("getTime");
+
+		@Getter
+		final String method;
+		TypeMethod(String method){
+			this.method = method;
+		}
+	}
+
+	/**
+	 * Get the name under which the value will be located in the file.
+	 * Based on user-defined AutoConfig.format() and is lower_underscore by default.
+	 */
+	private String getFormattedFieldName(Field field) {
+		String name = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, field.getName());
+		if (this.getClass().isAnnotationPresent(AutoConfig.class)){
+			name = CaseFormat.LOWER_CAMEL.to(this.getClass().getAnnotation(AutoConfig.class).format(), field.getName());
+		}
+		return name;
+	}
+
+	/**
+	 * Return if the file can be saved when calling {@link #save()}
 	 *
 	 * @return
 	 */
@@ -1472,13 +1692,11 @@ public abstract class FileConfig {
 
 	/**
 	 * Return the name of the file (if any), without file extension
-	 *
-	 * @return
 	 */
-	public String getName() {
+	public String getCleanFileName() {
 		final String fileName = this.getFileName();
 
-		if (fileName != null) {
+		if (!fileName.equals("null")) {
 			final int lastDot = fileName.lastIndexOf(".");
 
 			if (lastDot != -1)
@@ -1490,8 +1708,6 @@ public abstract class FileConfig {
 
 	/**
 	 * Return the file name, if set
-	 *
-	 * @return
 	 */
 	public final String getFileName() {
 		return this.file == null ? "null" : this.file.getName();
@@ -1499,8 +1715,6 @@ public abstract class FileConfig {
 
 	/**
 	 * Return if there are any keys set in this configuration
-	 *
-	 * @return
 	 */
 	public final boolean isEmpty() {
 		return this.section.isEmpty();
@@ -1511,7 +1725,7 @@ public abstract class FileConfig {
 	// ------------------------------------------------------------------------------------
 
 	@Deprecated // internal use only
-	public static final void clearLoadedSections() {
+	public static void clearLoadedSections() {
 		synchronized (loadedSections) {
 			loadedSections.clear();
 		}

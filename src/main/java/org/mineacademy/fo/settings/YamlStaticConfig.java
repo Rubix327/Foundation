@@ -1,5 +1,6 @@
 package org.mineacademy.fo.settings;
 
+import org.bukkit.Material;
 import org.mineacademy.fo.Common;
 import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.collection.SerializedMap;
@@ -115,7 +116,7 @@ public abstract class YamlStaticConfig {
 	}
 
 	/**
-	 * Called automatically in {@link #load(List)}, you should call the standard load method from
+	 * Called automatically in {@link #load(Class)}}, you should call the standard load method from
 	 * {@link YamlConfig} here
 	 *
 	 * @throws Exception
@@ -308,8 +309,12 @@ public abstract class YamlStaticConfig {
 	// Config manipulators
 	// -----------------------------------------------------------------------------------------------------
 
-	protected static final List<CompMaterial> getMaterialList(final String path) {
+	protected static final List<Material> getMaterialList(final String path){
 		return TEMPORARY_INSTANCE.getMaterialList(path);
+	}
+
+	protected static final List<CompMaterial> getCompMaterialList(final String path) {
+		return TEMPORARY_INSTANCE.getCompMaterialList(path);
 	}
 
 	protected static final StrictList<String> getCommandList(final String path) {
@@ -372,8 +377,12 @@ public abstract class YamlStaticConfig {
 		return TEMPORARY_INSTANCE.getPercentage(path);
 	}
 
-	protected static final CompMaterial getMaterial(final String path) {
+	protected static final Material getMaterial(final String path){
 		return TEMPORARY_INSTANCE.getMaterial(path);
+	}
+
+	protected static final CompMaterial getCompMaterial(final String path) {
+		return TEMPORARY_INSTANCE.getCompMaterial(path);
 	}
 
 	protected static final BoxedMessage getBoxedMessage(final String path) {

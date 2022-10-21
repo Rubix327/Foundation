@@ -11,6 +11,7 @@ Please see the original for more information.
 with AdvancedMenu, AdvancedMenuPagged and AdvancedMenuTools)
 - Automatic YamlConfig loading (use @AutoConfig annotation
 to load and save all of your fields to the file automatically)
+- Automatic ConfigSerializable loading (use @AutoSerialize)
 - Better CompMetadata - now you can store and remove temporary and PERSISTENT metadata for
 all objects that support that regardless of your MC version.
 - Some small but useful features (new Logger, ItemCreator attribute

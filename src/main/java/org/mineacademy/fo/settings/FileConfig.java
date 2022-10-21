@@ -11,6 +11,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.mineacademy.fo.Common;
+import org.mineacademy.fo.ReflectionUtil;
 import org.mineacademy.fo.SerializeUtil;
 import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.annotation.AutoConfig;
@@ -910,16 +911,15 @@ public abstract class FileConfig {
 		if (type == Map.class && deserializeParameters != null & deserializeParameters.length > 0 && deserializeParameters[0] != String.class)
 			throw new FoException("getList('" + path + "') that returns Map must have String.class as key, not " + deserializeParameters[0]);
 
-		if (objects != null)
-			for (Object object : objects) {
-				object = object != null ? SerializeUtil.deserialize(this.mode, type, object, deserializeParameters) : null;
+		for (Object object : objects) {
+			object = object != null ? SerializeUtil.deserialize(this.mode, type, object, deserializeParameters) : null;
 
-				if (object != null)
-					list.add((T) object);
+			if (object != null)
+				list.add((T) object);
 
-				else if (!type.isPrimitive() && type != String.class)
-					list.add(null);
-			}
+			else if (!type.isPrimitive() && type != String.class)
+				list.add(null);
+		}
 
 		return list;
 	}
@@ -1397,7 +1397,7 @@ public abstract class FileConfig {
 			}
 
 			if (Modifier.isStatic(field.getModifiers())) continue;
-			if (checkAnnotation(isAboveClass, hasAnnotation, isEnabled)) fieldsToLoad.add(field);
+			if (ReflectionUtil.isAnnotationAttached(isAboveClass, hasAnnotation, isEnabled)) fieldsToLoad.add(field);
 		}
 
 		return fieldsToLoad;
@@ -1446,22 +1446,10 @@ public abstract class FileConfig {
 			}
 
 			if (Modifier.isStatic(field.getModifiers())) continue;
-			if (checkAnnotation(isAboveClass, hasAnnotation, isEnabled)) fieldsToSave.add(field);
+			if (ReflectionUtil.isAnnotationAttached(isAboveClass, hasAnnotation, isEnabled)) fieldsToSave.add(field);
 		}
 
 		return fieldsToSave;
-	}
-
-	/**
-	 * Returns true if class is annotated OR field itself is annotated and enabled.
-	 */
-	private boolean checkAnnotation(boolean isAboveClass, boolean hasAnnotation, boolean isEnabled){
-		if (isAboveClass){
-			return !hasAnnotation || isEnabled;
-		}
-		else{
-			return hasAnnotation && isEnabled;
-		}
 	}
 
 	/**
@@ -1524,9 +1512,7 @@ public abstract class FileConfig {
 			Method method = this.getClass().getMethod("get" + name, String.class);
 			return method.invoke(this, path);
 		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-			throw new RuntimeException("We don't know how to auto-deserialize class "
-					+ fieldType.getSimpleName() + " at path " + path + ". If you don't know how to resolve " +
-					"the issue please use manual deserialization for that field.");
+			return get(path, fieldType);
 		}
 	}
 

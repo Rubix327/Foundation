@@ -13,8 +13,12 @@ public interface ConfigSerializable {
 	/**
 	 * Creates a Map representation of this class that you can
 	 * save in your settings yaml or json file.
+	 *<br><br>
+	 * Since v6.2.1.5 we have @AutoSerialize so this method is not mandatory now.
 	 *
 	 * @return Map containing the current state of this class
 	 */
-	SerializedMap serialize();
+	default SerializedMap serialize() {
+		return null;
+	};
 }

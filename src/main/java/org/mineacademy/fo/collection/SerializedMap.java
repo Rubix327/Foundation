@@ -1,19 +1,9 @@
 package org.mineacademy.fo.collection;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
-
+import lombok.Getter;
+import lombok.NonNull;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.configuration.MemorySection;
 import org.bukkit.inventory.ItemStack;
 import org.mineacademy.fo.Common;
@@ -30,8 +20,10 @@ import org.mineacademy.fo.remain.CompMaterial;
 import org.mineacademy.fo.remain.Remain;
 import org.mineacademy.fo.settings.ConfigSection;
 
-import lombok.Getter;
-import lombok.NonNull;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 /**
  * Serialized map enables you to save and retain values from your
@@ -477,23 +469,32 @@ public final class SerializedMap extends StrictCollection implements Iterable<Ma
 	}
 
 	/**
-	 * Returns a material from the map, or null if does not exist
-	 *
-	 * @param key
-	 * @return
+	 * Returns a material from the map, or null if it does not exist
 	 */
-	public CompMaterial getMaterial(final String key) {
-		return this.getMaterial(key, null);
+	public Material getMaterial(final String key){
+		return getMaterial(key, null);
 	}
 
 	/**
-	 * Return a material from the map or the default given
-	 *
-	 * @param key
-	 * @param def
-	 * @return
+	 * Returns a material from the map or the default given
 	 */
-	public CompMaterial getMaterial(final String key, final CompMaterial def) {
+	public Material getMaterial(final String key, final Material def){
+		final String raw = this.getString(key);
+
+		return raw != null ? Material.getMaterial(raw) : def;
+	}
+
+	/**
+	 * Returns a CompMaterial from the map, or null if it does not exist
+	 */
+	public CompMaterial getCompMaterial(final String key) {
+		return this.getCompMaterial(key, null);
+	}
+
+	/**
+	 * Returns a CompMaterial from the map or the default given
+	 */
+	public CompMaterial getCompMaterial(final String key, final CompMaterial def) {
 		final String raw = this.getString(key);
 
 		return raw != null ? CompMaterial.fromString(raw) : def;

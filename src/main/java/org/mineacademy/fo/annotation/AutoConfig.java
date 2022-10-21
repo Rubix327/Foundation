@@ -35,13 +35,13 @@ public @interface AutoConfig {
 
     /**
      * When false, automatic loading does not work for class or field above which is set.<br>
-     * You should manually get the disabled fields in <i>onLoad</i> method.
+     * You may manually get the disabled fields in <i>onLoad</i> method if you want.
      */
     boolean autoLoad() default true;
 
     /**
      * When false, automatic saving does not work for class or field above which is set.<br>
-     * You should manually set the disabled fields in <i>onSave</i> method.
+     * You may manually set the disabled fields in <i>onSave</i> method if you want.
      */
     boolean autoSave() default true;
 

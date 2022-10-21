@@ -630,7 +630,7 @@ public final class CompMetadata {
 			private final List<String> metadata;
 
 			public static BlockCache deserialize(final SerializedMap map) {
-				final CompMaterial type = map.getMaterial("Type");
+				final CompMaterial type = map.getCompMaterial("Type");
 				final List<String> metadata = map.getStringList("Metadata");
 
 				return new BlockCache(type, metadata);

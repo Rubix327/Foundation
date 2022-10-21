@@ -1,5 +1,6 @@
 package org.mineacademy.fo;
 
+import com.google.common.base.CaseFormat;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
@@ -19,6 +20,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.mineacademy.fo.MinecraftVersion.V;
+import org.mineacademy.fo.annotation.AutoSerialize;
 import org.mineacademy.fo.collection.SerializedMap;
 import org.mineacademy.fo.collection.StrictCollection;
 import org.mineacademy.fo.collection.StrictMap;
@@ -34,9 +36,7 @@ import org.mineacademy.fo.remain.Remain;
 import org.mineacademy.fo.settings.ConfigSection;
 
 import java.awt.Color;
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
+import java.lang.reflect.*;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.List;
@@ -100,8 +100,12 @@ public final class SerializeUtil {
 		if (serializers.containsKey(object.getClass()))
 			return serializers.get(object.getClass()).apply(object);
 
-		if (object instanceof ConfigSerializable)
+		if (object instanceof ConfigSerializable){
+			if (object.getClass().isAnnotationPresent(AutoSerialize.class)){
+				return autoSerialize(object).serialize();
+			}
 			return serialize(mode, ((ConfigSerializable) object).serialize().serialize());
+		}
 
 		else if (object instanceof StrictCollection)
 			return serialize(mode, ((StrictCollection) object).serialize());
@@ -305,6 +309,55 @@ public final class SerializeUtil {
 		}
 
 		throw new SerializeFailedException("Does not know how to serialize " + object.getClass().getSimpleName() + "! Does it implement ConfigSerializable? Data: " + object);
+	}
+
+	/**
+	 * Set values annotated with @AutoSerialize from a ConfigSerializable class and save them to SerializedMap.
+	 */
+	public static SerializedMap autoSerialize(Object object){
+		SerializedMap map = new SerializedMap();
+		Class<?> classOf = object.getClass();
+
+		for (Field field : getFieldsToAutoSerialize(classOf)){
+			field.setAccessible(true);
+			try {
+				String name = getFormattedFieldName(classOf, field);
+				Object value = field.get(object);
+				if (value != null){
+					map.put(name, value);
+				}
+			} catch (IllegalAccessException e) {
+				throw new RuntimeException(e);
+			}
+		}
+		return map;
+	}
+
+	public static List<Field> getFieldsToAutoSerialize(Class<?> classOf){
+		List<Field> fields = new ArrayList<>();
+		boolean isAboveClass = false;
+
+		// Do nothing if AutoSerialize is disabled for the whole class
+		if (classOf.isAnnotationPresent(AutoSerialize.class)){
+			isAboveClass = true;
+			if (!classOf.getAnnotation(AutoSerialize.class).value()){
+				return new ArrayList<>();
+			}
+		}
+
+		for (Field field : classOf.getDeclaredFields()){
+			boolean hasAnnotation = field.isAnnotationPresent(AutoSerialize.class);
+			boolean isEnabled = false;
+			if (hasAnnotation){
+				AutoSerialize ann = field.getAnnotation(AutoSerialize.class);
+				isEnabled = ann.value() && ann.autoSerialize();
+			}
+
+			if (Modifier.isStatic(field.getModifiers())) continue;
+			if (ReflectionUtil.isAnnotationAttached(isAboveClass, hasAnnotation, isEnabled)) fields.add(field);
+		}
+
+		return fields;
 	}
 
 	/*
@@ -619,6 +672,11 @@ public final class SerializeUtil {
 
 		// Try to call our own serializers
 		else if (ConfigSerializable.class.isAssignableFrom(classOf)) {
+			SerializedMap map = isJson ? SerializedMap.fromJson(object.toString()) : SerializedMap.of(object);
+			if (classOf.isAnnotationPresent(AutoSerialize.class)){
+				return autoDeserialize(classOf, map);
+			}
+
 			if (parameters != null && parameters.length > 0) {
 				final List<Class<?>> argumentClasses = new ArrayList<>();
 				final List<Object> arguments = new ArrayList<>();
@@ -629,7 +687,7 @@ public final class SerializeUtil {
 					argumentClasses.add(param.getClass());
 
 				// Build parameter instances
-				arguments.add(isJson ? SerializedMap.fromJson(object.toString()) : SerializedMap.of(object));
+				arguments.add(map);
 				Collections.addAll(arguments, parameters);
 
 				// Find deserialize(SerializedMap, args[]) method
@@ -669,6 +727,77 @@ public final class SerializeUtil {
 			throw new SerializeFailedException("Does not know how to turn " + classOf + " into a serialized object from data: " + object);
 
 		return (T) object;
+	}
+
+	/**
+	 * Get values from SerializedMap and set them to fields annotated with @AutoSerialize
+	 */
+	public static <T> T autoDeserialize(Class<T> classOf, SerializedMap map){
+		Constructor<T> constructor;
+		try {
+			constructor = classOf.getDeclaredConstructor();
+		} catch (NoSuchMethodException e) {
+			throw new RuntimeException("Your class " + classOf.getSimpleName() + " must contain a no-arguments " +
+					"constructor because is annotated with @AutoSerialize.");
+		}
+		constructor.setAccessible(true);
+
+		T instance;
+		try {
+			instance = (T) constructor.newInstance();
+
+			for (Field field : getFieldsToAutoDeserialize(classOf)) {
+				field.setAccessible(true);
+				String name = getFormattedFieldName(classOf, field);
+				Object value = map.get(name, field.getType());
+				if (value != null){
+					field.set(instance, value);
+				}
+			}
+		}
+		catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
+		return instance;
+	}
+
+	public static List<Field> getFieldsToAutoDeserialize(Class<?> classOf){
+		List<Field> fields = new ArrayList<>();
+		boolean isAboveClass = false;
+
+		// Do nothing if AutoSerialize is disabled for the whole class
+		if (classOf.isAnnotationPresent(AutoSerialize.class)){
+			isAboveClass = true;
+			if (!classOf.getAnnotation(AutoSerialize.class).value()){
+				return new ArrayList<>();
+			}
+		}
+
+		for (Field field : classOf.getDeclaredFields()){
+			boolean hasAnnotation = field.isAnnotationPresent(AutoSerialize.class);
+			boolean isEnabled = false;
+			if (hasAnnotation){
+				AutoSerialize ann = field.getAnnotation(AutoSerialize.class);
+				isEnabled = ann.value() && ann.autoDeserialize();
+			}
+
+			if (Modifier.isStatic(field.getModifiers())) continue;
+			if (ReflectionUtil.isAnnotationAttached(isAboveClass, hasAnnotation, isEnabled)) fields.add(field);
+		}
+
+		return fields;
+	}
+
+	/**
+	 * Get the name under which the value will be located in SerializedMap.
+	 * Based on user-defined AutoSerialize.format() and is lower_underscore by default.
+	 */
+	private static String getFormattedFieldName(Class<?> classOf, Field field) {
+		String name = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, field.getName());
+		if (classOf.isAnnotationPresent(AutoSerialize.class)){
+			name = CaseFormat.LOWER_CAMEL.to(classOf.getAnnotation(AutoSerialize.class).format(), field.getName());
+		}
+		return name;
 	}
 
 	/**

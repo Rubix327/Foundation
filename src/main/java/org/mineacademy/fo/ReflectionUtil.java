@@ -1242,4 +1242,16 @@ public final class ReflectionUtil {
 			return this.enumName;
 		}
 	}
+
+	/**
+	 * Returns true if class is annotated OR field itself is annotated and enabled.
+	 */
+	public static boolean isAnnotationAttached(boolean overClass, boolean overField, boolean isEnabled){
+		if (overClass){
+			return !overField || isEnabled;
+		}
+		else{
+			return overField && isEnabled;
+		}
+	}
 }

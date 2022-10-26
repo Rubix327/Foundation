@@ -8,11 +8,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * This annotation automatically serialized and deserializes fields for your
+ * This annotation automatically serializes and deserializes fields for your
  * custom class implementing {@link org.mineacademy.fo.model.ConfigSerializable}.<br><br>
  * <b>On class</b>:
  * <ul>
- * <li>Serialized and deserialized all non-static class fields</li>
+ * <li>Serializes and deserializes all non-static class fields</li>
  * <li>But skips fields that have disabled this feature by <i>@AutoSerialize(false)</i></li>
  * </ul>
  * When using on class, if you want to prevent one specific field from auto-serializing and auto-deserializing,
@@ -20,9 +20,7 @@ import java.lang.annotation.Target;
  * <br>
  * <b>On field</b>:
  * <ul>
- * <li>Serialized and deserializes field if annotation is in enabled state</li>
- * <li>Skips field serializing if <i>@AutoSerialize(autoSerialize = false)</i></li>
- * <li>Skips field deserializing if <i>@AutoSerialize(autoDeserialize = false)</i></li>
+ * <li>Serializes and deserializes field if annotation is in enabled state</li>
  * </ul>
  */
 @Target({ElementType.TYPE, ElementType.FIELD})
@@ -33,18 +31,6 @@ public @interface AutoSerialize {
      * When false, automatic serializing and deserializing does not work for class or field above which is set.
      */
     boolean value() default true;
-
-    /**
-     * When false, automatic serializing does not work for class or field above which is set.<br>
-     * You may manually serialize the disabled fields in <i>serialize</i> method if you want.
-     */
-    boolean autoSerialize() default true;
-
-    /**
-     * When false, automatic deserializing does not work for class or field above which is set.<br>
-     * You may manually set the disabled fields in <i>deserialize</i> method if you want.
-     */
-    boolean autoDeserialize() default true;
 
     /**
      * In what format should we convert your fields to SerializedMap.<br>

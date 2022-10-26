@@ -23,7 +23,6 @@ import org.mineacademy.fo.MinecraftVersion.V;
 import org.mineacademy.fo.annotation.AutoSerialize;
 import org.mineacademy.fo.collection.SerializedMap;
 import org.mineacademy.fo.collection.StrictCollection;
-import org.mineacademy.fo.collection.StrictMap;
 import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.exception.InvalidWorldException;
 import org.mineacademy.fo.jsonsimple.*;
@@ -131,7 +130,7 @@ public final class SerializeUtil {
 		else if (object instanceof BoxedMessage) {
 			final String message = ((BoxedMessage) object).getMessage();
 
-			return message == null || "".equals(message) || "null".equals(message) ? null : message;
+			return "".equals(message) || "null".equals(message) ? null : message;
 
 		} else if (object instanceof UUID)
 			return object.toString();
@@ -139,14 +138,14 @@ public final class SerializeUtil {
 		else if (object instanceof Enum<?>)
 			return object.toString();
 
+		else if (object instanceof Entity)
+			return Remain.getName((Entity) object);
+
 		else if (object instanceof CommandSender)
 			return ((CommandSender) object).getName();
 
 		else if (object instanceof World)
 			return ((World) object).getName();
-
-		else if (object instanceof Entity)
-			return Remain.getName((Entity) object);
 
 		else if (object instanceof PotionEffectType)
 			return ((PotionEffectType) object).getName();
@@ -195,12 +194,12 @@ public final class SerializeUtil {
 		else if (object instanceof Path)
 			throw new FoException("Cannot serialize Path " + object + ", did you mean to convert it into a name?");
 
-		else if (object instanceof Iterable || object.getClass().isArray() || object instanceof IsInList) {
+		else if (object instanceof Iterable || object.getClass().isArray()) {
 
 			if (isJson) {
 				final JSONArray jsonList = new JSONArray();
 
-				if (object instanceof Iterable || object instanceof IsInList)
+				if (object instanceof Iterable)
 					for (final Object element : object instanceof IsInList ? ((IsInList<?>) object).getList() : (Iterable<?>) object)
 						addJsonElement(element, jsonList);
 
@@ -214,7 +213,7 @@ public final class SerializeUtil {
 			else {
 				final List<Object> serialized = new ArrayList<>();
 
-				if (object instanceof Iterable || object instanceof IsInList)
+				if (object instanceof Iterable)
 					for (final Object element : object instanceof IsInList ? ((IsInList<?>) object).getList() : (Iterable<?>) object)
 						serialized.add(serialize(mode, element));
 
@@ -226,8 +225,8 @@ public final class SerializeUtil {
 
 			}
 
-		} else if (object instanceof Map || object instanceof StrictMap) {
-			final Map<Object, Object> oldMap = object instanceof StrictMap ? ((StrictMap<Object, Object>) object).getSource() : (Map<Object, Object>) object;
+		} else if (object instanceof Map) {
+			final Map<Object, Object> oldMap = (Map<Object, Object>) object;
 
 			if (isJson) {
 				final JSONObject json = new JSONObject();
@@ -241,8 +240,7 @@ public final class SerializeUtil {
 								"JSON requires Map to be translated into keys that are String or Numbers, found " + key.getClass().getSimpleName() + " key: " + key + " with value '" + value + "'");
 
 					if (value != null)
-						Valid.checkBoolean(value instanceof String || value instanceof Boolean || value instanceof Character || value instanceof Number || value instanceof List
-								|| value instanceof JSONObject || value instanceof JSONArray,
+						Valid.checkBoolean(value instanceof String || value instanceof Boolean || value instanceof Character || value instanceof Number || value instanceof List || value instanceof JSONObject,
 								"JSON requires Map to be translated into values that are String or List only, found " + value.getClass().getSimpleName() + ": " + value + " for key " + key);
 
 					if (value instanceof List) {
@@ -259,7 +257,7 @@ public final class SerializeUtil {
 						json.put(key == null ? null : key.toString(), array);
 
 					} else
-						json.put(key == null ? null : key.toString(), value == null ? null : value);
+						json.put(key == null ? null : key.toString(), value);
 				}
 
 				return json;
@@ -349,8 +347,7 @@ public final class SerializeUtil {
 			boolean hasAnnotation = field.isAnnotationPresent(AutoSerialize.class);
 			boolean isEnabled = false;
 			if (hasAnnotation){
-				AutoSerialize ann = field.getAnnotation(AutoSerialize.class);
-				isEnabled = ann.value() && ann.autoSerialize();
+				isEnabled = field.getAnnotation(AutoSerialize.class).value();
 			}
 
 			if (Modifier.isStatic(field.getModifiers())) continue;
@@ -493,19 +490,19 @@ public final class SerializeUtil {
 		if (classOf == String.class)
 			object = object.toString();
 
-		else if (classOf == Integer.class)
+		else if (classOf == Integer.class || classOf == Integer.TYPE)
 			object = Integer.parseInt(object.toString());
 
-		else if (classOf == Long.class)
+		else if (classOf == Long.class || classOf == Long.TYPE)
 			object = Long.decode(object.toString());
 
-		else if (classOf == Double.class)
+		else if (classOf == Double.class || classOf == Double.TYPE)
 			object = Double.parseDouble(object.toString());
 
-		else if (classOf == Float.class)
+		else if (classOf == Float.class || classOf == Float.TYPE)
 			object = Float.parseFloat(object.toString());
 
-		else if (classOf == Boolean.class)
+		else if (classOf == Boolean.class || classOf == Boolean.TYPE)
 			object = Boolean.parseBoolean(object.toString());
 
 		else if (classOf == SerializedMap.class)
@@ -777,8 +774,7 @@ public final class SerializeUtil {
 			boolean hasAnnotation = field.isAnnotationPresent(AutoSerialize.class);
 			boolean isEnabled = false;
 			if (hasAnnotation){
-				AutoSerialize ann = field.getAnnotation(AutoSerialize.class);
-				isEnabled = ann.value() && ann.autoDeserialize();
+				isEnabled = field.getAnnotation(AutoSerialize.class).value();
 			}
 
 			if (Modifier.isStatic(field.getModifiers())) continue;

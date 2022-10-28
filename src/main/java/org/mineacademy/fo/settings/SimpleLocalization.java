@@ -1,16 +1,19 @@
 package org.mineacademy.fo.settings;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.mineacademy.fo.Common;
 import org.mineacademy.fo.FileUtil;
 import org.mineacademy.fo.Valid;
+import org.mineacademy.fo.command.PermsCommand;
 import org.mineacademy.fo.plugin.SimplePlugin;
 
 /**
  * A simple implementation of a basic localization file.
- * We create the localization/messages_LOCALEPREFIX.yml file
- * automatically and fill it with values from your localization/messages_LOCALEPREFIX.yml
- * file placed within in your plugin's jar file.
+ * We create the localization/messages_LOCALE.yml file
+ * automatically and fill it with values from your localization/messages_LOCALE.yml
+ * file placed within in your plugin's jar file.<br>
+ * To change the folder and file prefix, override {@link #getFilePrefix()} method.
  */
 @SuppressWarnings("unused")
 public class SimpleLocalization extends YamlStaticConfig {
@@ -28,19 +31,27 @@ public class SimpleLocalization extends YamlStaticConfig {
 	// --------------------------------------------------------------------
 
 	/**
+	 * Override to change the file prefix. You can also use folders with forward slash (/)<br>
+	 * Default: localization/messages_LOCALE.yml
+	 */
+	protected String getFilePrefix(){
+		return "localization/messages_";
+	}
+
+	/**
 	 * Create and load the localization/messages_LOCALEPREFIX.yml file.
 	 * <p>
 	 * See {@link SimpleSettings#LOCALE_PREFIX} for the locale prefix.
 	 * <p>
 	 * The locale file is extracted from your plugins jar to the localization/ folder
-	 * if it does not exists, or updated if it is out of date.
+	 * if it does not exist, or updated if it is out of date.
 	 */
 	@Override
 	protected final void onLoad() throws Exception {
-		final String localePath = "localization/messages_" + SimpleSettings.LOCALE_PREFIX + ".yml";
+		final String localePath = getFilePrefix() + SimpleSettings.LOCALE_PREFIX + ".yml";
 		final Object content = FileUtil.getInternalFileContent(localePath);
 
-		Valid.checkNotNull(content, SimplePlugin.getNamed() + " does not support the localization: messages_" + SimpleSettings.LOCALE_PREFIX
+		Valid.checkNotNull(content, SimplePlugin.getNamed() + " does not support the localization: " + getFilePrefix() + SimpleSettings.LOCALE_PREFIX
 				+ ".yml (For custom locale, set the Locale to 'en' and edit your English file instead)");
 
 		this.loadConfiguration(localePath);
@@ -103,8 +114,8 @@ public class SimpleLocalization extends YamlStaticConfig {
 	public static final class Commands {
 
 		/**
-		 * true = https://i.imgur.com/us88BCT.png
-		 * false = https://i.imgur.com/N7jLu7v.png
+		 * true = <a href="https://i.imgur.com/us88BCT.png">...</a>
+		 * false = <a href="https://i.imgur.com/N7jLu7v.png">...</a>
 		 */
 		public static Boolean SIMPLE_HELP_DESIGN = false;
 
@@ -741,7 +752,7 @@ public class SimpleLocalization extends YamlStaticConfig {
 	 *
 	 * @return
 	 */
-	public static final Boolean isLocalizationCalled() {
+	public static Boolean isLocalizationCalled() {
 		return localizationClassCalled;
 	}
 
@@ -749,7 +760,7 @@ public class SimpleLocalization extends YamlStaticConfig {
 	 * Reset the flag indicating that the class has been loaded,
 	 * used in reloading.
 	 */
-	public static final void resetLocalizationCall() {
+	public static void resetLocalizationCall() {
 		localizationClassCalled = false;
 	}
 }

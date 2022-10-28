@@ -8,7 +8,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * This annotation automatically saves and loads fields between a file and a YamlConfig.<br><br>
+ * This annotation automatically saves and loads fields between a file and your custom
+ * class extending {@link org.mineacademy.fo.settings.YamlConfig}.<br><br>
  * <b>On class</b>:
  * <ul>
  * <li>Saves and loads all non-static class fields</li>

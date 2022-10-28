@@ -15,7 +15,7 @@ import java.util.List;
  * A simple implementation of a typical main plugin settings
  * where each key can be accessed in a static way from anywhere.
  * <p>
- * Typically we use this class for settings.yml main plugin config.
+ * Typically, we use this class for settings.yml main plugin config.
  */
 // Use for settings.yml
 @SuppressWarnings("unused")
@@ -175,15 +175,14 @@ public class SimpleSettings extends YamlStaticConfig {
 	public static Boolean NOTIFY_UPDATES = true;
 
 	/**
-	 * Should we warn about incompatibilities.
+	 * Should we warn about incompatibilities?
 	 * It is used in {@link org.mineacademy.fo.plugin.AutoRegisterScanner#autoRegister(Class, boolean)}.
 	 * Please hide these warnings only on the last stage of your plugin development.
 	 */
 	public static Boolean HIDE_INCOMPATIBILITY_WARNINGS = false;
 
 	/**
-	 * Should we warn about Nashorn not installed on the server.
-	 * Is is used
+	 * Should we warn about Nashorn not installed on the server?
 	 */
 	public static Boolean HIDE_NASHORN_WARNINGS = false;
 
@@ -262,7 +261,7 @@ public class SimpleSettings extends YamlStaticConfig {
 	}
 
 	/**
-	 * Upgrade some of the old and ancient settings from our premium plugins.
+	 * Upgrade some old and ancient settings from our premium plugins.
 	 */
 	private static void upgradeOldSettings() {
 

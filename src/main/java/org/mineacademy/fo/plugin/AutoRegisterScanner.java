@@ -198,13 +198,16 @@ final class AutoRegisterScanner {
 		final List<Class<?>> delayedLoading = new ArrayList<>();
 
 		for (final Class<?> customSettings : staticCustom)
-			if (SimpleSettings.class.isAssignableFrom(customSettings))
+			if (SimpleSettings.class.isAssignableFrom(customSettings)) {
 				YamlStaticConfig.load((Class<? extends YamlStaticConfig>) customSettings);
-			else
+			}
+			else {
 				delayedLoading.add(customSettings);
+			}
 
-		for (final Class<?> delayedSettings : delayedLoading)
+		for (final Class<?> delayedSettings : delayedLoading) {
 			YamlStaticConfig.load((Class<? extends YamlStaticConfig>) delayedSettings);
+		}
 	}
 
 	/*

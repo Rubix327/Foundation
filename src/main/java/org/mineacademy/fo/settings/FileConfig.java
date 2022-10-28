@@ -1191,7 +1191,6 @@ public abstract class FileConfig {
 				}
 
 				try {
-					this.onPreLoad();
 					this.loadFields();
 					this.onLoad();
 
@@ -1256,11 +1255,17 @@ public abstract class FileConfig {
 
 	/**
 	 * Called automatically when the configuration has been loaded, used to load your
-	 * fields in your class here if @AutoConfig is not used.
+	 * fields in your class if @AutoConfig is not used.
 	 * <br>
 	 * You can throw {@link EventHandledException} here to indicate to your child class to interrupt loading
 	 */
 	protected void onLoad() {
+	}
+
+	/**
+	 * Called automatically after {@link #onLoad()} regardless of configuration loading success.
+	 */
+	protected void onLoadFinish() {
 	}
 
 	/**
@@ -1304,11 +1309,13 @@ public abstract class FileConfig {
 
 					final String data = this.saveToString();
 
-					try (Writer writer = new OutputStreamWriter(Files.newOutputStream(file.toPath()), StandardCharsets.UTF_8)) {
-						writer.write(data);
+					if (data != null){
+						try (Writer writer = new OutputStreamWriter(Files.newOutputStream(file.toPath()), StandardCharsets.UTF_8)) {
+							writer.write(data);
 
-					} catch (final Exception ex) {
-						Remain.sneaky(ex);
+						} catch (final Exception ex) {
+							Remain.sneaky(ex);
+						}
 					}
 
 					// Update file
@@ -1318,6 +1325,8 @@ public abstract class FileConfig {
 			} catch (final Exception ex) {
 				Remain.sneaky(ex);
 			}
+
+			this.onSaveFinish();
 		}
 	}
 
@@ -1352,6 +1361,12 @@ public abstract class FileConfig {
 		if (map != null)
 			for (final Map.Entry<String, Object> entry : map.entrySet())
 				this.set(entry.getKey(), entry.getValue());
+	}
+
+	/**
+	 * Called automatically after {@link #onSave()} (typically when configuration has been saved).
+	 */
+	protected void onSaveFinish(){
 	}
 
 	/**
@@ -1455,7 +1470,7 @@ public abstract class FileConfig {
 	/**
 	 * Get the deserialized object from the given path depending on its field class type.
 	 */
-	private Object getBasedOnClass(String path, Field field){
+	public Object getBasedOnClass(String path, Field field){
 		Class<?> fieldType = field.getType();
 
 		// ***
@@ -1533,7 +1548,7 @@ public abstract class FileConfig {
 	}
 
 	/**
-	 * Get the name under which the value will be located in the file.
+	 * Get the name under which the value will be saved in the file.
 	 * Based on user-defined AutoConfig.format() and is lower_underscore by default.
 	 */
 	private String getFormattedFieldName(Field field) {
@@ -1555,19 +1570,14 @@ public abstract class FileConfig {
 
 	/**
 	 * Implementation by specific configurations to generate file contents to save.
-	 *
-	 * @return
 	 */
-	@NonNull
 	abstract String saveToString();
 
 	/**
 	 * Override to implement custom saving mechanism, used automatically in {@link #onSave()}
 	 * you can return only the data you actually want to save here.
-	 *
+	 * <br>
 	 * Returns null by default!
-	 *
-	 * @return
 	 */
 	public SerializedMap saveToMap() {
 		return null;

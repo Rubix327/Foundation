@@ -1,6 +1,14 @@
 package org.mineacademy.fo;
 
-import java.awt.Color;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import org.bukkit.ChatColor;
+import org.mineacademy.fo.MinecraftVersion.V;
+import org.mineacademy.fo.model.Whiteblacklist;
+import org.mineacademy.fo.plugin.SimplePlugin;
+import org.mineacademy.fo.remain.CompChatColor;
+
+import java.awt.*;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -8,15 +16,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.bukkit.ChatColor;
-import org.mineacademy.fo.MinecraftVersion.V;
-import org.mineacademy.fo.model.Whiteblacklist;
-import org.mineacademy.fo.plugin.SimplePlugin;
-import org.mineacademy.fo.remain.CompChatColor;
-
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 
 /**
  * Utility class for managing in-game chat.
@@ -225,8 +224,7 @@ public final class ChatUtil {
 	 * capitalizeFully("")          = ""
 	 * capitalizeFully("i am FINE") = "I Am Fine"
 	 * </pre>
-	 *
-	 * @param message  the String to capitalize, may be null
+
 	 * @return capitalized String, <code>null</code> if null String input
 	 */
 	public static String capitalizeFully(String str) {
@@ -262,7 +260,6 @@ public final class ChatUtil {
 	 * </pre>
 	 *
 	 * @author Apache Commons - WordUtils
-	 * @param message  the String to capitalize, may be null
 	 * @return capitalized String, <code>null</code> if null String input
 	 */
 	public static String capitalize(String str) {
@@ -297,6 +294,34 @@ public final class ChatUtil {
 		}
 
 		return str;
+	}
+
+	/**
+	 * Converts UPPER_UNDERSCORE string to Capital_Underscore
+	 */
+	public static String upperToCapitalUnderscore(String s){
+		char[] array = s.toLowerCase().toCharArray();
+		StringBuilder sb = new StringBuilder();
+		boolean capitalizeNext = false;
+		char next;
+
+		sb.append(Character.toUpperCase(array[0]));
+		for (int i = 1; i < array.length; i++){
+			if (array[i] == '_'){
+				capitalizeNext = true;
+				next = array[i];
+			} else {
+				if (capitalizeNext){
+					next = Character.toUpperCase(array[i]);
+					capitalizeNext = false;
+				}
+				else{
+					next = array[i];
+				}
+			}
+			sb.append(next);
+		}
+		return sb.toString();
 	}
 
 	private static boolean isDelimiter(char ch, char[] delimiters) {

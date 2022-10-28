@@ -153,6 +153,8 @@ public class YamlConfig extends FileConfig {
 		File file;
 		boolean justCreated = !FileUtil.getFile(to).exists();
 
+		this.onPreLoad();
+
 		if (from != null) {
 
 			// Copy if not exists yet
@@ -170,16 +172,20 @@ public class YamlConfig extends FileConfig {
 
 			this.defaults = defaultConfig.section;
 			this.defaultsPath = from;
+
+			this.load(file);
 		}
 
 		else {
 			file = FileUtil.getOrMakeFile(to);
 			this.file = file;
+
+			if (!justCreated){
+				this.load(file);
+			}
 		}
 
-		if (!justCreated){
-			this.load(file);
-		}
+		this.onLoadFinish();
 	}
 
 	/**
@@ -223,7 +229,6 @@ public class YamlConfig extends FileConfig {
 	/*
 	 * Dumps all values in this config into a saveable format
 	 */
-	@NonNull
 	@Override
 	final String saveToString() {
 

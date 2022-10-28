@@ -1,8 +1,11 @@
 package org.mineacademy.fo.settings;
 
+import com.google.common.base.CaseFormat;
 import org.bukkit.Material;
+import org.mineacademy.fo.ChatUtil;
 import org.mineacademy.fo.Common;
 import org.mineacademy.fo.Valid;
+import org.mineacademy.fo.annotation.AutoStaticConfig;
 import org.mineacademy.fo.collection.SerializedMap;
 import org.mineacademy.fo.collection.StrictList;
 import org.mineacademy.fo.model.BoxedMessage;
@@ -44,6 +47,8 @@ public abstract class YamlStaticConfig {
 	 * The temporary {@link YamlConfig} instance we store here to get values from
 	 */
 	private static YamlConfig TEMPORARY_INSTANCE;
+
+	private final String canonical = this.getClass().getCanonicalName();
 
 	/**
 	 * Internal use only: Create a new {@link YamlConfig} instance and link it to load fields via
@@ -165,6 +170,11 @@ public abstract class YamlStaticConfig {
 		try {
 			this.preLoad();
 
+			final AutoStaticConfig ann = this.getClass().getAnnotation(AutoStaticConfig.class);
+			if (ann != null && ann.value()){
+				setNestedFields(this.getClass());
+			}
+
 			// Parent class if applicable.
 			if (YamlStaticConfig.class.isAssignableFrom(this.getClass().getSuperclass())) {
 				final Class<?> superClass = this.getClass().getSuperclass();
@@ -181,6 +191,49 @@ public abstract class YamlStaticConfig {
 
 			Remain.sneaky(t);
 		}
+	}
+
+	/**
+	 * Set all fields from the given class and from its nested classes to their correspondent values from the file.
+	 */
+	public void setNestedFields(Class<?> clazz){
+		if (clazz.getDeclaredClasses().length > 0){
+			for (Class<?> inner : clazz.getDeclaredClasses()){
+				setNestedFields(inner);
+			}
+		}
+		for (Field field : clazz.getDeclaredFields()){
+			AutoStaticConfig ann = field.getAnnotation(AutoStaticConfig.class);
+			if (!Modifier.isStatic(field.getModifiers())) continue;
+			if (ann != null && !ann.value()){
+				continue;
+			}
+
+			Class<?> decl = field.getDeclaringClass();
+			String path = (decl.getCanonicalName() + "." + getFormattedFieldName(field))
+					.replace(canonical + ".", "")
+					.replace(canonical, "");
+
+			field.setAccessible(true);
+			try {
+				field.set(this, TEMPORARY_INSTANCE.getBasedOnClass(path, field));
+			} catch (IllegalAccessException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
+	/**
+	 * Get the name under which the value will be saved in the file.
+	 * Based on user-defined AutoConfig.format() and is Capital_Underscore by default.
+	 */
+	private String getFormattedFieldName(Field field) {
+		String name = ChatUtil.upperToCapitalUnderscore(field.getName());
+		AutoStaticConfig ann = this.getClass().getAnnotation(AutoStaticConfig.class);
+		if (ann != null && ann.format().length != 0){
+			name = CaseFormat.UPPER_UNDERSCORE.to(ann.format()[0], field.getName());
+		}
+		return name;
 	}
 
 	/*
@@ -202,7 +255,7 @@ public abstract class YamlStaticConfig {
 
 		for (final Method method : clazz.getDeclaredMethods()) {
 
-			// After each invocation check if the invoication broke the plugin and ignore
+			// After each invocation check if the invocation broke the plugin and ignore
 			if (!instance.isEnabled())
 				return;
 

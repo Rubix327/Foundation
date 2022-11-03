@@ -13,6 +13,7 @@ import java.lang.annotation.Target;
  * <b>On class</b>:
  * <ul>
  * <li>Serializes and deserializes all non-static class fields</li>
+ * <li>Serializes and deserializes those static fields that have separately specified this annotation above themselves</li>
  * <li>But skips fields that have disabled this feature by <i>@AutoSerialize(false)</i></li>
  * </ul>
  * When using on class, if you want to prevent one specific field from auto-serializing and auto-deserializing,

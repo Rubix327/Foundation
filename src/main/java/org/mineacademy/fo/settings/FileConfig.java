@@ -1378,7 +1378,7 @@ public abstract class FileConfig {
 
 			try {
 				Object value = getBasedOnClass(getFormattedFieldName(field), field);
-				if (value != null){
+				if (value != null || loadNullValues()){
 					field.set(this, value);
 				}
 			} catch (IllegalAccessException e) {
@@ -1410,8 +1410,10 @@ public abstract class FileConfig {
 				AutoConfig ann = field.getAnnotation(AutoConfig.class);
 				isEnabled = ann.value() && ann.autoLoad();
 			}
+			else if (Modifier.isStatic(field.getModifiers())) {
+				continue;
+			}
 
-			if (Modifier.isStatic(field.getModifiers())) continue;
 			if (ReflectionUtil.isAnnotationAttached(isAboveClass, hasAnnotation, isEnabled)) fieldsToLoad.add(field);
 		}
 
@@ -1427,7 +1429,7 @@ public abstract class FileConfig {
 
 			try {
 				Object value = field.get(this);
-				if (value != null){
+				if (value != null || saveNullValues()){
 					set(getFormattedFieldName(field), value);
 				}
 			} catch (IllegalAccessException e) {
@@ -1459,8 +1461,10 @@ public abstract class FileConfig {
 				AutoConfig ann = field.getAnnotation(AutoConfig.class);
 				isEnabled = ann.value() && ann.autoSave();
 			}
+			else if (Modifier.isStatic(field.getModifiers())) {
+				continue;
+			}
 
-			if (Modifier.isStatic(field.getModifiers())) continue;
 			if (ReflectionUtil.isAnnotationAttached(isAboveClass, hasAnnotation, isEnabled)) fieldsToSave.add(field);
 		}
 
@@ -1557,6 +1561,22 @@ public abstract class FileConfig {
 			name = CaseFormat.LOWER_CAMEL.to(this.getClass().getAnnotation(AutoConfig.class).format(), field.getName());
 		}
 		return name;
+	}
+
+	/**
+	 * Tells @AutoConfig whether save null values to the file or not.<br>
+	 * Only works with @AutoConfig saving (not {@link #onSave()} method).
+	 */
+	protected boolean saveNullValues(){
+		return true;
+	}
+
+	/**
+	 * Tells @AutoConfig whether load null values from the file or not.<br>
+	 * Only works with @AutoConfig loading (not {@link #onLoad()} method).
+	 */
+	protected boolean loadNullValues(){
+		return true;
 	}
 
 	/**

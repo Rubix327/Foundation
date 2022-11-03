@@ -349,8 +349,10 @@ public final class SerializeUtil {
 			if (hasAnnotation){
 				isEnabled = field.getAnnotation(AutoSerialize.class).value();
 			}
+			else if (Modifier.isStatic(field.getModifiers())) {
+				continue;
+			}
 
-			if (Modifier.isStatic(field.getModifiers())) continue;
 			if (ReflectionUtil.isAnnotationAttached(isAboveClass, hasAnnotation, isEnabled)) fields.add(field);
 		}
 
@@ -743,7 +745,7 @@ public final class SerializeUtil {
 		try {
 			instance = (T) constructor.newInstance();
 
-			for (Field field : getFieldsToAutoDeserialize(classOf)) {
+			for (Field field : getFieldsToAutoSerialize(classOf)) {
 				field.setAccessible(true);
 				String name = getFormattedFieldName(classOf, field);
 				Object value = map.get(name, field.getType());
@@ -756,32 +758,6 @@ public final class SerializeUtil {
 			throw new RuntimeException(e);
 		}
 		return instance;
-	}
-
-	public static List<Field> getFieldsToAutoDeserialize(Class<?> classOf){
-		List<Field> fields = new ArrayList<>();
-		boolean isAboveClass = false;
-
-		// Do nothing if AutoSerialize is disabled for the whole class
-		if (classOf.isAnnotationPresent(AutoSerialize.class)){
-			isAboveClass = true;
-			if (!classOf.getAnnotation(AutoSerialize.class).value()){
-				return new ArrayList<>();
-			}
-		}
-
-		for (Field field : classOf.getDeclaredFields()){
-			boolean hasAnnotation = field.isAnnotationPresent(AutoSerialize.class);
-			boolean isEnabled = false;
-			if (hasAnnotation){
-				isEnabled = field.getAnnotation(AutoSerialize.class).value();
-			}
-
-			if (Modifier.isStatic(field.getModifiers())) continue;
-			if (ReflectionUtil.isAnnotationAttached(isAboveClass, hasAnnotation, isEnabled)) fields.add(field);
-		}
-
-		return fields;
 	}
 
 	/**

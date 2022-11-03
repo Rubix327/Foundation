@@ -13,6 +13,7 @@ import java.lang.annotation.Target;
  * <b>On class</b>:
  * <ul>
  * <li>Saves and loads all non-static class fields</li>
+ * <li>Saves and loads those static fields that have separately specified this annotation above themselves</li>
  * <li>But skips fields that have disabled this feature by <i>@AutoConfig(false)</i></li>
  * </ul>
  * When using on class, if you want to prevent one specific field from auto-loading and auto-saving,

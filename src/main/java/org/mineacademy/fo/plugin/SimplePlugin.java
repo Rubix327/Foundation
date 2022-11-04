@@ -312,6 +312,12 @@ public abstract class SimplePlugin extends JavaPlugin implements Listener {
 				return;
 			}
 
+			// Set the logging and tell prefix
+			Common.setTellPrefix(SimpleSettings.PLUGIN_PREFIX);
+
+			// Finally, place plugin name before console messages after plugin has (re)loaded
+			Common.runLater(() -> Common.setLogPrefix(oldLogPrefix));
+
 			this.onReloadablesStart();
 
 			this.startingReloadables = false;
@@ -351,12 +357,6 @@ public abstract class SimplePlugin extends JavaPlugin implements Listener {
 			// Finish off by starting metrics (currently bStats)
 			if (this.getMetricsPluginId() != -1)
 				new Metrics(this.getMetricsPluginId());
-
-			// Set the logging and tell prefix
-			Common.setTellPrefix(SimpleSettings.PLUGIN_PREFIX);
-
-			// Finally, place plugin name before console messages after plugin has (re)loaded
-			Common.runLater(() -> Common.setLogPrefix(oldLogPrefix));
 
 		} catch (final Throwable t) {
 			this.displayError0(t);

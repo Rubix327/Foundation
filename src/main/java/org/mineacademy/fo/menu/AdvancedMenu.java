@@ -294,7 +294,7 @@ public abstract class AdvancedMenu extends Menu {
         return new Button() {
             @Override
             public void onClickedInMenu(Player player, AdvancedMenu menu, ClickType click) {
-                newInstanceOf(to, player).display();
+                menu.newInstance().display();
             }
 
             @Override
@@ -452,7 +452,7 @@ public abstract class AdvancedMenu extends Menu {
     }
 
     @Override
-    public final AdvancedMenu newInstance() {
+    public AdvancedMenu newInstance() {
         return newInstanceOf(this.getClass(), this.player);
     }
 
@@ -461,8 +461,7 @@ public abstract class AdvancedMenu extends Menu {
      */
     public static AdvancedMenu newInstanceOf(Class<? extends AdvancedMenu> menu, Player player){
         try{
-            AdvancedMenu am = menu.getDeclaredConstructor(Player.class).newInstance(player);
-            return am;
+            return menu.getDeclaredConstructor(Player.class).newInstance(player);
         }
         catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e){
             e.printStackTrace();

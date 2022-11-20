@@ -105,14 +105,12 @@ public abstract class SimpleConversation implements ConversationAbandonedListene
 			(event.gracefulExit() ? CompSound.SUCCESSFUL_HIT : CompSound.NOTE_BASS).play(player, 1F, 1F);
 
 			if (this.menuToReturnTo != null && this.reopenMenu()) {
-				final AdvancedMenu menu = AdvancedMenu.newInstanceOf(menuToReturnTo.getClass(), player);
-
-				menu.display();
+				menuToReturnTo.newInstance().display();
 
 				final String title = this.getMenuAnimatedTitle();
 
 				if (title != null)
-					Common.runLater(2, () -> menu.animateTitle(title));
+					Common.runLater(2, () -> menuToReturnTo.animateTitle(title));
 			}
 		}
 	}

@@ -38,10 +38,6 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
      */
     private List<T> elements;
     /**
-     * Items (Material, Name, Amount) ready to be displayed in the menu.
-     */
-    private List<ItemStack> elementsItems;
-    /**
      * Position at which the item setter is now.
      */
     private int currentSlot = 0;
@@ -71,17 +67,26 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
         super(player);
     }
 
+    public final AdvancedMenuPagged<T> build(){
+        setup();
+        initButtonsSlots();
+        updateElements();
+        return this;
+    }
+
+    /**
+     * Get elements and their correspondent slots.
+     */
     protected final TreeMap<Integer, T> getElementsSlots(){
         return elementsSlots;
     }
 
     /**
-     * Updating paged menu elements.<br>
-     * It automatically runs when the menu opens.
+     * Update paged menu elements.<br>
+     * It automatically runs when the menu is opened.
      */
     private void updateElements(){
         setElements();
-        setElementsItems();
         setElementsSlots();
         addPrevNextButtons(getPreviousButtonSlot(), getNextButtonSlot());
     }
@@ -135,13 +140,6 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
      */
     private void setElements(){
         this.elements = getElements();
-    }
-
-    /**
-     * Set {@link #elementsItems} to the {@link #convertToItemStacks}.
-     */
-    private void setElementsItems(){
-        this.elementsItems = convertToItemStacks(elements);
     }
 
     /**
@@ -201,8 +199,8 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
      * Get the number of pages that can be in the menu considering amount of elements and available slots.
      */
     public final int getMaxPage(){
-        float a = (float) this.elementsItems.size() / getAvailableSlotsSize();
-        return (this.elementsItems.size() % 2 != 0 || (int)a == 0 ? (int)a + 1 : (int)a);
+        float a = (float) this.elements.size() / getAvailableSlotsSize();
+        return (this.elements.size() % 2 != 0 || (int)a == 0 ? (int)a + 1 : (int)a);
     }
 
     /**
@@ -247,17 +245,6 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
     protected final void refreshMenu(){
         updateElements();
         redraw();
-    }
-
-    /**
-     * Display this menu to the player given in the constructor.
-     */
-    @Override
-    public final void display(){
-        setup();
-        initButtonsSlots();
-        updateElements();
-        displayTo(getPlayer());
     }
 
     protected final boolean isElement(int slot){

@@ -62,6 +62,22 @@ public abstract class AdvancedMenu extends Menu {
     }
 
     /**
+     * Add buttons and items from {@link #setup()} and update menu elements for paged menus.
+     * @return built instance of the menu
+     */
+    public AdvancedMenu build(){
+        setup();
+        return this;
+    }
+
+    /**
+     * Display this menu to the player given in the constructor.
+     */
+    public final void display(){
+        build().displayTo(getPlayer());
+    }
+
+    /**
      * Add button to the menu.<br>
      * <b>Use it only inside {@link #setup} method to avoid errors!</b><br>
      * @param slot the slot the button should be displayed on
@@ -184,14 +200,6 @@ public abstract class AdvancedMenu extends Menu {
         wrapperItem = item;
     }
 
-    /**
-     * Display this menu to the player given in the constructor.
-     */
-    public void display(){
-        setup();
-        displayTo(getPlayer());
-    }
-
     protected final Button getBackButton(){
         return getBackButton(MenuUtil.defaultBackItem);
     }
@@ -202,7 +210,7 @@ public abstract class AdvancedMenu extends Menu {
             public void onClickedInMenu(Player player, AdvancedMenu menu, ClickType click) {
                 AdvancedMenu previous = getPreviousMenu(player);
                 if (previous != null){
-                    getPreviousMenu(player).display();
+                    previous.display();
                 }
             }
 
@@ -294,7 +302,7 @@ public abstract class AdvancedMenu extends Menu {
         return new Button() {
             @Override
             public void onClickedInMenu(Player player, AdvancedMenu menu, ClickType click) {
-                menu.newInstance().display();
+                newInstanceOf(to, player).display();
             }
 
             @Override

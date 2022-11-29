@@ -471,14 +471,20 @@ public final class ItemCreator {
 	}
 
 	/**
-	 * Places an invisible custom tag to the item, for most server instances it
-	 * will persist across saves/restarts (you should check just to be safe).
-	 *
-	 * @param key
-	 * @param value
-	 * @return
+	 * Apply metadata to the item. If no value is specified, it will be equal to the key.
+	 * For most server instances it will persist across saves/restarts
+	 * (you should check just to be safe).
 	 */
-	public ItemCreator tag(String key, String value) {
+	public ItemCreator metadata(String tag){
+		return metadata(tag, tag);
+	}
+
+	/**
+	 * Apply metadata to the item. <br>
+	 * For most server instances it will persist across saves/restarts
+	 * (you should check just to be safe).
+	 */
+	public ItemCreator metadata(String key, String value) {
 		this.tags.put(key, value);
 
 		return this;

@@ -3,15 +3,15 @@ package org.mineacademy.fo.plugin;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.mineacademy.fo.Common;
-import org.mineacademy.fo.MinecraftVersion;
+import org.bukkit.inventory.Recipe;
+import org.mineacademy.fo.*;
 import org.mineacademy.fo.MinecraftVersion.V;
-import org.mineacademy.fo.ReflectionUtil;
-import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.annotation.AutoRegister;
 import org.mineacademy.fo.bungee.BungeeListener;
 import org.mineacademy.fo.command.SimpleCommand;
 import org.mineacademy.fo.command.SimpleCommandGroup;
+import org.mineacademy.fo.craft.CraftingHandler;
+import org.mineacademy.fo.craft.SimpleCraft;
 import org.mineacademy.fo.event.SimpleListener;
 import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.menu.tool.Tool;
@@ -101,26 +101,39 @@ final class AutoRegisterScanner {
 						|| PacketListener.class.isAssignableFrom(clazz)
 						|| DiscordListener.class.isAssignableFrom(clazz)) {
 
-					Valid.checkBoolean(Modifier.isFinal(clazz.getModifiers()), "Please make " + clazz + " final for it to be registered automatically (or via @AutoRegister)");
+					if (!Modifier.isFinal(clazz.getModifiers())){
+						Logger.error(new FoException("Non final class is attempted to be auto-registered!"),
+								"Please make " + clazz + " final for it to be registered automatically (or via @AutoRegister)");
+						continue;
+					}
 
 					try {
 						autoRegister(clazz, (autoRegister == null || !autoRegister.hideIncompatibilityWarnings()) && !SimpleSettings.HIDE_INCOMPATIBILITY_WARNINGS);
 
 					} catch (final NoClassDefFoundError | NoSuchFieldError ex) {
+						final String error = Common.getOrEmpty(ex.getMessage());
+						if (ex instanceof NoClassDefFoundError) {
+							if (error.contains("org/bukkit/entity")){
+								Bukkit.getLogger().warning("**** WARNING ****");
+
+								if (error.contains("DragonFireball"))
+									Bukkit.getLogger().warning("Your Minecraft version does not have DragonFireball class, we suggest replacing it with a Fireball instead in: " + clazz);
+								else
+									Bukkit.getLogger().warning("Your Minecraft version does not have " + error + " class you call in: " + clazz);
+							}
+							else if (error.equals("org/bukkit/inventory/RecipeChoice")){
+								Bukkit.getLogger().warning("[" + SimplePlugin.getNamed() + "]" +
+										" Recipe from custom craft " + clazz.getSimpleName() +
+										" is not supported on your server version because is made with Foundation" +
+										" (Spigot API 1.13.1+). Please ask the developer to update the plugin for" +
+										" your specific version.");
+								continue;
+							}
+						}
 						Bukkit.getLogger().warning("Failed to auto register " + clazz + " due to it requesting missing fields/classes: " + ex.getMessage());
 
 					} catch (final Throwable t) {
-						final String error = Common.getOrEmpty(t.getMessage());
-
-						if (t instanceof NoClassDefFoundError && error.contains("org/bukkit/entity")) {
-							Bukkit.getLogger().warning("**** WARNING ****");
-
-							if (error.contains("DragonFireball"))
-								Bukkit.getLogger().warning("Your Minecraft version does not have DragonFireball class, we suggest replacing it with a Fireball instead in: " + clazz);
-							else
-								Bukkit.getLogger().warning("Your Minecraft version does not have " + error + " class you call in: " + clazz);
-						} else
-							Common.error(t, "Failed to auto register class " + clazz);
+						Common.error(t, "Failed to auto register class " + clazz);
 					}
 				}
 
@@ -296,8 +309,10 @@ final class AutoRegisterScanner {
 			eventsRegistered = true;
 		}
 
-		else if (SimpleCommand.class.isAssignableFrom(clazz))
+		else if (SimpleCommand.class.isAssignableFrom(clazz)){
 			plugin.registerCommand((SimpleCommand) instance);
+		}
+
 		else if (SimpleCommandGroup.class.isAssignableFrom(clazz)) {
 			final SimpleCommandGroup group = (SimpleCommandGroup) instance;
 
@@ -345,6 +360,18 @@ final class AutoRegisterScanner {
 			}
 
 			enchantListenersRegistered = true;
+		}
+
+		else if (SimpleCraft.class.isAssignableFrom(clazz)){
+			enforceModeFor(clazz, mode, FindInstance.SINGLETON);
+			try {
+				Field field = clazz.getDeclaredField("instance");
+				field.setAccessible(true);
+				CraftingHandler.register(((SimpleCraft<? extends Recipe>) field.get(null)));
+			} catch (IllegalAccessException | NoSuchFieldException e) {
+				throw new FoException("SimpleCraft class " + clazz.getName() + " must have 'private static final " +
+						clazz.getName() + " instance' field to be registered.");
+			}
 		}
 
 		else if (Tool.class.isAssignableFrom(clazz))
@@ -447,7 +474,7 @@ final class AutoRegisterScanner {
 		}
 
 		Valid.checkNotNull(instance, "Your class " + clazz + " using @AutoRegister must EITHER have 1) one public no arguments constructor,"
-				+ " OR 2) one private no arguments constructor plus a 'private static final " + clazz.getSimpleName() + " instance' instance field.");
+				+ " OR 2) one private no arguments constructor and a 'private static final " + clazz.getSimpleName() + " instance' field.");
 
 		return new Tuple<>(mode, instance);
 	}
@@ -457,7 +484,7 @@ final class AutoRegisterScanner {
 	 */
 	private static void enforceModeFor(Class<?> clazz, FindInstance actual, FindInstance required) {
 		Valid.checkBoolean(required == actual, clazz + " using @AutoRegister must have " + (required == FindInstance.NEW_FROM_CONSTRUCTOR ? "a single public no args constructor"
-				: "one private no args constructor plus a 'private static final " + clazz.getSimpleName() + " instance' field to be a singleton'"));
+				: "one private no args constructor and a 'private static final " + clazz.getSimpleName() + " instance' field to be a singleton"));
 	}
 
 	/*

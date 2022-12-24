@@ -72,20 +72,14 @@ public final class SimpleComponent implements ConfigSerializable {
 	// --------------------------------------------------------------------
 
 	/**
-	 * Add a show text event
-	 *
-	 * @param texts
-	 * @return
+	 * Show the given lines on hover.
 	 */
 	public SimpleComponent onHover(Collection<String> texts) {
 		return this.onHover(Common.toArray(texts));
 	}
 
 	/**
-	 * Add a show text hover event
-	 *
-	 * @param lines
-	 * @return
+	 * Show the given text on hover.
 	 */
 	public SimpleComponent onHover(String... lines) {
 		// I don't know why we have to wrap this inside new text component but we do this
@@ -100,9 +94,6 @@ public final class SimpleComponent implements ConfigSerializable {
 	 * Shows the item on hover if it is not air.
 	 * <p>
 	 * NB: Some colors from lore may get lost as a result of Minecraft/Spigot bug.
-	 *
-	 * @param item
-	 * @return
 	 */
 	public SimpleComponent onHover(ItemStack item) {
 		if (CompMaterial.isAir(item.getType()))
@@ -115,9 +106,6 @@ public final class SimpleComponent implements ConfigSerializable {
 
 	/**
 	 * Set view permission for last component part
-	 *
-	 * @param viewPermission
-	 * @return
 	 */
 	public SimpleComponent viewPermission(String viewPermission) {
 		this.currentComponent.viewPermission = viewPermission;
@@ -127,9 +115,6 @@ public final class SimpleComponent implements ConfigSerializable {
 
 	/**
 	 * Set view permission for last component part
-	 *
-	 * @param viewCondition
-	 * @return
 	 */
 	public SimpleComponent viewCondition(String viewCondition) {
 		this.currentComponent.viewCondition = viewCondition;
@@ -138,41 +123,44 @@ public final class SimpleComponent implements ConfigSerializable {
 	}
 
 	/**
-	 * Add a run command event
-	 *
-	 * @param text
-	 * @return
+	 * Send the given text to the chat. It may be either simple text or a command.
 	 */
 	public SimpleComponent onClickRunCmd(String text) {
 		return this.onClick(Action.RUN_COMMAND, text);
 	}
 
 	/**
-	 * Add a suggest command event
-	 *
-	 * @param text
-	 * @return
+	 * Suggest (insert) the given text in the player's chat box
 	 */
 	public SimpleComponent onClickSuggestCmd(String text) {
 		return this.onClick(Action.SUGGEST_COMMAND, text);
 	}
 
 	/**
-	 * Open the given URL
-	 *
-	 * @param url
-	 * @return
+	 * Open the given URL.<br>
+	 * URL must start with http:// or https://
 	 */
 	public SimpleComponent onClickOpenUrl(String url) {
 		return this.onClick(Action.OPEN_URL, url);
 	}
 
 	/**
-	 * Add a command event
-	 *
-	 * @param action
-	 * @param text
-	 * @return
+	 * Copy the given text to the clipboard.
+	 */
+	public SimpleComponent onClickCopy(String text){
+		return this.onClick(Action.COPY_TO_CLIPBOARD, text);
+
+	}
+
+	/**
+	 * Copy getTextComponent().toPlainText() to the clipboard.
+	 */
+	public SimpleComponent onClickCopy(){
+		return onClickCopy(this.getTextComponent().toPlainText());
+	}
+
+	/**
+	 * Do the given Action on click
 	 */
 	public SimpleComponent onClick(Action action, String text) {
 		this.currentComponent.clickEvent = new ClickEvent(action, text);
@@ -182,9 +170,6 @@ public final class SimpleComponent implements ConfigSerializable {
 
 	/**
 	 * Invoke {@link TextComponent#setInsertion(String)}
-	 *
-	 * @param insertion
-	 * @return
 	 */
 	public SimpleComponent onClickInsert(String insertion) {
 		this.currentComponent.insertion = insertion;

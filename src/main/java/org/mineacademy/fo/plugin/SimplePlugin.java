@@ -358,6 +358,13 @@ public abstract class SimplePlugin extends JavaPlugin implements Listener {
 			if (this.getMetricsPluginId() != -1)
 				new Metrics(this.getMetricsPluginId());
 
+		} catch (NoClassDefFoundError error){
+			if (error.getMessage().equals("org/bukkit/inventory/RecipeChoice")){
+				Bukkit.getLogger().warning("[" + SimplePlugin.getNamed() + "] " +
+						"Some manually-registered recipes is not supported on your server version " +
+						"because is made with Foundation (Spigot API 1.13.1+). " +
+						"Please ask the developer to update the plugin for your version.");
+			}
 		} catch (final Throwable t) {
 			this.displayError0(t);
 		}
@@ -582,7 +589,7 @@ public abstract class SimplePlugin extends JavaPlugin implements Listener {
 			Common.logFramed(
 					"*** WARNING ***",
 					"Your Minecraft version " + MinecraftVersion.getCurrent() + " has not yet",
-					"been officialy tested with the Foundation,",
+					"been officially tested with the Foundation,",
 					"the library that " + SimplePlugin.getNamed() + " plugin uses.",
 					"",
 					"Loading the plugin at your own risk...",

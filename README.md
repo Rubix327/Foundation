@@ -13,6 +13,7 @@ with AdvancedMenu, AdvancedMenuPagged and AdvancedMenuTools)
 to load and save all of your fields to the file automatically)
 - Automatic YamlStaticConfig (SimpleSettings & SimpleLocalization) loading (use @AutoStaticConfig)
 - Automatic ConfigSerializable loading (use @AutoSerialize)
+- Custom recipes' wrapper (use SimpleCraft and CraftingHandler)
 - Better CompMetadata - now you can store and remove temporary and PERSISTENT metadata for
 all objects that support that regardless of your MC version.
 - Some small but useful features (new Logger, ItemCreator attribute

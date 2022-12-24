@@ -472,10 +472,11 @@ public abstract class AdvancedMenu extends Menu {
             return menu.getDeclaredConstructor(Player.class).newInstance(player);
         }
         catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e){
-            e.printStackTrace();
+            Logger.infoFramed("Could not create a new instance of " + menu.getName() + " class." +
+                    "\r\n Please create a constructor with only Player argument" +
+                    "\r\n or override 'public AdvancedMenu newInstance' method in your class.");
+            throw new NullPointerException("Could not create a new instance of " + menu.getName() + " class.");
         }
-        throw new NullPointerException("Could not create a new instance of " + menu.getName() + " class. " +
-                "Please create a constructor with only Player argument.");
     }
 
     /**

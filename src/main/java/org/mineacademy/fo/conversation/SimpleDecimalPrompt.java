@@ -1,18 +1,13 @@
 package org.mineacademy.fo.conversation;
 
-import java.util.function.Consumer;
-
+import lombok.*;
 import org.bukkit.conversations.ConversationContext;
 import org.bukkit.conversations.Prompt;
 import org.bukkit.entity.Player;
 import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.settings.SimpleLocalization;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.Setter;
+import java.util.function.Consumer;
 
 /**
  * A prompt that only accepts whole or decimal numbers

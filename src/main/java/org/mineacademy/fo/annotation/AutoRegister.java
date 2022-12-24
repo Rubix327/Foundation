@@ -8,8 +8,8 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
  * Place this annotation over any of the following classes to make Foundation
- * automatically register it when the plugin starts, and properly reload it.
- *
+ * automatically register it when the plugin starts, and properly reload it.<br>
+ * <br>
  * Supported classes:
  * <ul>
  * <li>SimpleListener</li>
@@ -19,6 +19,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * <li>SimpleCommand</li>
  * <li>SimpleCommandGroup</li>
  * <li>SimpleExpansion</li>
+ * <li>SimpleCraft</li>
  * <li>YamlConfig (we will load your config when the plugin starts and reload it properly)</li>
  * <li>any class that "implements Listener"</li>
  * </ul>
@@ -26,8 +27,8 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * In addition, the following classes will self-register automatically regardless
  * if you place this annotation on them or not:
  * <ul>
- * <li>Tool (and its derivates such as Rocket)</li>
- * <li>- SimpleEnchantment</li>
+ * <li>Tool (and its derivatives such as Rocket)</li>
+ * <li>SimpleEnchantment</li>
  * </ul>
  */
 @Retention(RUNTIME)
@@ -35,7 +36,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 public @interface AutoRegister {
 
 	/**
-	 * When false, we wont print console warnings such as that registration failed
+	 * When false, we won't print console warnings such as that registration failed
 	 * because the server runs outdated MC version (example: SimpleEnchantment) or lacks
 	 * necessary plugins to be hooked into (example: DiscordListener, PacketListener)
 	 *

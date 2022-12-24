@@ -15,10 +15,6 @@ import org.mineacademy.fo.settings.SimpleLocalization;
  */
 public abstract class SimplePrompt extends ValidatingPrompt {
 
-	/**
-	 * Open the players menu back if any?
-	 */
-	private boolean openMenu = true;
 
 	/**
 	 * See {@link SimpleConversation#isModal()}
@@ -30,15 +26,6 @@ public abstract class SimplePrompt extends ValidatingPrompt {
 	private Player player = null;
 
 	protected SimplePrompt() {
-	}
-
-	/**
-	 * Create a new prompt, show we open players menu back if he has any?
-	 *
-	 * @param openMenu
-	 */
-	protected SimplePrompt(final boolean openMenu) {
-		this.openMenu = openMenu;
 	}
 
 	/**
@@ -62,6 +49,13 @@ public abstract class SimplePrompt extends ValidatingPrompt {
 	 */
 	protected String getMenuAnimatedTitle() {
 		return null;
+	}
+
+	/**
+	 * Open the players menu back if any?
+	 */
+	protected boolean reopenMenu(){
+		return true;
 	}
 
 	/**
@@ -115,9 +109,6 @@ public abstract class SimplePrompt extends ValidatingPrompt {
 	/**
 	 * Converts the {@link ConversationContext} into a {@link Player}
 	 * or throws an error if it is not a player
-	 *
-	 * @param ctx
-	 * @return
 	 */
 	protected final Player getPlayer(final ConversationContext ctx) {
 		Valid.checkBoolean(ctx.getForWhom() instanceof Player, "Conversable is not a player but: " + ctx.getForWhom());
@@ -125,41 +116,53 @@ public abstract class SimplePrompt extends ValidatingPrompt {
 		return (Player) ctx.getForWhom();
 	}
 
-	/**
-	 * Send the player (in case any) the given message
-	 */
-	protected final void tell(final String message) {
-		Valid.checkNotNull(this.player, "Cannot use tell() when player not yet set!");
 
-		this.tell(this.player, message);
+
+	protected final void tellPrefixed(final Conversable conversable, final String message, final String prefix){
+		String pref = (this.getCustomPrefix() != null ? this.getCustomPrefix() : prefix != null ? prefix : "");
+		Common.tellConversing(conversable, pref + message);
 	}
 
 	/**
-	 * Send the player (in case any) the given message
-	 *
-	 * @param context
-	 * @param message
-	 */
-	protected final void tell(final ConversationContext context, final String message) {
-		this.tell(this.getPlayer(context), message);
-	}
-
-	/**
-	 * Sends the message to the player
-	 *
-	 * @param conversable
-	 * @param message
+	 * Send the message to the player
 	 */
 	protected final void tell(final Conversable conversable, final String message) {
-		Common.tellConversing(conversable, (this.getCustomPrefix() != null ? this.getCustomPrefix() : "") + message);
+		tellPrefixed(conversable, message, null);
+	}
+
+	/**
+	 * Send the player (in case any) the given message
+	 */
+	protected final void tell(final ConversationContext context, final String message) {
+		tell(context.getForWhom(), message);
+	}
+
+	protected final void tellInfo(final Conversable conversable, final String message){
+		tellPrefixed(conversable, message, Messenger.getInfoPrefix());
+	}
+
+	protected final void tellError(final Conversable conversable, final String message){
+		tellPrefixed(conversable, message, Messenger.getErrorPrefix());
+	}
+
+	protected final void tellWarning(final Conversable conversable, final String message){
+		tellPrefixed(conversable, message, Messenger.getWarnPrefix());
+	}
+
+	protected final void tellQuestion(final Conversable conversable, final String message){
+		tellPrefixed(conversable, message, Messenger.getQuestionPrefix());
+	}
+
+	protected final void tellSuccess(final Conversable conversable, final String message){
+		tellPrefixed(conversable, message, Messenger.getSuccessPrefix());
+	}
+
+	protected final void tellAnnounce(final Conversable conversable, final String message){
+		tellPrefixed(conversable, message, Messenger.getAnnouncePrefix());
 	}
 
 	/**
 	 * Sends the message to the player later
-	 *
-	 * @param delayTicks
-	 * @param conversable
-	 * @param message
 	 */
 	protected final void tellLater(final int delayTicks, final Conversable conversable, final String message) {
 		Common.tellLaterConversing(delayTicks, conversable, (this.getCustomPrefix() != null ? this.getCustomPrefix() : "") + message);
@@ -167,9 +170,6 @@ public abstract class SimplePrompt extends ValidatingPrompt {
 
 	/**
 	 * Called when the whole conversation is over. This is called before onConversationEnd
-	 *
-	 * @param conversation
-	 * @param event
 	 */
 	public void onConversationEnd(final SimpleConversation conversation, final ConversationAbandonedEvent event) {
 	}
@@ -251,7 +251,7 @@ public abstract class SimplePrompt extends ValidatingPrompt {
 			}
 		};
 
-		if (this.openMenu) {
+		if (this.reopenMenu()) {
 			final AdvancedMenu menu = AdvancedMenu.getMenu(player);
 
 			if (menu != null)

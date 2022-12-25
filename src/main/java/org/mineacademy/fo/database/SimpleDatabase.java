@@ -1,28 +1,8 @@
 package org.mineacademy.fo.database;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLSyntaxErrorException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
-
-import org.mineacademy.fo.Common;
-import org.mineacademy.fo.FileUtil;
-import org.mineacademy.fo.RandomUtil;
-import org.mineacademy.fo.ReflectionUtil;
-import org.mineacademy.fo.SerializeUtil;
+import lombok.*;
+import org.mineacademy.fo.*;
 import org.mineacademy.fo.SerializeUtil.Mode;
-import org.mineacademy.fo.TimeUtil;
-import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.collection.SerializedMap;
 import org.mineacademy.fo.collection.StrictMap;
 import org.mineacademy.fo.debug.Debugger;
@@ -30,12 +10,13 @@ import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.model.ConfigSerializable;
 import org.mineacademy.fo.remain.Remain;
 
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Data;
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
 
 /**
  * Represents a simple MySQL database
@@ -69,11 +50,6 @@ public class SimpleDatabase {
 	 * The last credentials from the connect function, or null if never called
 	 */
 	private LastCredentials lastCredentials;
-
-	/**
-	 * Indicates that {@link #batchUpdate(List)} is ongoing
-	 */
-	private boolean batchUpdateGoingOn = false;
 
 	/**
 	 * Private indicator that we are connecting to database right now
@@ -615,7 +591,7 @@ public class SimpleDatabase {
 	 * @param sqls
 	 */
 	protected final void batchUpdate(@NonNull List<String> sqls) {
-		if (sqls.size() == 0)
+		if (sqls.isEmpty())
 			return;
 
 		this.checkEstablished();
@@ -633,23 +609,6 @@ public class SimpleDatabase {
 				Common.log("Updating your database (" + processedCount + " entries)... PLEASE BE PATIENT THIS WILL TAKE "
 						+ (processedCount > 50_000 ? "10-20 MINUTES" : "5-10 MINUTES") + " - If server will print a crash report, ignore it, update will proceed.");
 
-			// Set the flag to start time notifications timer
-			this.batchUpdateGoingOn = true;
-
-			// Notify console that progress still is being made
-			final TimerTask task = new TimerTask() {
-
-				@Override
-				public void run() {
-					if (SimpleDatabase.this.batchUpdateGoingOn)
-						Common.log("Database batch update is still processing, " + RandomUtil.nextItem("keep calm", "stand by", "watch the show", "check your db", "drink water", "call your friend") + " and DO NOT SHUTDOWN YOUR SERVER. (Total size: " + sqls.size() + " queries)");
-					else
-						this.cancel();
-				}
-			};
-
-			new Timer().scheduleAtFixedRate(task, 1000 * 30, 1000 * 30);
-
 			// Prevent automatically sending db instructions
 			this.getConnection().setAutoCommit(false);
 
@@ -661,8 +620,6 @@ public class SimpleDatabase {
 				this.getConnection().commit();
 
 			} catch (final Throwable t) {
-				task.cancel();
-
 				// Cancel the task but handle the error upstream
 				throw t;
 			}
@@ -688,9 +645,6 @@ public class SimpleDatabase {
 			} catch (final SQLException ex) {
 				ex.printStackTrace();
 			}
-
-			// Even in case of failure, cancel
-			this.batchUpdateGoingOn = false;
 		}
 	}
 

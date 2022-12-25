@@ -3,9 +3,11 @@ package org.mineacademy.fo.bungee.message;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.bukkit.Bukkit;
 import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.bungee.BungeeListener;
 import org.mineacademy.fo.bungee.BungeeMessageType;
+import org.mineacademy.fo.plugin.SimplePlugin;
 
 import java.util.UUID;
 
@@ -75,8 +77,6 @@ abstract class Message {
 	/**
 	 * Set the action head for this message, reason it is here:
 	 * static access in {@link OutgoingMessage}
-	 *
-	 * @param action
 	 */
 	protected final void setAction(String actionName) {
 		final BungeeMessageType action = BungeeMessageType.getByName(this.listener, actionName);
@@ -133,5 +133,15 @@ abstract class Message {
 	 */
 	public String getChannel() {
 		return this.listener.getChannel();
+	}
+
+	protected abstract byte[] getData();
+
+	/**
+	 * Send this message with the current data to BungeeCord (you need an implementation
+	 * upstream to handle it!)
+	 */
+	public final void sendToBungee() {
+		Bukkit.getServer().sendPluginMessage(SimplePlugin.getInstance(), this.getChannel(), this.getData());
 	}
 }

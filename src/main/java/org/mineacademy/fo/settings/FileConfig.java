@@ -112,6 +112,11 @@ public abstract class FileConfig {
 	 */
 	private boolean loading = false;
 
+	/*
+	 * Internal flag to avoid race condition when calling save() in onSave().
+	 */
+	private boolean saving = false;
+
 	protected FileConfig() {
 	}
 
@@ -1284,6 +1289,10 @@ public abstract class FileConfig {
 	 */
 	public final void save(@NonNull File file) {
 		synchronized (loadedSections) {
+
+			if (this.saving)
+				return;
+
 			try {
 				if (this.loading) {
 					this.shouldSave = true;
@@ -1296,10 +1305,15 @@ public abstract class FileConfig {
 				if (this.canSaveFile()) {
 
 					try {
+						this.saving = true;
 						this.saveFields();
 						this.onSave();
+
 					} catch (final EventHandledException ignored) {
 						// Ignore, indicated that we exited polymorphism inheritance prematurely by intention
+
+					} finally {
+						this.saving = false;
 					}
 
 					final File parent = file.getCanonicalFile().getParentFile();

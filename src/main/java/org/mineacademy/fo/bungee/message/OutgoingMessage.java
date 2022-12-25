@@ -2,7 +2,6 @@ package org.mineacademy.fo.bungee.message;
 
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
-import org.bukkit.entity.Player;
 import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.bungee.BungeeListener;
 import org.mineacademy.fo.bungee.BungeeMessageType;
@@ -56,7 +55,6 @@ public final class OutgoingMessage extends Message {
 		// first is the senders server name and the second is the action
 		// -----------------------------------------------------------------
 
-		this.queue.add(listener.getChannel());
 		this.queue.add(senderUid);
 		this.queue.add(this.getServerName());
 		this.queue.add(this.getAction().name());
@@ -171,21 +169,13 @@ public final class OutgoingMessage extends Message {
 	}
 
 	/**
-	 * Send this message with the current data for the given player!
-	 *
-	 * @param player
-	 */
-	public void send(Player player) {
-		player.sendPluginMessage(SimplePlugin.getInstance(), "BungeeCord", this.compileData());
-	}
-
-	/**
 	 * Delegate write methods for the byte array data output
 	 * based on the queue
 	 *
 	 * @return
 	 */
-	private byte[] compileData() {
+	@Override
+	protected byte[] getData() {
 		final ByteArrayDataOutput out = ByteStreams.newDataOutput();
 
 		for (final Object object : this.queue)

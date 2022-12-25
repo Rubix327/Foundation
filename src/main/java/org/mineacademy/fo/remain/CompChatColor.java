@@ -1,20 +1,15 @@
 package org.mineacademy.fo.remain;
 
-import java.awt.Color;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-
+import lombok.Getter;
+import lombok.NonNull;
 import org.mineacademy.fo.ItemUtil;
 import org.mineacademy.fo.MinecraftVersion;
 import org.mineacademy.fo.MinecraftVersion.V;
 import org.mineacademy.fo.Valid;
 
-import lombok.Getter;
-import lombok.NonNull;
+import java.awt.*;
+import java.util.List;
+import java.util.*;
 
 /**
  * Simplistic enumeration of all supported color values for chat.
@@ -254,12 +249,24 @@ public final class CompChatColor {
 	}
 
 	/**
-	 * Return the color's name such as red, or in case of hex color return
-	 * the code, colorized
+	 * Return the literal value of the color, colorized by the color itself :)
+	 *
+	 * Example: returns "&6Gold" or "&cRed" or #cc44ff with the actual hex code that MC chat will parse before it.
+	 *
 	 * @return
 	 */
-	public String toEscapedString() {
-		return this.isHex() ? this.toString + "\\\\" + this.getName() : ItemUtil.bountify(this.getName());
+	public String toColorizedChatString() {
+		return this.toString /* prints color */ + this.toChatString();
+	}
+
+	/**
+	 * Prints the face value of the color you can use in Minecraft chat,
+	 * i.e. "Gold" instead of the actual gold magic letter or #cc44ff instead of actually coloring the chat.
+	 *
+	 * @return
+	 */
+	public String toChatString() {
+		return this.isHex() ? "\\\\" + this.getName() : ItemUtil.bountifyCapitalized(this.getName());
 	}
 
 	/**
@@ -432,7 +439,7 @@ public final class CompChatColor {
 	 * @return copied array of all colors and formats
 	 */
 	public static CompChatColor[] values() {
-		return BY_CHAR.values().toArray(new CompChatColor[BY_CHAR.values().size()]);
+		return BY_CHAR.values().toArray(new CompChatColor[BY_CHAR.size()]);
 	}
 
 	/**

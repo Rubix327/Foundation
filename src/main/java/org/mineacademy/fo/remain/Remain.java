@@ -2697,7 +2697,10 @@ public final class Remain {
 	 * @return
 	 */
 	public static boolean isServerNameChanged() {
-		return !"undefined".equals(serverName) && !"Unknown Server".equals(serverName);
+		if (serverName == null)
+			injectServerName();
+
+		return serverName != null && !"undefined".equalsIgnoreCase(serverName) && !"unknown server".equalsIgnoreCase(serverName);
 	}
 
 	/**

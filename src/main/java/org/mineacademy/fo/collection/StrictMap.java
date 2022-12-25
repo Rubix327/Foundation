@@ -1,18 +1,12 @@
 package org.mineacademy.fo.collection;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.function.BiConsumer;
-
-import javax.annotation.Nullable;
-
 import org.mineacademy.fo.SerializeUtil;
 import org.mineacademy.fo.Valid;
+
+import javax.annotation.Nullable;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.function.BiConsumer;
 
 /**
  * Strict map that only allows to remove elements that are contained within, or add elements that are not.
@@ -120,6 +114,18 @@ public final class StrictMap<K, V> extends StrictCollection {
 	 *
 	 * @param m
 	 */
+	public void putAll(StrictMap<? extends K, ? extends V> m) {
+		for (final Map.Entry<? extends K, ? extends V> e : m.entrySet())
+			Valid.checkBoolean(!this.map.containsKey(e.getKey()), String.format(this.getCannotAddMessage(), e.getKey(), this.map.get(e.getKey())));
+
+		this.override(m);
+	}
+
+	/**
+	 * Put the given map into this one, failing if a key already exists
+	 *
+	 * @param m
+	 */
 	public void putAll(Map<? extends K, ? extends V> m) {
 		for (final Map.Entry<? extends K, ? extends V> e : m.entrySet())
 			Valid.checkBoolean(!this.map.containsKey(e.getKey()), String.format(this.getCannotAddMessage(), e.getKey(), this.map.get(e.getKey())));
@@ -153,11 +159,16 @@ public final class StrictMap<K, V> extends StrictCollection {
 
 	/**
 	 * Put new pairs into the map, overriding old one
-	 *
-	 * @param m
 	 */
-	public void override(Map<? extends K, ? extends V> m) {
-		this.map.putAll(m);
+	public void override(StrictMap<? extends K, ? extends V> map) {
+		this.override(map.map);
+	}
+
+	/**
+	 * Put new pairs into the map, overriding old one
+	 */
+	public void override(Map<? extends K, ? extends V> map) {
+		this.map.putAll(map);
 	}
 
 	/**

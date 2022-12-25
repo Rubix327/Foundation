@@ -1,12 +1,7 @@
 package org.mineacademy.fo.model;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-
+import lombok.Getter;
+import lombok.Setter;
 import org.bukkit.Location;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
@@ -18,8 +13,7 @@ import org.mineacademy.fo.remain.CompMaterial;
 import org.mineacademy.fo.remain.CompParticle;
 import org.mineacademy.fo.remain.Remain;
 
-import lombok.Getter;
-import lombok.Setter;
+import java.util.*;
 
 /**
  *
@@ -130,7 +124,6 @@ public abstract class SimpleHologram {
 	 */
 	public SimpleHologram spawn() {
 		Valid.checkBoolean(!this.isSpawned(), this + " is already spawned!");
-		Valid.checkNotEmpty(this.loreLines, "Call lore() first before calling spawn method for " + this);
 
 		this.entity = this.createEntity();
 		Valid.checkNotNull(this.entity, "Failed to spawn entity from " + this);
@@ -151,6 +144,8 @@ public abstract class SimpleHologram {
 	 * Set a lore for this armor stand
 	 */
 	private void drawLore(Location location) {
+		if (this.loreLines.isEmpty())
+			return;
 
 		if (this.entity instanceof ArmorStand && ((ArmorStand) this.entity).isSmall())
 			location = location.add(0, -0.5, 0);

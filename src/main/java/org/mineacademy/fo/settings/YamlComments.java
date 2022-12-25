@@ -2,6 +2,7 @@ package org.mineacademy.fo.settings;
 
 import lombok.NonNull;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.MemorySection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
@@ -116,6 +117,7 @@ final class YamlComments {
 	private static void write(FileConfiguration newConfig, FileConfiguration oldConfig, Map<String, String> comments, List<String> ignoredSections, BufferedWriter writer, Yaml yaml) throws IOException {
 
 		final Set<String> copyAllowed = new HashSet<>();
+		final Set<String> copyDenied = new HashSet<>();
 		final Set<String> reverseCopy = new HashSet<>();
 
 		outerloop:
@@ -128,15 +130,32 @@ final class YamlComments {
 					if (key.startsWith(allowed))
 						break checkIgnore;
 
+				for (final String allowed : copyAllowed)
+					if (key.startsWith(allowed))
+						continue outerloop;
+
 				// These keys are already written below
 				for (final String allowed : reverseCopy)
 					if (key.startsWith(allowed))
 						continue outerloop;
 
 				for (final String ignoredSection : ignoredSections) {
-					if (key.equals(ignoredSection))
+					if (key.equals(ignoredSection)) {
+						Object oldIgnoredObject = oldConfig.get(ignoredSection);
+						Object newIgnoredObject = newConfig.get(ignoredSection);
+
+						// Special case if people put [] or {}
+						if (("{}".equals(oldIgnoredObject) && "{}".equals(newIgnoredObject))
+								|| (oldIgnoredObject instanceof List && ((List<?>) oldIgnoredObject).isEmpty() && newIgnoredObject instanceof List && ((List<?>) newIgnoredObject).isEmpty())
+								|| (oldIgnoredObject instanceof MemorySection && ((MemorySection) oldIgnoredObject).getKeys(false).isEmpty()) && newIgnoredObject instanceof MemorySection && ((MemorySection) newIgnoredObject).getKeys(false).isEmpty()) {
+							copyDenied.add(ignoredSection);
+
+							write0(key, "{}", true, newConfig, oldConfig, comments, ignoredSections, writer, yaml);
+							continue outerloop;
+						}
+
 						// Write from new to old config
-						if ((!oldConfig.isSet(ignoredSection) || oldConfig.getConfigurationSection(ignoredSection).getKeys(false).isEmpty())) {
+						if (!oldConfig.isSet(ignoredSection)) {
 							copyAllowed.add(ignoredSection);
 
 							break;
@@ -144,21 +163,22 @@ final class YamlComments {
 
 						// Write from old to new, copying all keys and subkeys manually
 						else {
-							write0(key, true, newConfig, oldConfig, comments, ignoredSections, writer, yaml);
+							write0(key, null, true, newConfig, oldConfig, comments, ignoredSections, writer, yaml);
 
 							for (final String oldKey : oldConfig.getConfigurationSection(ignoredSection).getKeys(true))
-								write0(ignoredSection + "." + oldKey, true, oldConfig, newConfig, comments, ignoredSections, writer, yaml);
+								write0(ignoredSection + "." + oldKey, null, true, oldConfig, newConfig, comments, ignoredSections, writer, yaml);
 
 							reverseCopy.add(ignoredSection);
 							continue outerloop;
 						}
+					}
 
 					if (key.startsWith(ignoredSection))
 						continue outerloop;
 				}
 			}
 
-			write0(key, false, newConfig, oldConfig, comments, ignoredSections, writer, yaml);
+			write0(key, null, false, newConfig, oldConfig, comments, ignoredSections, writer, yaml);
 		}
 
 		final String danglingComments = comments.get(null);
@@ -169,7 +189,7 @@ final class YamlComments {
 		writer.close();
 	}
 
-	private static void write0(String key, boolean forceNew, FileConfiguration newConfig, FileConfiguration oldConfig, Map<String, String> comments, List<String> ignoredSections, BufferedWriter writer, Yaml yaml) throws IOException {
+	private static void write0(String key, @Nullable String forceWriteKey, boolean forceNew, FileConfiguration newConfig, FileConfiguration oldConfig, Map<String, String> comments, List<String> ignoredSections, BufferedWriter writer, Yaml yaml) throws IOException {
 
 		final String[] keys = key.split("\\.");
 		final String actualKey = keys[keys.length - 1];
@@ -187,8 +207,12 @@ final class YamlComments {
 		final Object newObj = newConfig.get(key);
 		final Object oldObj = oldConfig.get(key);
 
+		// Force write whatever the parameter says
+		if (forceWriteKey != null)
+			write(forceWriteKey, actualKey, prefixSpaces, yaml, writer);
+
 		// Write the old section
-		if (newObj instanceof ConfigurationSection && !forceNew && oldObj instanceof ConfigurationSection)
+		else if (newObj instanceof ConfigurationSection && !forceNew && oldObj instanceof ConfigurationSection)
 			writeSection(writer, actualKey, prefixSpaces, (ConfigurationSection) oldObj);
 
 		// Write the new section, old value is no more
@@ -215,8 +239,14 @@ final class YamlComments {
 			if (obj instanceof String) {
 				final String string = (String) obj;
 
+				if (string.equals("{}")) {
+					writer.write(prefixSpaces + actualKey + ": {}\n");
+
+					return;
+				}
+
 				// Split multi line strings using |-
-				if (string.contains("\n")) {
+				else if (string.contains("\n")) {
 					writer.write(prefixSpaces + actualKey + ": |-\n");
 
 					for (final String line : string.split("\n"))
@@ -267,7 +297,6 @@ final class YamlComments {
 
 			if (o instanceof Map) {
 				int entryIndex = 0;
-				final int mapSize = ((Map<?, ?>) o).size();
 
 				for (final Map.Entry<?, ?> entry : ((Map<?, ?>) o).entrySet()) {
 					builder.append(prefixSpaces);
@@ -279,9 +308,6 @@ final class YamlComments {
 
 					builder.append(entry.getKey()).append(": ").append(yaml.dump(entry.getValue()));
 					entryIndex++;
-
-					if (entryIndex != mapSize)
-						builder.append("\n");
 				}
 
 			} else if (o instanceof String || o instanceof Character)

@@ -300,7 +300,7 @@ public final class Common {
 	 * @param message
 	 */
 	public static void tellConversing(final Conversable conversable, final String message) {
-		conversable.sendRawMessage(colorize(addLastSpace(tellPrefix) + removeFirstSpaces(message)).trim());
+		conversable.sendRawMessage(colorize((message.contains(tellPrefix) ? "" : addLastSpace(tellPrefix)) + removeFirstSpaces(message)).trim());
 	}
 
 	/**
@@ -484,6 +484,7 @@ public final class Common {
 				else
 					try {
 						sender.sendMessage(toSend);
+
 					} catch (final Throwable t) {
 						Bukkit.getLogger().severe("Failed to send message to " + sender.getName() + ", message: " + toSend);
 
@@ -615,7 +616,7 @@ public final class Common {
 			result = result.replaceAll(Pattern.quote(matched), replacement);
 		}
 
-		result = result.replace("\\#", "#");
+		result = result.replace("\\\\#", "#").replace("\\#", "#");
 
 		return result;
 	}

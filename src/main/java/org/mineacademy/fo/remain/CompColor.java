@@ -249,7 +249,8 @@ public final class CompColor {
 		name = name.toUpperCase();
 
 		for (final CompColor comp : values())
-			if (comp.chatColor.toString().equals(name) || comp.dye.toString().equals(name) || comp.legacyName.equals(name))
+			if (comp.getName().equals(name) || comp.chatColor.toString().equals(name) ||
+					comp.dye.toString().equals(name) || comp.legacyName.equals(name))
 				return comp;
 
 		throw new IllegalArgumentException("Could not get CompColor from name: " + name);

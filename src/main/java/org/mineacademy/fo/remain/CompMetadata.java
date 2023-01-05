@@ -115,7 +115,7 @@ public final class CompMetadata {
 
 	/**
 	 * Set persistent tag on block.<br>
-	 * By default, does not take into account a type of block.
+	 * By default, does not take into account the type of the block.
 	 */
 	public static void setMetadata(final Block block, final String key, final String value){
 		setMetadata(block, key, value, false);

@@ -25,6 +25,7 @@ import java.lang.annotation.Target;
  * <li>Skips field saving if <i>@AutoConfig(autoSave = false)</i></li>
  * <li>Skips field loading if <i>@AutoConfig(autoLoad = false)</i></li>
  * </ul>
+ * @author Rubix327
  */
 @Target({ElementType.TYPE, ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
@@ -46,6 +47,28 @@ public @interface AutoConfig {
      * You may manually set the disabled fields in <i>onSave</i> method if you want.
      */
     boolean autoSave() default true;
+
+    /**
+     * If enabled, we scan a superclass of this class (if the superclass is not a YamlConfig)
+     * and save & load its enabled, non-static fields to a file.<br><br>
+     *
+     * Example:
+     * <ul>
+     * <li>@AutoConfig(deep = <b>true</b>) <b><i>A</i></b> extends <b><i>B</i></b>;</li>
+     * <li>@AutoConfig(deep = <b>true</b>) <b><i>B</i></b> extends <b><i>C;</li>
+     * <li>@AutoConfig(deep = false) <b><i>C</i></b> extends <b><i>D</i></b>;</li>
+     * <li>@AutoConfig(deep = false) <b><i>D</i></b> extends <b><i>E</i></b>;</li>
+     * <li>@AutoConfig(deep = false) <b><i>E</i></b> extends <b><i>YamlConfig</i></b>.</li>
+     * </ul>
+     * If <b><i>loadConfiguration(...)</i></b> is started in class <b><i>A</i></b>,
+     * this would scan <i><b>A, B, C</b></i> classes and save their fields.<br>
+     * Class <b><i>D</i></b> would not be scanned because <b><i>C</i></b> has <b><i>deep</i></b> on <b><i>false</i></b>.<br>
+     * Class <b><i>E</i></b> would not be scanned because <b><i>D</i></b> has <b><i>deep</i></b> on <b><i>false</i></b>.<br>
+     * Next classes would not be scanned because <b><i>YamlConfig</i></b> and its superclasses are not scanned at all.
+     *
+     * @return is deep scanning enabled
+     */
+    boolean deep() default false;
 
     /**
      * In what format should we convert your fields to the file.<br>

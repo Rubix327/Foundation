@@ -28,10 +28,7 @@ import org.mineacademy.fo.exception.InvalidWorldException;
 import org.mineacademy.fo.jsonsimple.*;
 import org.mineacademy.fo.menu.model.ItemCreator;
 import org.mineacademy.fo.model.*;
-import org.mineacademy.fo.remain.CompChatColor;
-import org.mineacademy.fo.remain.CompMaterial;
-import org.mineacademy.fo.remain.JsonItemStack;
-import org.mineacademy.fo.remain.Remain;
+import org.mineacademy.fo.remain.*;
 import org.mineacademy.fo.settings.ConfigSection;
 
 import java.awt.Color;
@@ -111,6 +108,10 @@ public final class SerializeUtil {
 
 		else if (object instanceof ChatColor)
 			return ((ChatColor) object).name();
+
+		else if (object instanceof CompColor){
+			return ((CompColor) object).getName();
+		}
 
 		else if (object instanceof CompChatColor)
 			return ((CompChatColor) object).toSaveableString();
@@ -545,6 +546,9 @@ public final class SerializeUtil {
 
 		else if (classOf == CompChatColor.class)
 			object = CompChatColor.of(object.toString());
+
+		else if (classOf == CompColor.class)
+			object = CompColor.valueOf(object.toString());
 
 		else if (classOf == ItemStack.class)
 			object = deserializeItemStack(mode, object);

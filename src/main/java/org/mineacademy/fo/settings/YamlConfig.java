@@ -183,6 +183,9 @@ public class YamlConfig extends FileConfig {
 			if (!justCreated){
 				this.load(file);
 			}
+			else{
+				this.onFileCreate();
+			}
 		}
 
 		this.onLoadFinish();

@@ -25,6 +25,7 @@ import java.lang.annotation.Target;
  * <li>By default, format of fields is Capital_Underscore which corresponds to Foundation naming convention.</li>
  * <li>You can change format to your desired, but system fields (Version, Locale, etc.) will stay the same.</li>
  * </ul>
+ * @author Rubix327
  */
 @Target({ElementType.TYPE, ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)

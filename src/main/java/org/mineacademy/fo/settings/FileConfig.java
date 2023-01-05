@@ -10,10 +10,7 @@ import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.mineacademy.fo.Common;
-import org.mineacademy.fo.ReflectionUtil;
-import org.mineacademy.fo.SerializeUtil;
-import org.mineacademy.fo.Valid;
+import org.mineacademy.fo.*;
 import org.mineacademy.fo.annotation.AutoConfig;
 import org.mineacademy.fo.collection.SerializedMap;
 import org.mineacademy.fo.collection.StrictList;
@@ -1253,6 +1250,12 @@ public abstract class FileConfig {
 	abstract void loadFromString(@NonNull String contents);
 
 	/**
+	 * Called automatically when the file is just created.
+	 */
+	public void onFileCreate(){
+	}
+
+	/**
 	 * Called automatically right before the configuration is loaded.
 	 */
 	protected void onPreLoad(){
@@ -1385,9 +1388,10 @@ public abstract class FileConfig {
 
 	/**
 	 * Get values from file and set them to fields annotated with @AutoConfig
+	 * @author Rubix327
 	 */
 	private void loadFields(){
-		for (Field field : getFieldsToAutoLoad()) {
+		for (Field field : getFieldsToAutoLoad(new ArrayList<>(), this.getClass())) {
 			field.setAccessible(true);
 
 			try {
@@ -1404,41 +1408,51 @@ public abstract class FileConfig {
 	/**
 	 * Get fields for which we should set values from a file.
 	 * Skips static fields and grabs all the fields which are annotated or whose class is annotated with @AutoConfig.
+	 * @author Rubix327
 	 */
-	private List<Field> getFieldsToAutoLoad() {
-		List<Field> fieldsToLoad = new ArrayList<>();
+	private List<Field> getFieldsToAutoLoad(List<Field> startList, Class<?> clazz) {
 		boolean isAboveClass = false;
 
 		// Do nothing if AutoConfig is disabled for the whole class
-		if (this.getClass().isAnnotationPresent(AutoConfig.class)){
+		AutoConfig ant = clazz.getAnnotation(AutoConfig.class);
+		if (ant != null){
 			isAboveClass = true;
-			if (!this.getClass().getAnnotation(AutoConfig.class).value()){
-				return new ArrayList<>();
+			if (!ant.value()){
+				return startList;
 			}
 		}
 
-		for (Field field : this.getClass().getDeclaredFields()){
-			boolean hasAnnotation = field.isAnnotationPresent(AutoConfig.class);
+		// Scan all the fields of the given class
+		for (Field field : clazz.getDeclaredFields()){
+			AutoConfig ann = field.getAnnotation(AutoConfig.class);
+			boolean hasAnnotation = ann != null;
 			boolean isEnabled = false;
 			if (hasAnnotation){
-				AutoConfig ann = field.getAnnotation(AutoConfig.class);
 				isEnabled = ann.value() && ann.autoLoad();
 			}
 			else if (Modifier.isStatic(field.getModifiers())) {
 				continue;
 			}
 
-			if (ReflectionUtil.isAnnotationAttached(isAboveClass, hasAnnotation, isEnabled)) fieldsToLoad.add(field);
+			if (ReflectionUtil.isAnnotationAttached(isAboveClass, hasAnnotation, isEnabled)) startList.add(field);
 		}
 
-		return fieldsToLoad;
+		// Run once more to get fields of a superclass
+		if (ant != null && ant.deep()){
+			if (clazz.getSuperclass() != YamlConfig.class){
+				startList = getFieldsToAutoLoad(startList, clazz.getSuperclass());
+			}
+		}
+
+		return startList;
 	}
 
 	/**
 	 * Set values annotated with @AutoConfig from a YamlConfig and save them to a file.
+	 * @author Rubix327
 	 */
 	private void saveFields() {
-		for (Field field : getFieldsToAutoSave()) {
+		for (Field field : getFieldsToAutoSave(new ArrayList<>(), this.getClass())) {
 			field.setAccessible(true);
 
 			try {
@@ -1455,38 +1469,48 @@ public abstract class FileConfig {
 	/**
 	 * Get fields which should be saved to a file.
 	 * Skips static fields and grabs all the fields which are annotated or whose class is annotated with @AutoConfig.
+	 * @author Rubix327
 	 */
-	private List<Field> getFieldsToAutoSave() {
-		List<Field> fieldsToSave = new ArrayList<>();
+	private List<Field> getFieldsToAutoSave(List<Field> startList, Class<?> clazz) {
 		boolean isAboveClass = false;
 
 		// Do nothing if AutoConfig is disabled for the whole class
-		if (this.getClass().isAnnotationPresent(AutoConfig.class)){
+		AutoConfig ant = clazz.getAnnotation(AutoConfig.class);
+		if (ant != null){
 			isAboveClass = true;
-			if (!this.getClass().getAnnotation(AutoConfig.class).value()){
-				return new ArrayList<>();
+			if (!ant.value()){
+				return startList;
 			}
 		}
 
-		for (Field field : this.getClass().getDeclaredFields()){
-			boolean hasAnnotation = field.isAnnotationPresent(AutoConfig.class);
+		// Scan all the fields of the given class
+		for (Field field : clazz.getDeclaredFields()){
+			AutoConfig ann = field.getAnnotation(AutoConfig.class);
+			boolean hasAnnotation = ann != null;
 			boolean isEnabled = false;
 			if (hasAnnotation){
-				AutoConfig ann = field.getAnnotation(AutoConfig.class);
 				isEnabled = ann.value() && ann.autoSave();
 			}
 			else if (Modifier.isStatic(field.getModifiers())) {
 				continue;
 			}
 
-			if (ReflectionUtil.isAnnotationAttached(isAboveClass, hasAnnotation, isEnabled)) fieldsToSave.add(field);
+			if (ReflectionUtil.isAnnotationAttached(isAboveClass, hasAnnotation, isEnabled)) startList.add(field);
 		}
 
-		return fieldsToSave;
+		// Run once more to get fields of a superclass
+		if (ant != null && ant.deep()){
+			if (clazz.getSuperclass() != YamlConfig.class){
+				startList = getFieldsToAutoSave(startList, clazz.getSuperclass());
+			}
+		}
+
+		return startList;
 	}
 
 	/**
 	 * Get the deserialized object from the given path depending on its field class type.
+	 * @author Rubix327
 	 */
 	public Object getBasedOnClass(String path, Field field){
 		Class<?> fieldType = field.getType();
@@ -1551,6 +1575,7 @@ public abstract class FileConfig {
 
 	/**
 	 * Types whose getters names do not match their names.
+	 * @author Rubix327
 	 */
 	enum TypeMethod {
 		ACCUSATIVE_HELPER("getAccusativePeriod"),
@@ -1568,9 +1593,14 @@ public abstract class FileConfig {
 	/**
 	 * Get the name under which the value will be saved in the file.
 	 * Based on user-defined AutoConfig.format() and is lower_underscore by default.
+	 * @author Rubix327
 	 */
 	private String getFormattedFieldName(Field field) {
-		String name = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, field.getName());
+		String name = field.getName();
+		if (ChatUtil.isAllUpperCase(field.getName())){
+			name = field.getName().toLowerCase();
+		}
+		name = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, name);
 		if (this.getClass().isAnnotationPresent(AutoConfig.class)){
 			name = CaseFormat.LOWER_CAMEL.to(this.getClass().getAnnotation(AutoConfig.class).format(), field.getName());
 		}

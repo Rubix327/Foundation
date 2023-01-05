@@ -23,6 +23,7 @@ import java.lang.annotation.Target;
  * <ul>
  * <li>Serializes and deserializes field if annotation is in enabled state</li>
  * </ul>
+ * @author Rubix327
  */
 @Target({ElementType.TYPE, ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)

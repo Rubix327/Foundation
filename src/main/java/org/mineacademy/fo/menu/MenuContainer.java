@@ -16,8 +16,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * A simple menu allowing players to drop or take items.
- *
+ * A simple menu allowing players to drop or take items
  * from the container. You can connect this with your file storing
  * system to save or load items edited by players in the container.
  */

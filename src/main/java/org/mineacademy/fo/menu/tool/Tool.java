@@ -3,6 +3,9 @@ package org.mineacademy.fo.menu.tool;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.mineacademy.fo.ItemUtil;
@@ -123,19 +126,17 @@ public abstract class Tool {
 
 	/**
 	 * Return true if the given player holds this tool in his main hand
-	 *
-	 * @param player
-	 * @return
+	 * @param player the player
+	 * @return true if in main hand
 	 */
 	public final boolean hasToolInHand(final Player player) {
 		return this.isTool(player.getItemInHand());
 	}
 
 	/**
-	 * Return true if the player already contains this tool
-	 *
-	 * @param player
-	 * @return
+	 * Return true if the player already has this tool
+	 * @param player the player
+	 * @return true if the tool in the player's inventory
 	 */
 	public final boolean hasTool(Player player) {
 		for (final ItemStack item : player.getInventory().getContents())
@@ -156,19 +157,38 @@ public abstract class Tool {
 
 	/**
 	 * Called automatically when the tool is clicked
-	 *
-	 * @param event the event
+	 * @param event PlayerInteractEvent
 	 */
 	protected void onToolClick(PlayerInteractEvent event) {
 	}
 
 	/**
 	 * Called automatically when a block is placed using this tool
-	 *
-	 * @param event
+	 * @param event BlockPlaceEvent
 	 */
 	protected void onToolPlace(BlockPlaceEvent event) {
 	}
+
+	/**
+	 * Called when a tool is dropped from the player's inventory.
+	 * @param event PlayerDropItemEvent
+	 * @author Rubix327
+	 */
+	protected void onToolDrop(PlayerDropItemEvent event){}
+
+	/**
+	 * Called when a tool if moved into another inventory.
+	 * @param event InventoryClickEvent
+	 * @author Rubix327
+	 */
+	protected void onToolMove(InventoryClickEvent event){}
+
+	/**
+	 * Called when a player wastes his tool on death.
+	 * @param event PlayerDeathEvent
+	 * @author Rubix327
+	 */
+	protected void onToolWaste(PlayerDeathEvent event){}
 
 	/**
 	 * Called when the player swap items in their hotbar and the new slot matches

@@ -32,7 +32,6 @@ import org.mineacademy.fo.remain.Remain;
 import org.mineacademy.fo.settings.SimpleLocalization;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * The event listener class responsible for firing events in tools
@@ -251,6 +250,18 @@ public final class ToolsListener implements Listener {
 	public void onToolDrop(PlayerDropItemEvent event){
 		final Tool tool = Tool.getTool(event.getItemDrop().getItemStack());
 
+		if (tool != null){
+			preventDrop(event, tool);
+			tool.onToolDrop(event);
+		}
+	}
+
+	/**
+	 * Prevent the tool from dropping if its drop is disabled.<br>
+	 * @param event PlayerDropItemEvent
+	 * @author Rubix327
+	 */
+	public void preventDrop(PlayerDropItemEvent event, Tool tool){
 		if (tool != null && tool.isDropForbidden()){
 			event.setCancelled(true);
 		}
@@ -258,15 +269,27 @@ public final class ToolsListener implements Listener {
 
 	@EventHandler
 	public void onToolMove(InventoryClickEvent event){
+		final Tool tool = Tool.getTool(event.getCurrentItem());
+
+		if (tool != null){
+			preventToolMove(event, tool);
+			tool.onToolMove(event);
+		}
+	}
+
+	/**
+	 * Prevent the tool from moving into unsafe inventories if its drop is disabled.
+	 * @param event InventoryClickEvent
+	 * @author Rubix327
+	 */
+	public void preventToolMove(InventoryClickEvent event, Tool tool){
 		List<InventoryType> safeTypes = new ArrayList<>(Arrays.asList(InventoryType.PLAYER, InventoryType.CREATIVE,
 				InventoryType.CRAFTING, InventoryType.ENDER_CHEST, InventoryType.MERCHANT, InventoryType.ENCHANTING,
 				InventoryType.WORKBENCH));
 		if (safeTypes.contains(event.getInventory().getType())) return;
 
-		final Tool currentTool = Tool.getTool(event.getCurrentItem());
-
-		if (currentTool != null){
-			if (currentTool.isDropForbidden()){
+		if (tool != null){
+			if (tool.isDropForbidden()){
 				event.setCancelled(true);
 			}
 		}
@@ -274,23 +297,41 @@ public final class ToolsListener implements Listener {
 
 	@EventHandler
 	public void onToolWasteDeath(PlayerDeathEvent event){
-		List<ItemStack> tools = Arrays.stream(Tool.getTools()).filter(Tool::isDropForbidden).map(Tool::getItem).collect(Collectors.toList());
-		if (tools.isEmpty() || event.getDrops().isEmpty()) return;
-		for (ItemStack tool : tools){
+		if (event.getDrops().isEmpty()) return;
+
+		for (Tool tool : Tool.getTools()){
 			for (ItemStack drop : event.getDrops()){
-				if (tool.isSimilar(drop)) {
-					if (droppedTools.containsKey(event.getEntity().getUniqueId())){
-						droppedTools.get(event.getEntity().getUniqueId()).add(drop.clone());
-					}
-					else{
-						droppedTools.put(event.getEntity().getUniqueId(), new ArrayList<>(Collections.singletonList(drop.clone())));
-					}
-					drop.setType(Material.AIR);
+				if (tool.getItem().isSimilar(drop)) {
+					saveWastedTool(event.getEntity().getUniqueId(), tool, drop);
+					tool.onToolWaste(event);
 				}
 			}
 		}
 	}
 
+	/**
+	 * Save the death-wasted tool into the map to give them back to the player on revival.
+	 * @param player the player uuid
+	 * @param tool the tool
+	 * @param drop the real dropped ItemStack
+	 * @author Rubix327
+	 */
+	public void saveWastedTool(UUID player, Tool tool, ItemStack drop){
+		if (tool == null || !tool.isDropForbidden()) return;
+		if (droppedTools.containsKey(player)){
+			droppedTools.get(player).add(drop.clone());
+		}
+		else{
+			droppedTools.put(player, new ArrayList<>(Collections.singletonList(drop.clone())));
+		}
+		drop.setType(Material.AIR);
+	}
+
+	/**
+	 * Give the wasted tools back to the player after his death.
+	 * @param event PlayerRespawnEvent
+	 * @author Rubix327
+	 */
 	@EventHandler
 	public void onToolWasteRespawn(PlayerRespawnEvent event){
 		if (droppedTools.isEmpty()) return;

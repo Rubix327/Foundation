@@ -29,6 +29,7 @@ import org.mineacademy.fo.plugin.SimplePlugin;
  * or @{@link AutoRegister} (the class must be final)
  * </li>
  * </ol>
+ * @author Rubix327
  */
 public abstract class SimpleCraft<T extends Recipe> {
 
@@ -85,6 +86,16 @@ public abstract class SimpleCraft<T extends Recipe> {
     protected abstract void modifyRecipe();
 
     /**
+     * Should we auto discover this recipe
+     * (put it into the player's recipe book)
+     * for all players when they join?
+     * @return if true - the recipe is auto-discovered
+     */
+    public boolean isAutoDiscoverEnabled(){
+        return false;
+    }
+
+    /**
      * Get the new MaterialChoice.<br>
      * This is the short version of {@link RecipeChoice.MaterialChoice}.
      * @param materials Materials that are suitable for this craft
@@ -114,6 +125,10 @@ public abstract class SimpleCraft<T extends Recipe> {
                 '}';
     }
 
+    /* ****************************************************
+     * Helper methods to get fast access to CraftingHandler
+     * ****************************************************/
+
     /**
      * See {@link CraftingHandler#register(SimpleCraft)}
      */
@@ -133,6 +148,20 @@ public abstract class SimpleCraft<T extends Recipe> {
      */
     public final boolean discover(Player player){
         return CraftingHandler.discover(this, player);
+    }
+
+    /**
+     * See {@link CraftingHandler#undiscover(SimpleCraft, Player)}
+     */
+    public final boolean undiscover(Player player) {
+        return CraftingHandler.undiscover(this, player);
+    }
+
+    /**
+     * See {@link CraftingHandler#isDiscovered(SimpleCraft, Player)}
+     */
+    public final boolean isDiscovered(Player player){
+        return CraftingHandler.isDiscovered(this, player);
     }
 
 }

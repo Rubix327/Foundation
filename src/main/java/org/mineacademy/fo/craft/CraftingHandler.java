@@ -94,6 +94,27 @@ public final class CraftingHandler {
     }
 
     /**
+     * Undiscover a craft for this player such that it has already been discovered.
+     * This method will remove the key's associated recipe from the player's recipe book.
+     * @param craft the craft
+     * @param player the player
+     * @return whether the recipe was successfully undiscovered
+     */
+    public static <T extends Recipe> boolean undiscover(SimpleCraft<T> craft, Player player){
+        return player.undiscoverRecipe(craft.getKey());
+    }
+
+    /**
+     * Check whether this player has discovered the craft.
+     * @param craft the craft
+     * @param player the player
+     * @return true if discovered, false otherwise
+     */
+    public static <T extends Recipe> boolean isDiscovered(SimpleCraft<T> craft, Player player){
+        return player.hasDiscoveredRecipe(craft.getKey());
+    }
+
+    /**
      * Create a recipe instance depending on the craft's generic type.
      * @param craft the craft
      * @return the new instance of the recipe type

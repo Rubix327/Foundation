@@ -20,23 +20,18 @@ import java.util.stream.Collectors;
  * Menu with pages.<br>
  * Supports previous and next buttons.<br><br>
  * To get started, override {@link #setup} method and customize your menu inside it.
+ *
+ * @author Rubix327
  */
 public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
     /**
-     * Slots and their raw {@link #elements}.
+     * Slots and their raw {@link #getElements()}.
      */
     private final TreeMap<Integer, T> elementsSlots = new TreeMap<>();
     @Getter(AccessLevel.PRIVATE)
-    private int previousButtonSlot;
+    private Integer previousButtonSlot;
     @Getter(AccessLevel.PRIVATE)
-    private int nextButtonSlot;
-    private boolean isPreviousSlotSet;
-    private boolean isNextSlotSet;
-    /**
-     * Raw elements that should be converted to itemStacks.<br>
-     * These can be enumerable objects (Tasks, EntityType, Sound, etc.)
-     */
-    private List<T> elements;
+    private Integer nextButtonSlot;
     /**
      * Position at which the item setter is now.
      */
@@ -49,7 +44,7 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
      * Defines if the previous and next buttons are displayed even if the menu has only one page.
      * False by default.
      */
-    private boolean isPrevNextButtonsEnabledNoPages = false;
+    private boolean pageButtonsAlwaysEnabled = false;
     /**
      * The ItemStack that the previous button should have.<br>
      * Default: {@link MenuUtil#defaultPreviousPageButtonItem}.
@@ -86,32 +81,29 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
      * It automatically runs when the menu is opened.
      */
     private void updateElements(){
-        setElements();
+        addPageButtons(getPreviousButtonSlot(), getNextButtonSlot());
         setElementsSlots();
-        addPrevNextButtons(getPreviousButtonSlot(), getNextButtonSlot());
     }
 
-    protected final void setPrevNextButtonsEnabledNoPages(boolean isEnabled){
-        isPrevNextButtonsEnabledNoPages = isEnabled;
+    protected final void setPageButtonsAlwaysEnabled(boolean isEnabled){
+        pageButtonsAlwaysEnabled = isEnabled;
     }
 
     protected final void initButtonsSlots(){
-        if (!isPreviousSlotSet){
+        if (previousButtonSlot == null){
             this.previousButtonSlot = getSize() - 9;
         }
-        if (!isNextSlotSet){
+        if (nextButtonSlot == null){
             this.nextButtonSlot = getSize() - 1;
         }
     }
 
     protected final void setPreviousButtonSlot(int slot){
         this.previousButtonSlot = slot;
-        this.isPreviousSlotSet = true;
     }
 
     protected final void setNextButtonSlot(int slot){
         this.nextButtonSlot = slot;
-        this.isNextSlotSet = true;
     }
 
     protected final ItemStack getPreviousButtonItem(){
@@ -126,64 +118,41 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
      * Add previous and next buttons with specified slots.<br>
      * Default slots are left bottom corner and right bottom corner for previous and next buttons correspondingly.<br>
      * By default, buttons are only displayed when there is more than one page
-     * or {@link #isPrevNextButtonsEnabledNoPages} is set to true.
+     * or {@link #pageButtonsAlwaysEnabled} is set to true.
      */
-    private void addPrevNextButtons(int prevSlot, int nextSlot){
-        if (getMaxPage() > 1 || isPrevNextButtonsEnabledNoPages){
-            addButton(prevSlot, formPreviousButton(getPreviousButtonItem()));
-            addButton(nextSlot, formNextButton(getNextButtonItem()));
+    private void addPageButtons(int prevSlot, int nextSlot){
+        if (getMaxPage() > 1 || pageButtonsAlwaysEnabled){
+            addButton(prevSlot, formPrevNextButton(getPreviousButtonItem(), false));
+            addButton(nextSlot, formPrevNextButton(getNextButtonItem(), true));
         }
     }
 
-    /**
-     * Set {@link #elements} to the {@link #getElements()}.
-     */
-    private void setElements(){
-        this.elements = getElements();
-    }
-
-    /**
-     * Create the previous button itemStack.
-     */
-    private Button formPreviousButton(ItemStack itemStack){
+    private Button formPrevNextButton(ItemStack item, boolean isNextButton){
         return new Button() {
             @Override
             public void onClickedInMenu(Player player, AdvancedMenu menu, ClickType click) {
-                if (currentPage <= 1) {
-                    CompSound.VILLAGER_NO.play(getViewer());
-                    return;
+                if (isNextButton){
+                    if (currentPage >= getMaxPage()) {
+                        CompSound.VILLAGER_NO.play(getViewer());
+                        return;
+                    }
+                    currentPage += 1;
+                    SoundUtil.Play.CLICK_HIGH(player);
                 }
-                currentPage -= 1;
+                else{
+                    if (currentPage <= 1) {
+                        CompSound.VILLAGER_NO.play(getViewer());
+                        return;
+                    }
+                    currentPage -= 1;
+                    SoundUtil.Play.CLICK_LOW(player);
+                }
                 redraw();
-                SoundUtil.Play.CLICK_LOW(player);
             }
 
             @Override
             public ItemStack getItem() {
-                return itemStack;
-            }
-        };
-    }
-
-    /**
-     * Create the next button itemStack.
-     */
-    private Button formNextButton(ItemStack itemStack){
-        return new Button() {
-            @Override
-            public void onClickedInMenu(Player player, AdvancedMenu menu, ClickType click) {
-                if (currentPage >= getMaxPage()) {
-                    CompSound.VILLAGER_NO.play(getViewer());
-                    return;
-                }
-                currentPage += 1;
-                redraw();
-                SoundUtil.Play.CLICK_HIGH(player);
-            }
-
-            @Override
-            public ItemStack getItem() {
-                return itemStack;
+                return item;
             }
         };
     }
@@ -192,15 +161,15 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
      * Get the amount of unlocked slots.
      */
     private int getAvailableSlotsSize(){
-        return getSize() - getLockedSlots().size();
+        return getSize() - getLockedSlots().size() - getButtons().size() - getItems().size();
     }
 
     /**
      * Get the number of pages that can be in the menu considering amount of elements and available slots.
      */
     public final int getMaxPage(){
-        float a = (float) this.elements.size() / getAvailableSlotsSize();
-        return (this.elements.size() % 2 != 0 || (int)a == 0 ? (int)a + 1 : (int)a);
+        float a = (float) this.getElements().size() / getAvailableSlotsSize();
+        return (this.getElements().size() % 2 != 0 || (int)a == 0 ? (int)a + 1 : (int)a);
     }
 
     /**
@@ -210,7 +179,7 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
      */
     private void setElementsSlots(){
         elementsSlots.clear();
-        for (T element : elements){
+        for (T element : getElements()){
             putElementOnFreeSlot(element);
         }
     }
@@ -220,7 +189,7 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
      * @param element
      */
     private void putElementOnFreeSlot(T element){
-        int slot = currentSlot % 54;
+        int slot = currentSlot % getSize();
         for (int i = 0; i < 1; i++){
             if (getButtons().containsKey(slot)) continue;
             if (getItems().containsKey(slot)) continue;

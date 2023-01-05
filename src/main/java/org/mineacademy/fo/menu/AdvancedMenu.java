@@ -26,6 +26,8 @@ import java.util.stream.IntStream;
  * Supports adding items, buttons and filling locked slots with wrapper item.
  * Also contains some ready buttons (Menu, ReturnBack, Refresh, etc.).<br><br>
  * To get started, override {@link #setup} method and customize your menu inside it.
+ *
+ * @author Rubix327
  */
 public abstract class AdvancedMenu extends Menu {
 
@@ -84,6 +86,10 @@ public abstract class AdvancedMenu extends Menu {
      * @param btn the button
      */
     protected final void addButton(Integer slot, Button btn){
+        // Remove item from the same slot from lockedSlots and items, because buttons have higher priority
+        lockedSlots.remove(slot);
+        items.remove(slot);
+
         buttons.put(slot, btn);
     }
 
@@ -95,6 +101,9 @@ public abstract class AdvancedMenu extends Menu {
      * @param item the item
      */
     protected final void addItem(Integer slot, ItemStack item){
+        // Remove the same slot from lockedSlots, because items have higher priority
+        lockedSlots.remove(slot);
+
         items.put(slot, item);
     }
 
@@ -459,6 +468,15 @@ public abstract class AdvancedMenu extends Menu {
         return null;
     }
 
+    /**
+     * Close the menu for the player who is viewing it.
+     */
+    public final void closeMenu(){
+        if (isViewing(getPlayer())){
+            getPlayer().closeInventory();
+        }
+    }
+
     @Override
     public AdvancedMenu newInstance() {
         return newInstanceOf(this.getClass(), this.player);
@@ -534,7 +552,7 @@ public abstract class AdvancedMenu extends Menu {
      * Send a message to the {@link #getPlayer()}
      */
     public final void tell(Object... messages) {
-        Common.tell(this.player, Arrays.toString(messages));
+        Common.tell(this.player, Arrays.toString(messages).replace("[", "").replace("]", ""));
     }
 
     /**

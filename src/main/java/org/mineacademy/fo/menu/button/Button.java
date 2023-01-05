@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.jetbrains.annotations.NotNull;
 import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.conversation.SimplePrompt;
 import org.mineacademy.fo.conversation.SimpleStringPrompt;
@@ -255,31 +256,26 @@ public abstract class Button {
 	}
 
 	/**
-	 * A convenience method for creating integer prompts
-	 *
-	 * @param item
-	 * @param question
-	 * @param minMaxRange
-	 * @param getter
-	 * @param setter
-	 * @return
+	 * A convenient method for creating integer prompts
 	 */
-	public static Button makeIntegerPrompt(ItemCreator item, String question, RangedValue minMaxRange, Supplier<Object> getter, Consumer<Integer> setter) {
-		return makeIntegerPrompt(item, question, null, minMaxRange, getter, setter);
+	public static Button makeIntegerPrompt(ItemCreator item, String question, RangedValue minMaxRange, Consumer<Integer> setter) {
+		return makeIntegerPrompt(item, question, null, minMaxRange, setter);
 	}
 
 	/**
-	 * A convenience method for creating integer prompts
-	 *
-	 * @param item
-	 * @param question
-	 * @param menuTitle
-	 * @param minMaxRange
-	 * @param getter
-	 * @param setter
-	 * @return
+	 * A convenient method for creating integer prompts
 	 */
-	public static Button makeIntegerPrompt(ItemCreator item, String question, String menuTitle, RangedValue minMaxRange, Supplier<Object> getter, Consumer<Integer> setter) {
+	public static Button makeIntegerPrompt(ItemCreator item, String question, String menuTitle, RangedValue minMaxRange, Consumer<Integer> setter){
+		return makeIntegerPrompt(item, question, menuTitle, minMaxRange, null, setter,
+				"Invalid input '{input}'! Enter a whole number from {min} to {max}.",
+				"&9{title} set to {value}!"
+				);
+	}
+
+	/**
+	 * A convenient method for creating integer prompts
+	 */
+	public static Button makeIntegerPrompt(ItemCreator item, String question, String menuTitle, RangedValue minMaxRange, Supplier<Object> getter, Consumer<Integer> setter, String failText, String animTitle) {
 		return new Button() {
 
 			@Override
@@ -293,21 +289,30 @@ public abstract class Button {
 
 					@Override
 					protected boolean isInputValid(ConversationContext context, String input) {
-						return Valid.isInteger(input) && Valid.isInRange(Integer.parseInt(input), minMaxRange.getMinLong(), minMaxRange.getMaxLong());
+						try{
+							return Valid.isInRange(Integer.parseInt(input), minMaxRange.getMinLong(), minMaxRange.getMaxLong());
+						} catch (NumberFormatException ex){
+							return false;
+						}
 					}
 
 					@Override
 					protected String getFailedValidationText(ConversationContext context, String invalidInput) {
-						return "Invalid input '" + invalidInput + "'! Enter a whole number from " + minMaxRange.getMinLong() + " to " + minMaxRange.getMaxLong() + ".";
+						return failText
+								.replace("{input}", invalidInput)
+								.replace("{min}", String.valueOf(minMaxRange.getMinLong()))
+								.replace("{max}", String.valueOf(minMaxRange.getMaxLong()));
 					}
 
 					@Override
 					protected String getMenuAnimatedTitle() {
-						return menuTitle != null ? "&9" + menuTitle.substring(0, 1).toUpperCase() + menuTitle.substring(1) + " set to " + getter.get() + "!" : null;
+						return menuTitle != null ?
+								animTitle.replace("{title}", "&9" + menuTitle.substring(0, 1).toUpperCase() + menuTitle.substring(1))
+										.replace("{value}", String.valueOf(getter.get())) : null;
 					}
 
 					@Override
-					protected Prompt acceptValidatedInput(ConversationContext context, String input) {
+					protected Prompt acceptValidatedInput(@NotNull ConversationContext context, @NotNull String input) {
 						setter.accept(Integer.parseInt(input));
 
 						return END_OF_CONVERSATION;

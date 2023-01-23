@@ -113,12 +113,12 @@ public class YamlConfig extends FileConfig {
 	 *
 	 * @param saveEmptyValues
 	 */
-	public final void setSaveEmptyValues(boolean saveEmptyValues) {
+	protected final void setSaveEmptyValues(boolean saveEmptyValues) {
 		this.saveEmptyValues = saveEmptyValues;
 	}
 
 	/**
-	 * Returns true if this config contains any keys what so ever. Override for
+	 * Returns true if this config contains any keys whatsoever. Override for
 	 * custom logic.
 	 *
 	 * @return
@@ -138,7 +138,7 @@ public class YamlConfig extends FileConfig {
 	 *
 	 * @param internalPath
 	 */
-	public final void loadConfiguration(String internalPath) {
+	protected final void loadConfiguration(String internalPath) {
 		this.loadConfiguration(internalPath, internalPath);
 	}
 
@@ -149,7 +149,7 @@ public class YamlConfig extends FileConfig {
 	 * @param from
 	 * @param to
 	 */
-	public final void loadConfiguration(@Nullable String from, String to) {
+	protected final void loadConfiguration(@Nullable String from, String to) {
 		File file;
 		boolean justCreated = !FileUtil.getFile(to).exists();
 
@@ -224,7 +224,7 @@ public class YamlConfig extends FileConfig {
 	 *
 	 * @param internalPath
 	 */
-	public final void loadInternal(String internalPath) {
+	protected final void loadInternal(String internalPath) {
 		final String content = String.join("\n", FileUtil.getInternalFileContent(internalPath));
 
 		this.loadFromString(content);
@@ -394,7 +394,7 @@ public class YamlConfig extends FileConfig {
 	 * @return
 	 */
 	@NonNull
-	public static final YamlConfig fromInternalPath(@NonNull String path) {
+	public static YamlConfig fromInternalPath(@NonNull String path) {
 
 		final YamlConfig config = new YamlConfig();
 
@@ -416,7 +416,7 @@ public class YamlConfig extends FileConfig {
 	 * @return
 	 */
 	@NonNull
-	public static final YamlConfig fromInternalPathFast(@NonNull String path) {
+	public static YamlConfig fromInternalPathFast(@NonNull String path) {
 
 		final YamlConfig config = new YamlConfig();
 
@@ -437,7 +437,7 @@ public class YamlConfig extends FileConfig {
 	 * @return
 	 */
 	@NonNull
-	public static final YamlConfig fromFile(@NonNull File file) {
+	public static YamlConfig fromFile(@NonNull File file) {
 
 		final YamlConfig config = new YamlConfig();
 
@@ -457,7 +457,7 @@ public class YamlConfig extends FileConfig {
 	 * @return
 	 */
 	@NonNull
-	public static final YamlConfig fromFileFast(@NonNull File file) {
+	public static YamlConfig fromFileFast(@NonNull File file) {
 		final YamlConfig config = new YamlConfig();
 
 		try {

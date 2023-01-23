@@ -21,6 +21,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.mineacademy.fo.MinecraftVersion.V;
 import org.mineacademy.fo.annotation.AutoSerialize;
+import org.mineacademy.fo.annotation.SerializeToString;
 import org.mineacademy.fo.collection.SerializedMap;
 import org.mineacademy.fo.collection.StrictCollection;
 import org.mineacademy.fo.exception.FoException;
@@ -97,10 +98,33 @@ public final class SerializeUtil {
 			return serializers.get(object.getClass()).apply(object);
 
 		if (object instanceof ConfigSerializable){
+			ConfigSerializable obj = (ConfigSerializable) object;
+
+			// @SerializeToString - using serializeToString() and deserialize(String s) methods
+			if (object.getClass().isAnnotationPresent(SerializeToString.class)){
+				if (obj.serializeToString() == null){
+					Logger.printErrors("Class " + obj.getClass() + " is using @SerializeToString",
+							"and must implement 'serializeToString' method and not return null.");
+					throw new SerializeFailedException("Class " + obj.getClass() + " using @SerializeToString " +
+							"is either not implementing serializeToString or returning null which is not allowed.");
+				}
+				return obj.serializeToString();
+			}
+
+			// @AutoSerialize
 			if (object.getClass().isAnnotationPresent(AutoSerialize.class)){
 				return autoSerialize(object).serialize();
 			}
-			return serialize(mode, ((ConfigSerializable) object).serialize().serialize());
+
+			// Default serialization
+			SerializedMap map = obj.serialize();
+			if (map == null){
+				Logger.printErrors("Could not serialize object " + obj.toString(),
+						"because the SerializedMap is null. Please override 'serialize' method in your",
+						"class or use @AutoSerialize.");
+				throw new NullPointerException("SerializedMap for object " + obj.getClass().getSimpleName() + " is null.");
+			}
+			return serialize(mode, obj.serialize().serialize());
 		}
 
 		else if (object instanceof StrictCollection)
@@ -153,6 +177,10 @@ public final class SerializeUtil {
 
 		else if (object instanceof PotionEffect)
 			return serializePotionEffect((PotionEffect) object);
+
+		else if (object instanceof Enchantment){
+			return ((Enchantment) object).getKey().getKey();
+		}
 
 		else if (object instanceof ItemCreator)
 			return serialize(mode, ((ItemCreator) object).make());
@@ -300,7 +328,7 @@ public final class SerializeUtil {
 				if (object instanceof ItemStack)
 					return JsonItemStack.toJson((ItemStack) object);
 
-				throw new FoException("serializing " + object.getClass().getSimpleName() + " to JSON is not implemented! Please serialize it to string manually first!");
+				throw new FoException("Serializing " + object.getClass().getSimpleName() + " to JSON is not implemented! Please serialize it to string manually first!");
 			}
 
 			return object;
@@ -312,11 +340,40 @@ public final class SerializeUtil {
 
 	/**
 	 * Set values annotated with @AutoSerialize from a ConfigSerializable class and save them to SerializedMap.
+	 * @author Rubix327
 	 */
 	public static SerializedMap autoSerialize(Object object){
-		SerializedMap map = new SerializedMap();
 		Class<?> classOf = object.getClass();
+		Class<?> superCl = classOf.getSuperclass();
+		SerializedMap map = new SerializedMap();
 
+		AutoSerialize ann = classOf.getAnnotation(AutoSerialize.class);
+		if (ann == null) throw new FoException("Called 'autoSerialize' without an @AutoSerialize annotation on the class.");
+
+		// Check if the child class has overridden the 'serialize()' method.
+		// It must not override this method because we want to get the result from a super class.
+		try{
+			classOf.getDeclaredMethod("serialize");
+			Logger.printErrors("Class " + classOf.getSimpleName() + " must NOT override 'serialize()' method " +
+					"because is annotated with '@AutoSerialize'.");
+			throw new FoException("Class " + classOf.getSimpleName() + " must NOT override 'serialize()' method " +
+					"because is annotated with '@AutoSerialize'.");
+		} catch (NoSuchMethodException ignored){}
+
+		// Get the map from super class if deep=true
+		if (ann.deep() && superCl != ConfigSerializable.class){
+			try {
+				map = (SerializedMap) superCl.getDeclaredMethod("serialize").invoke(object);
+			} catch (NoSuchMethodException e) {
+				Logger.printErrors("Class " + superCl.getSimpleName() + " must override 'serialize()' method ",
+						"because its child class " + classOf.getSimpleName() + " is using @AutoSerialize(deep=true)");
+				throw new FoException("Class " + superCl.getSimpleName() + " must override 'serialize()' method.");
+			} catch (InvocationTargetException | IllegalAccessException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		// Add object's fields to the map
 		for (Field field : getFieldsToAutoSerialize(classOf)){
 			field.setAccessible(true);
 			try {
@@ -332,6 +389,12 @@ public final class SerializeUtil {
 		return map;
 	}
 
+	/**
+	 * Get fields of the given class that must be auto-serialized.
+	 * @param classOf the class
+	 * @return the list of fields
+	 * @author Rubix327
+	 */
 	public static List<Field> getFieldsToAutoSerialize(Class<?> classOf){
 		List<Field> fields = new ArrayList<>();
 		boolean isAboveClass = false;
@@ -443,7 +506,7 @@ public final class SerializeUtil {
 	}
 
 	/**
-	 * Attempts to convert the given object into a class
+	 * Attempts to convert the given class into an object
 	 * <p>
 	 * Example: Call deserialize(Location.class, "worldName 5 -1 47") to convert that into a Bukkit location object
 	 *
@@ -624,9 +687,14 @@ public final class SerializeUtil {
 		else if (Color.class.isAssignableFrom(classOf))
 			object = CompChatColor.of(object.toString()).getColor();
 		else if (List.class.isAssignableFrom(classOf) && object instanceof List) {
-			// Good
+			// Good, return this object in the end
+		}
 
-		} else if (Map.class.isAssignableFrom(classOf)) {
+		else if (Set.class.isAssignableFrom(classOf) && object instanceof Set || object instanceof List){
+			// Good, return this object in the end
+		}
+
+		else if (Map.class.isAssignableFrom(classOf)) {
 			if (object instanceof Map)
 				return (T) object;
 
@@ -675,11 +743,28 @@ public final class SerializeUtil {
 
 		// Try to call our own serializers
 		else if (ConfigSerializable.class.isAssignableFrom(classOf)) {
+
+			// @SerializeToString - using serializeToString() and deserialize(String s) methods
+			if (classOf.isAnnotationPresent(SerializeToString.class)){
+				final Method des = ReflectionUtil.getMethod(classOf, "deserialize", String.class);
+				if (des != null){
+					return ReflectionUtil.invokeStatic(des, object);
+				}
+				Logger.printErrors("Unable to deserialize " + classOf,
+						"This class is using @SerializeToString annotation ",
+						"and must contain the following method:",
+						"public static " + classOf.getSimpleName() + " deserialize(String object)");
+				throw new SerializeFailedException("Unable to deserialize object " + object + " to class " + classOf);
+			}
+
 			SerializedMap map = isJson ? SerializedMap.fromJson(object.toString()) : SerializedMap.of(object);
+
+			// @AutoSerialize
 			if (classOf.isAnnotationPresent(AutoSerialize.class)){
 				return autoDeserialize(classOf, map);
 			}
 
+			// Default deserialization
 			if (parameters != null && parameters.length > 0) {
 				final List<Class<?>> argumentClasses = new ArrayList<>();
 				final List<Object> arguments = new ArrayList<>();
@@ -710,8 +795,11 @@ public final class SerializeUtil {
 			if (deserialize != null)
 				return ReflectionUtil.invokeStatic(deserialize, isJson ? SerializedMap.fromJson(object.toString()) : SerializedMap.of(object));
 
-			throw new SerializeFailedException("Unable to deserialize " + classOf.getSimpleName()
-					+ ", please write 'public static deserialize(SerializedMap map) or deserialize(SerializedMap map, X arg1, Y arg2, etc.) method to deserialize: " + object);
+			Logger.printErrors("Unable to deserialize " + object,
+					"This class must contain one of the following methods:",
+					"- public static " + classOf.getSimpleName() + " deserialize(SerializedMap map)",
+					"- public static " + classOf.getSimpleName() + " deserialize(SerializedMap map, X arg1, Y arg2, ...)");
+			throw new SerializeFailedException("Unable to deserialize object " + object + " to class " + classOf);
 		}
 
 		// Step 3 - Search for "getByName" method used by us or some Bukkit classes such as Enchantment
@@ -733,7 +821,8 @@ public final class SerializeUtil {
 	}
 
 	/**
-	 * Get values from SerializedMap and set them to fields annotated with @AutoSerialize
+	 * Get values from SerializedMap and set them to fields annotated with @AutoSerialize.
+	 * @author Rubix327
 	 */
 	public static <T> T autoDeserialize(Class<T> classOf, SerializedMap map){
 		Constructor<T> constructor;
@@ -747,12 +836,21 @@ public final class SerializeUtil {
 
 		T instance;
 		try {
-			instance = (T) constructor.newInstance();
+			instance = constructor.newInstance();
 
 			for (Field field : getFieldsToAutoSerialize(classOf)) {
 				field.setAccessible(true);
 				String name = getFormattedFieldName(classOf, field);
-				Object value = map.get(name, field.getType());
+				Object value = getBasedOnClass(map, name, field);
+
+				// Not loading empty collections if ConfigSerializable#loadEmptyCollections is false
+				if (instance instanceof ConfigSerializable){
+					if (!((ConfigSerializable) instance).loadEmptyCollections()){
+						if (value instanceof Collection && ((Collection<?>) value).isEmpty()) continue;
+						if (value instanceof Map && ((Map<?, ?>) value).isEmpty()) continue;
+					}
+				}
+
 				if (value != null){
 					field.set(instance, value);
 				}
@@ -765,8 +863,64 @@ public final class SerializeUtil {
 	}
 
 	/**
+	 * Get the deserialized object from the given path of the map depending on its field class type.
+	 * @param map the map
+	 * @param path the path
+	 * @param field the field
+	 * @return deserialized object
+	 * @author Rubix327
+	 */
+	private static Object getBasedOnClass(SerializedMap map, String path, Field field){
+		Class<?> fieldType = field.getType();
+		String name;
+
+		// ***
+		// If field is a set, list, tuple or a map
+		// ***
+
+		try{
+			if (Set.class.isAssignableFrom(fieldType)){
+				Type type = ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+				return map.getSet(path, Class.forName(type.getTypeName()));
+			}
+			else if (List.class.isAssignableFrom(fieldType)){
+				Type type = ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+				return map.getList(path, Class.forName(type.getTypeName()));
+			}
+			else if (Map.class.isAssignableFrom(fieldType)){
+				Type[] types = ((ParameterizedType) field.getGenericType()).getActualTypeArguments();
+				return map.getMap(path, Class.forName(types[0].getTypeName()), Class.forName(types[1].getTypeName()));
+			}
+			else if (Tuple.class.isAssignableFrom(fieldType)){
+				Type[] types = ((ParameterizedType) field.getGenericType()).getActualTypeArguments();
+				return map.getTuple(path, Class.forName(types[0].getTypeName()), Class.forName(types[1].getTypeName()));
+			}
+		} catch (ClassNotFoundException c){
+			c.printStackTrace();
+		}
+
+		// ***
+		// Try to get field value by 'getSomething' method
+		// ***
+
+		try {
+			String str = fieldType.getSimpleName();
+			name = str.substring(0, 1).toUpperCase() + str.substring(1);
+			if (fieldType == int.class) {
+				name = "Integer";
+			}
+
+			Method method = map.getClass().getMethod("get" + name, String.class);
+			return method.invoke(map, path);
+		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+			return map.get(path, fieldType);
+		}
+	}
+
+	/**
 	 * Get the name under which the value will be located in SerializedMap.
 	 * Based on user-defined AutoSerialize.format() and is lower_underscore by default.
+	 * @author Rubix327
 	 */
 	private static String getFormattedFieldName(Class<?> classOf, Field field) {
 		String name = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, field.getName());

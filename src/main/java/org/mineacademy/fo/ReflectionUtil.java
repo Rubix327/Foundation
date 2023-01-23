@@ -1254,4 +1254,42 @@ public final class ReflectionUtil {
 			return overField && isEnabled;
 		}
 	}
+
+	/**
+	 * See {@link #getParent(Class, String, int)}.
+	 * @author Rubix327
+	 */
+	public static Class<?> getParent(Class<?> child, String name) throws ClassNotFoundException {
+		return getParent(child, name, 5);
+	}
+
+	/**
+	 * Get the superclass of the given child class by the given name in the given attempts
+	 * <b>in the entire hierarchy of this child class</b>.<br><br>
+	 * <b>Example:</b><br>
+	 * The hierarchy: <code>Parent3 extends Parent2 extends Parent1 extends Child</code><br>
+	 * The code: <code>getParent(child.getClass(), "Parent2", 5)</code><br><br>
+	 * In this case, classes beginning with <code>Child</code> would be scanned 
+	 * one by one and the search would stop at <code>Parent2</code> class.
+	 * An <code>attempt</code> is counted when there is a transaction from one class to another
+	 * (e.g., Child -> Parent1, Parent1 -> Parent2, etc.), therefore the 'attempts' parameter must
+	 * always be above zero.
+	 * @param child the child class to get the parent from
+	 * @param name the name of the superclass
+	 * @param attempts attempts (default = 5)
+	 * @return the required class by the given name
+	 * @throws ClassNotFoundException if class does not exist or not found in the given attempts
+	 * @author Rubix327
+	 */
+	public static Class<?> getParent(Class<?> child, String name, int attempts) throws ClassNotFoundException {
+		if (attempts == 0){
+			throw new ClassNotFoundException("Class " + name + " not found");
+		}
+		Class<?> sup = child.getSuperclass();
+		if (sup.getSimpleName().equals(name)){
+			return sup;
+		} else {
+			return getParent(sup, name, attempts - 1);
+		}
+	}
 }

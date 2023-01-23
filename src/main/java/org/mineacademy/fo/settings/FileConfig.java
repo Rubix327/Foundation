@@ -19,6 +19,7 @@ import org.mineacademy.fo.command.SimpleCommandGroup;
 import org.mineacademy.fo.exception.EventHandledException;
 import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.model.*;
+import org.mineacademy.fo.plugin.SimplePlugin;
 import org.mineacademy.fo.remain.CompMaterial;
 import org.mineacademy.fo.remain.Remain;
 
@@ -27,6 +28,7 @@ import java.io.*;
 import java.lang.reflect.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.function.Function;
 
@@ -45,7 +47,7 @@ public abstract class FileConfig {
 	 * Represents "null" which you can use as convenience shortcut in loading config
 	 * that has no internal from path.
 	 */
-	public static final String NO_DEFAULT = null;
+	protected static final String NO_DEFAULT = null;
 
 	/**
 	 * Switches how you'd like to store the content of the settings file. Defaults to YAML.
@@ -128,7 +130,7 @@ public abstract class FileConfig {
 	 * @return
 	 */
 	@NonNull
-	public final Set<String> getKeys(boolean deep) {
+	protected final Set<String> getKeys(boolean deep) {
 		return this.section.getKeys(deep);
 	}
 
@@ -142,7 +144,7 @@ public abstract class FileConfig {
 	 * 			   key and print out the results to console to understand the differences
 	 */
 	@Deprecated
-	public final Map<String, Object> getValues(boolean deep) {
+	protected final Map<String, Object> getValues(boolean deep) {
 		return this.section.getValues(deep);
 	}
 
@@ -160,7 +162,7 @@ public abstract class FileConfig {
 	 * @param deserializeParams
 	 * @return
 	 */
-	public final <T> T get(final String path, final Class<T> type, Object... deserializeParams) {
+	protected final <T> T get(final String path, final Class<T> type, Object... deserializeParams) {
 		return this.get(path, type, null, deserializeParams);
 	}
 
@@ -181,7 +183,7 @@ public abstract class FileConfig {
 	 * @param deserializeParams
 	 * @return
 	 */
-	public final <T> T get(@NonNull String path, Class<T> type, T def, Object... deserializeParams) {
+	protected final <T> T get(@NonNull String path, Class<T> type, T def, Object... deserializeParams) {
 
 		path = this.buildPathPrefix(path);
 
@@ -190,18 +192,21 @@ public abstract class FileConfig {
 
 		Object raw = this.section.retrieve(path);
 
-		if (this.defaults != null && def == null)
+		if (this.defaults != null && def == null){
 			Valid.checkNotNull(raw, "Failed to set '" + path + "' to " + type.getSimpleName() + " from default config's value: " + this.defaults.retrieve(path));
+		}
 
 		if (raw != null) {
 
 			// Workaround for empty lists
-			if (raw.equals("[]") && type == List.class)
+			if (raw.equals("[]") && type == List.class){
 				raw = new ArrayList<>();
+			}
 
 			// Retype manually
-			if (type == Long.class && raw instanceof Integer)
+			if (type == Long.class && raw instanceof Integer){
 				raw = ((Integer) raw).longValue();
+			}
 
 			raw = SerializeUtil.deserialize(this.mode, type, raw, deserializeParams);
 			this.checkAssignable(path, raw, type);
@@ -234,8 +239,12 @@ public abstract class FileConfig {
 		if (!type.isAssignableFrom(object.getClass()) && !type.getSimpleName().equals(object.getClass().getSimpleName())) {
 
 			// Exceptions
-			if (ConfigSerializable.class.isAssignableFrom(type) && object instanceof ConfigSection)
+			if (ConfigSerializable.class.isAssignableFrom(type) && object instanceof ConfigSection) {
 				return;
+			}
+			if (Set.class.isAssignableFrom(type) && object instanceof List){
+				return;
+			}
 
 			throw new FoException("Malformed configuration! Key '" + path + "' in " + this.getFileName() + " must be " + type.getSimpleName() + " but got " + object.getClass().getSimpleName() + ": '" + object + "'");
 		}
@@ -254,7 +263,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @return
 	 */
-	public final String getString(final String path) {
+	protected final String getString(final String path) {
 		return this.getString(path, null);
 	}
 
@@ -268,7 +277,7 @@ public abstract class FileConfig {
 	 * @param def
 	 * @return
 	 */
-	public final String getString(final String path, final String def) {
+	protected final String getString(final String path, final String def) {
 		final Object object = this.getObject(path, def);
 
 		if (object == null)
@@ -306,7 +315,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @return
 	 */
-	public final Boolean getBoolean(final String path) {
+	protected final Boolean getBoolean(final String path) {
 		return this.getBoolean(path, null);
 	}
 
@@ -318,7 +327,7 @@ public abstract class FileConfig {
 	 * @param def
 	 * @return
 	 */
-	public final Boolean getBoolean(final String path, final Boolean def) {
+	protected final Boolean getBoolean(final String path, final Boolean def) {
 		return this.get(path, Boolean.class, def);
 	}
 
@@ -329,7 +338,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @return
 	 */
-	public final Integer getInteger(final String path) {
+	protected final Integer getInteger(final String path) {
 		return this.getInteger(path, null);
 	}
 
@@ -341,7 +350,7 @@ public abstract class FileConfig {
 	 * @param def
 	 * @return
 	 */
-	public final Integer getInteger(final String path, final Integer def) {
+	protected final Integer getInteger(final String path, final Integer def) {
 		return this.get(path, Integer.class, def);
 	}
 
@@ -352,7 +361,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @return
 	 */
-	public final Long getLong(final String path) {
+	protected final Long getLong(final String path) {
 		return this.getLong(path, null);
 	}
 
@@ -364,7 +373,7 @@ public abstract class FileConfig {
 	 * @param def
 	 * @return
 	 */
-	public final Long getLong(final String path, final Long def) {
+	protected final Long getLong(final String path, final Long def) {
 		return this.get(path, Long.class, def);
 	}
 
@@ -375,7 +384,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @return
 	 */
-	public final Double getDouble(final String path) {
+	protected final Double getDouble(final String path) {
 		return this.getDouble(path, null);
 	}
 
@@ -387,7 +396,7 @@ public abstract class FileConfig {
 	 * @param def
 	 * @return
 	 */
-	public final Double getDouble(final String path, final Double def) {
+	protected final Double getDouble(final String path, final Double def) {
 		final Object raw = this.getObject(path, def);
 
 		if (raw != null)
@@ -406,7 +415,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @return
 	 */
-	public final Location getLocation(final String path) {
+	protected final Location getLocation(final String path) {
 		return this.getLocation(path, null);
 	}
 
@@ -421,7 +430,7 @@ public abstract class FileConfig {
 	 * @param def
 	 * @return
 	 */
-	public final Location getLocation(final String path, final Location def) {
+	protected final Location getLocation(final String path, final Location def) {
 		return this.get(path, Location.class, def);
 	}
 
@@ -432,7 +441,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @return
 	 */
-	public final OfflinePlayer getOfflinePlayer(final String path) {
+	protected final OfflinePlayer getOfflinePlayer(final String path) {
 		return this.getOfflinePlayer(path, null);
 	}
 
@@ -444,7 +453,7 @@ public abstract class FileConfig {
 	 * @param def
 	 * @return
 	 */
-	public final OfflinePlayer getOfflinePlayer(final String path, final OfflinePlayer def) {
+	protected final OfflinePlayer getOfflinePlayer(final String path, final OfflinePlayer def) {
 		return this.get(path, OfflinePlayer.class, def);
 	}
 
@@ -455,7 +464,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @return
 	 */
-	public final SimpleSound getSound(final String path) {
+	protected final SimpleSound getSound(final String path) {
 		return this.getSound(path, null);
 	}
 
@@ -467,7 +476,7 @@ public abstract class FileConfig {
 	 * @param def
 	 * @return
 	 */
-	public final SimpleSound getSound(final String path, final SimpleSound def) {
+	protected final SimpleSound getSound(final String path, final SimpleSound def) {
 		return this.get(path, SimpleSound.class, def);
 	}
 
@@ -480,7 +489,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @return
 	 */
-	public final AccusativeHelper getAccusativePeriod(final String path) {
+	protected final AccusativeHelper getAccusativePeriod(final String path) {
 		return this.getAccusativePeriod(path, null);
 	}
 
@@ -494,7 +503,7 @@ public abstract class FileConfig {
 	 * @param def
 	 * @return
 	 */
-	public final AccusativeHelper getAccusativePeriod(final String path, final String def) {
+	protected final AccusativeHelper getAccusativePeriod(final String path, final String def) {
 		final String rawLine = this.getString(path, def);
 
 		return rawLine != null ? new AccusativeHelper(rawLine) : null;
@@ -507,7 +516,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @return
 	 */
-	public final TitleHelper getTitle(final String path) {
+	protected final TitleHelper getTitle(final String path) {
 		return this.getTitle(path, null, null);
 	}
 
@@ -520,7 +529,7 @@ public abstract class FileConfig {
 	 * @param defSubtitle
 	 * @return
 	 */
-	public final TitleHelper getTitle(final String path, final String defTitle, final String defSubtitle) {
+	protected final TitleHelper getTitle(final String path, final String defTitle, final String defSubtitle) {
 		final String title = this.getString(path + ".Title", defTitle);
 		final String subtitle = this.getString(path + ".Subtitle", defSubtitle);
 
@@ -534,7 +543,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @return
 	 */
-	public final SimpleTime getTime(final String path) {
+	protected final SimpleTime getTime(final String path) {
 		return this.getTime(path, null);
 	}
 
@@ -546,7 +555,7 @@ public abstract class FileConfig {
 	 * @param def
 	 * @return
 	 */
-	public final SimpleTime getTime(final String path, final SimpleTime def) {
+	protected final SimpleTime getTime(final String path, final SimpleTime def) {
 		return this.get(path, SimpleTime.class, def);
 	}
 
@@ -559,7 +568,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @return
 	 */
-	public final Double getPercentage(String path) {
+	protected final Double getPercentage(String path) {
 		return this.getPercentage(path, null);
 	}
 
@@ -573,7 +582,7 @@ public abstract class FileConfig {
 	 * @param def
 	 * @return
 	 */
-	public final Double getPercentage(String path, Double def) {
+	protected final Double getPercentage(String path, Double def) {
 
 		final Object object = this.getObject(path, def);
 
@@ -597,7 +606,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @return
 	 */
-	public final BoxedMessage getBoxedMessage(final String path) {
+	protected final BoxedMessage getBoxedMessage(final String path) {
 		return this.getBoxedMessage(path, null);
 	}
 
@@ -609,7 +618,7 @@ public abstract class FileConfig {
 	 * @param def
 	 * @return
 	 */
-	public final BoxedMessage getBoxedMessage(final String path, final BoxedMessage def) {
+	protected final BoxedMessage getBoxedMessage(final String path, final BoxedMessage def) {
 		return this.get(path, BoxedMessage.class, def);
 	}
 
@@ -617,7 +626,7 @@ public abstract class FileConfig {
 	 * Return material from the key at the given path
 	 * (see {@link #get(String, Class, Object, Object...)}).
 	 */
-	public final Material getMaterial(final String path){
+	protected final Material getMaterial(final String path){
 		return getMaterial(path, null);
 	}
 
@@ -625,7 +634,7 @@ public abstract class FileConfig {
 	 * Return material from the key at the given path, or supply with default
 	 * (see {@link #get(String, Class, Object, Object...)}).
 	 */
-	public final Material getMaterial(final String path, Material def){
+	protected final Material getMaterial(final String path, Material def){
 		return this.get(path, Material.class, def);
 	}
 
@@ -633,7 +642,7 @@ public abstract class FileConfig {
 	 * Return CompMaterial from the key at the given path
 	 * (see {@link #get(String, Class, Object, Object...)}).
 	 */
-	public final CompMaterial getCompMaterial(final String path) {
+	protected final CompMaterial getCompMaterial(final String path) {
 		return this.getCompMaterial(path, null);
 	}
 
@@ -641,7 +650,7 @@ public abstract class FileConfig {
 	 * Return CompMaterial from the key at the given path, or supply with default
 	 * (see {@link #get(String, Class, Object, Object...)}).
 	 */
-	public final CompMaterial getCompMaterial(final String path, CompMaterial def) {
+	protected final CompMaterial getCompMaterial(final String path, CompMaterial def) {
 		return this.get(path, CompMaterial.class, def);
 	}
 
@@ -652,7 +661,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @return
 	 */
-	public final ItemStack getItemStack(@NonNull String path) {
+	protected final ItemStack getItemStack(@NonNull String path) {
 		return this.getItemStack(path, null);
 	}
 
@@ -664,7 +673,7 @@ public abstract class FileConfig {
 	 * @param def
 	 * @return
 	 */
-	public final ItemStack getItemStack(@NonNull String path, ItemStack def) {
+	protected final ItemStack getItemStack(@NonNull String path, ItemStack def) {
 		return this.get(path, ItemStack.class, def);
 	}
 
@@ -681,7 +690,7 @@ public abstract class FileConfig {
 	 * @param valueType
 	 * @return
 	 */
-	public final <K, V> Tuple<K, V> getTuple(final String key, Class<K> keyType, Class<V> valueType) {
+	protected final <K, V> Tuple<K, V> getTuple(final String key, Class<K> keyType, Class<V> valueType) {
 		return this.getTuple(key, null, keyType, valueType);
 	}
 
@@ -699,7 +708,7 @@ public abstract class FileConfig {
 	 * @param valueType
 	 * @return
 	 */
-	public final <K, V> Tuple<K, V> getTuple(final String key, final Tuple<K, V> def, Class<K> keyType, Class<V> valueType) {
+	protected final <K, V> Tuple<K, V> getTuple(final String key, final Tuple<K, V> def, Class<K> keyType, Class<V> valueType) {
 		return this.get(key, Tuple.class, def, keyType, valueType);
 	}
 
@@ -710,7 +719,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @return
 	 */
-	public final Object getObject(final String path) {
+	protected final Object getObject(final String path) {
 		return this.getObject(path, null);
 	}
 
@@ -722,7 +731,7 @@ public abstract class FileConfig {
 	 * @param def
 	 * @return
 	 */
-	public final Object getObject(final String path, final Object def) {
+	protected final Object getObject(final String path, final Object def) {
 		return this.get(path, Object.class, def);
 	}
 
@@ -738,7 +747,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @return
 	 */
-	public final LocationList getLocationList(final String path) {
+	protected final LocationList getLocationList(final String path) {
 		return new LocationList(this, this.getList(path, Location.class));
 	}
 
@@ -749,7 +758,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @return
 	 */
-	public final List<SerializedMap> getMapList(final String path) {
+	protected final List<SerializedMap> getMapList(final String path) {
 		return this.getList(path, SerializedMap.class);
 	}
 
@@ -764,7 +773,7 @@ public abstract class FileConfig {
 	 * @param type
 	 * @return
 	 */
-	public final <T> IsInList<T> getIsInList(String path, Class<T> type) {
+	protected final <T> IsInList<T> getIsInList(String path, Class<T> type) {
 		final List<String> stringList = this.getStringList(path);
 
 		if (stringList.size() == 1 && "*".equals(stringList.get(0)))
@@ -780,7 +789,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @return
 	 */
-	public final List<String> getStringList(final String path) {
+	protected final List<String> getStringList(final String path) {
 		final Object raw = this.getObject(path);
 
 		if (raw == null)
@@ -825,7 +834,7 @@ public abstract class FileConfig {
 	 * @return
 	 */
 	@Nullable
-	public final StrictList<String> getCommandList(final String path) {
+	protected final StrictList<String> getCommandList(final String path) {
 		final List<String> list = this.getStringList(path);
 		Valid.checkBoolean(!list.isEmpty(), "Please set at least one command alias in '" + path + "' (" + this.getFileName() + ") for this will be used as your main command!");
 
@@ -843,7 +852,7 @@ public abstract class FileConfig {
 	 * Return a list of materials from the key at the given path
 	 * (see {@link #get(String, Class, Object, Object...)}).
 	 */
-	public final List<Material> getMaterialList(final String path){
+	protected final List<Material> getMaterialList(final String path){
 		return this.getList(path, Material.class);
 	}
 
@@ -851,28 +860,40 @@ public abstract class FileConfig {
 	 * Return a list of CompMaterials from the key at the given path
 	 * (see {@link #get(String, Class, Object, Object...)}).
 	 */
-	public final List<CompMaterial> getCompMaterialList(final String path) {
+	protected final List<CompMaterial> getCompMaterialList(final String path) {
 		return this.getList(path, CompMaterial.class);
 	}
 
 	/**
-	 * Return a set of the given type from the key at the given path
-	 * (see {@link #get(String, Class, Object, Object...)}).
-	 *
-	 * @param <T>
-	 * @param key
-	 * @param type
-	 * @param deserializeParameters
-	 * @return
+	 * Get a new HashSet with the values from the given path.<br>
+	 * This method returns a new <b>HashSet</b> with values.<br>
+	 * To get a set of another specific type use {@link #getSet(String, Class, Set)}.
+	 * @param key the path
+	 * @param type the type of values
+	 * @return a new HashSet with the values
 	 */
-	public final <T> Set<T> getSet(final String key, final Class<T> type, final Object... deserializeParameters) {
-		final List<T> list = this.getList(key, type);
-
-		return list == null ? new HashSet<>() : new HashSet<>(list);
+	protected final <T> Set<T> getSet(final String key, final Class<T> type) {
+		return getSet(key, type, new HashSet<>());
 	}
 
 	/**
-	 * Return a list of tuples with the given key-value
+	 * Get the given set filled with the values from the given path.
+	 * If you don't specify the <code>to</code> parameter, HashSet will be used as a default.<br><br>
+	 * Example:<br>
+	 * <code>getSet("tables", Table.class, new LinkedHashSet())</code>.<br><br>
+	 * @param key the path
+	 * @param type the type of values
+	 * @param to the specific set which will be filled with values
+	 * @return a set of the given type with the values
+	 * @author Rubix327
+	 */
+	protected final <T, S extends Set<T>> S getSet(final String key, final Class<T> type, final S to){
+		to.addAll(this.getList(key, type));
+		return to;
+	}
+
+	/**
+	 * Get a list of tuples with the given key-value
 	 *
 	 * @param <K>
 	 * @param <V>
@@ -881,7 +902,7 @@ public abstract class FileConfig {
 	 * @param tupleValue
 	 * @return
 	 */
-	public final <K, V> List<Tuple<K, V>> getTupleList(final String path, final Class<K> tupleKey, final Class<V> tupleValue) {
+	protected final <K, V> List<Tuple<K, V>> getTupleList(final String path, final Class<K> tupleKey, final Class<V> tupleValue) {
 		final List<Tuple<K, V>> list = new ArrayList<>();
 
 		for (final Object object : this.getList(path))
@@ -897,17 +918,24 @@ public abstract class FileConfig {
 	}
 
 	/**
-	 * Return a list of the given type from the key at the given path
-	 * (see {@link #get(String, Class, Object, Object...)}).
-	 *
-	 * @param <T>
-	 * @param path
-	 * @param type
-	 * @param deserializeParameters
-	 * @return
+	 * Get a new ArrayList with values from the given path.<br>
+	 * To get another specific type of List, use {@link #getList(String, Class, List, Object...)}.<br>
+	 * @author Rubix327
 	 */
-	public final <T> List<T> getList(final String path, final Class<T> type, final Object... deserializeParameters) {
-		final List<T> list = new ArrayList<>();
+	protected final <T> List<T> getList(final String path, final Class<T> type, final Object... deserializeParameters) {
+		return getList(path, type, new ArrayList<>(), deserializeParameters);
+	}
+
+	/**
+	 * Fill the given list with the values from the given path and then return it.<br><br>
+	 * Example:<br>
+	 * <code>getList("effects", Effect.class, new LinkedList())</code><br><br>
+	 * @param path the path
+	 * @param type the type of values
+	 * @param to the specific list which will be filled with values
+	 * @return a specific list with the values
+	 */
+	protected final <T, L extends List<T>> L getList(final String path, final Class<T> type, final L to, final Object... deserializeParameters) {
 		final List<Object> objects = this.getList(path);
 
 		if (type == Map.class && deserializeParameters != null & deserializeParameters.length > 0 && deserializeParameters[0] != String.class)
@@ -917,13 +945,13 @@ public abstract class FileConfig {
 			object = object != null ? SerializeUtil.deserialize(this.mode, type, object, deserializeParameters) : null;
 
 			if (object != null)
-				list.add((T) object);
+				to.add((T) object);
 
 			else if (!type.isPrimitive() && type != String.class)
-				list.add(null);
+				to.add(null);
 		}
 
-		return list;
+		return to;
 	}
 
 	/**
@@ -936,10 +964,16 @@ public abstract class FileConfig {
 	 * @param path
 	 * @return
 	 */
-	public final List<Object> getList(final String path) {
+	protected final List<Object> getList(final String path) {
 		final Object obj = this.getObject(path);
 
-		return obj instanceof Collection<?> ? new ArrayList<>((Collection<Object>) obj) : obj != null ? Arrays.asList(obj) : new ArrayList<>();
+		if (obj instanceof Collection<?>){
+			return new ArrayList<>(((Collection<?>) obj));
+		} else if (obj != null){
+			return Collections.singletonList(obj);
+		} else {
+			return new ArrayList<>();
+		}
 	}
 
 	// ------------------------------------------------------------------------------------------------------------
@@ -953,7 +987,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @return
 	 */
-	public final SerializedMap getMap(final String path) {
+	protected final SerializedMap getMap(final String path) {
 		final LinkedHashMap<?, ?> map = this.getMap(path, Object.class, Object.class);
 
 		return SerializedMap.of(map);
@@ -971,7 +1005,7 @@ public abstract class FileConfig {
 	 * @param valueDeserializeParams
 	 * @return
 	 */
-	public final <Key, Value> LinkedHashMap<Key, Value> getMap(@NonNull String path, final Class<Key> keyType, final Class<Value> valueType, Object... valueDeserializeParams) {
+	protected final <Key, Value> LinkedHashMap<Key, Value> getMap(@NonNull String path, final Class<Key> keyType, final Class<Value> valueType, Object... valueDeserializeParams) {
 
 		// The map we are creating, preserve order
 		final LinkedHashMap<Key, Value> map = new LinkedHashMap<>();
@@ -1027,7 +1061,7 @@ public abstract class FileConfig {
 	 * @param setDeserializeParameters
 	 * @return
 	 */
-	public final <Key, Value> LinkedHashMap<Key, List<Value>> getMapList(@NonNull String path, final Class<Key> keyType, final Class<Value> setType, Object... setDeserializeParameters) {
+	protected final <Key, Value> LinkedHashMap<Key, List<Value>> getMapList(@NonNull String path, final Class<Key> keyType, final Class<Value> setType, Object... setDeserializeParameters) {
 
 		// The map we are creating, preserve order
 		final LinkedHashMap<Key, List<Value>> map = new LinkedHashMap<>();
@@ -1077,7 +1111,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @param value
 	 */
-	public final void save(String path, Object value) {
+	protected final void save(String path, Object value) {
 		this.set(path, value);
 
 		this.save();
@@ -1092,7 +1126,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @param value
 	 */
-	public final void set(String path, Object value) {
+	protected final void set(String path, Object value) {
 		path = this.buildPathPrefix(path);
 		value = SerializeUtil.serialize(this.mode, value);
 
@@ -1123,7 +1157,7 @@ public abstract class FileConfig {
 	 * @param path
 	 * @return
 	 */
-	public final boolean isSetDefault(String path) {
+	protected final boolean isSetDefault(String path) {
 		path = this.buildPathPrefix(path);
 
 		return this.defaults != null && this.defaults.isStored(path);
@@ -1136,7 +1170,7 @@ public abstract class FileConfig {
 	 * @param fromPathRel
 	 * @param toPathAbs
 	 */
-	public final void move(String fromPathRel, final String toPathAbs) {
+	protected final void move(String fromPathRel, final String toPathAbs) {
 		final Object oldObject = this.getObject(fromPathRel);
 
 		// Remove the old object
@@ -1252,7 +1286,7 @@ public abstract class FileConfig {
 	/**
 	 * Called automatically when the file is just created.
 	 */
-	public void onFileCreate(){
+	protected void onFileCreate(){
 	}
 
 	/**
@@ -1370,10 +1404,6 @@ public abstract class FileConfig {
 	 */
 	protected void onSave() {
 		final SerializedMap map = this.saveToMap();
-		final SerializedMap legacy = this.serialize();
-
-		if (legacy != null)
-			map.put(legacy);
 
 		if (map != null)
 			for (final Map.Entry<String, Object> entry : map.entrySet())
@@ -1512,41 +1542,27 @@ public abstract class FileConfig {
 	 * Get the deserialized object from the given path depending on its field class type.
 	 * @author Rubix327
 	 */
-	public Object getBasedOnClass(String path, Field field){
+	protected Object getBasedOnClass(String path, Field field){
 		Class<?> fieldType = field.getType();
 
 		// ***
-		// If type name does not correspond with its getter method, we use TypeMethod enum
+		// If field is a set, list, tuple or a map
 		// ***
 
-		// Convert field name to UPPER_UNDERSCORE to correspond with TypeMethod enum
-		String name = CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_UNDERSCORE, fieldType.getSimpleName());
-		TypeMethod typeMethod = null;
 		try{
-			typeMethod = TypeMethod.valueOf(name);
-		} catch (IllegalArgumentException ignored){}
-		if (typeMethod != null){
-			try {
-				return this.getClass().getMethod(typeMethod.getMethod(), String.class).invoke(this, path);
-			} catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-				throw new RuntimeException(e);
+			if (Set.class.isAssignableFrom(fieldType)){
+				Type type = ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+				return getSet(path, Class.forName(type.getTypeName()));
 			}
-		}
-
-		// ***
-		// If field is a list or a map
-		// ***
-
-		try{
-			if (fieldType == List.class){
+			else if (List.class.isAssignableFrom(fieldType)){
 				Type type = ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
 				return getList(path, Class.forName(type.getTypeName()));
 			}
-			else if (fieldType == Map.class){
+			else if (Map.class.isAssignableFrom(fieldType)){
 				Type[] types = ((ParameterizedType) field.getGenericType()).getActualTypeArguments();
 				return getMap(path, Class.forName(types[0].getTypeName()), Class.forName(types[1].getTypeName()));
 			}
-			else if (fieldType == Tuple.class){
+			else if (Tuple.class.isAssignableFrom(fieldType)){
 				Type[] types = ((ParameterizedType) field.getGenericType()).getActualTypeArguments();
 				return getTuple(path, Class.forName(types[0].getTypeName()), Class.forName(types[1].getTypeName()));
 			}
@@ -1556,19 +1572,45 @@ public abstract class FileConfig {
 		}
 
 		// ***
+		// Getting TypeMethod for those types whose getter methods does not correspond with their names
+		// ***
+
+		// Convert field name to UPPER_UNDERSCORE to correspond with TypeMethod enum
+		String name = CaseFormat.LOWER_CAMEL.to(CaseFormat.UPPER_UNDERSCORE, fieldType.getSimpleName());
+		TypeMethod typeMethod = null;
+		try{
+			typeMethod = TypeMethod.valueOf(name);
+		} catch (IllegalArgumentException ignored){}
+
+		String str = fieldType.getSimpleName();
+
+		// ***
+		// If it is a type from TypeMethod
+		// ***
+
+		if (typeMethod != null){
+			name = typeMethod.getMethod();
+
+		// ***
 		// Try to get field value by 'getSomething' method
 		// ***
 
-		try {
-			String str = fieldType.getSimpleName();
+		} else {
 			name = str.substring(0, 1).toUpperCase() + str.substring(1);
 			if (fieldType == int.class) {
 				name = "Integer";
 			}
+			name = "get" + name;
+		}
 
-			Method method = this.getClass().getMethod("get" + name, String.class);
+		try {
+			// Trying to get FileConfig class instance to invoke a method from it
+			// Note: any other ways doing that is not suitable, except
+			// making all 'get' methods public, which is unacceptable
+			Class<?> clazz = ReflectionUtil.getParent(this.getClass(), "FileConfig", 10);
+			Method method = clazz.getDeclaredMethod(name, String.class);
 			return method.invoke(this, path);
-		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | ClassNotFoundException e) {
 			return get(path, fieldType);
 		}
 	}
@@ -1577,7 +1619,7 @@ public abstract class FileConfig {
 	 * Types whose getters names do not match their names.
 	 * @author Rubix327
 	 */
-	enum TypeMethod {
+	private enum TypeMethod {
 		ACCUSATIVE_HELPER("getAccusativePeriod"),
 		SIMPLE_SOUND("getSound"),
 		TITLE_HELPER("getTitle"),
@@ -1643,25 +1685,14 @@ public abstract class FileConfig {
 	 * <br>
 	 * Returns null by default!
 	 */
-	public SerializedMap saveToMap() {
-		return null;
-	}
-
-	/**
-	 * @see #saveToMap()
-	 * @deprecated renamed, override {@link #saveToMap()} instead
-	 *
-	 * @return
-	 */
-	@Deprecated
-	protected SerializedMap serialize() {
+	protected SerializedMap saveToMap() {
 		return null;
 	}
 
 	/**
 	 * Removes the loaded file configuration from the disk.
 	 */
-	public final void deleteFile() {
+	protected final void deleteFile() {
 		synchronized (loadedSections) {
 			Valid.checkNotNull(this.file, "Cannot unregister null file before settings were loaded!");
 
@@ -1729,7 +1760,7 @@ public abstract class FileConfig {
 	 *
 	 * @return
 	 */
-	public final String getHeader() {
+	protected final @Nullable String getHeader() {
 		return this.header;
 	}
 
@@ -1739,21 +1770,21 @@ public abstract class FileConfig {
 	 *
 	 * @param values
 	 */
-	public final void setHeader(String... values) {
+	protected final void setHeader(String... values) {
 		this.header = values == null ? null : String.join("\n", values);
 	}
 
 	/**
 	 * Removes all keys in the entire configuration section
 	 */
-	public final void clear() {
+	protected final void clear() {
 		this.section.clear();
 	}
 
 	/**
 	 * Return the name of the file (if any), without file extension
 	 */
-	public String getCleanFileName() {
+	protected String getCleanFileName() {
 		final String fileName = this.getFileName();
 
 		if (!fileName.equals("null")) {
@@ -1776,8 +1807,36 @@ public abstract class FileConfig {
 	/**
 	 * Return if there are any keys set in this configuration
 	 */
-	public final boolean isEmpty() {
+	protected final boolean isEmpty() {
 		return this.section.isEmpty();
+	}
+
+	/*
+	 * Copy the given files into debug/ folder
+	 */
+	public static void copyFileToDebug(File file) throws IOException {
+		// Get the path in our folder
+		final String path = file.getPath().replace("\\", "/").replace("plugins/" + SimplePlugin.getNamed(), "");
+
+		// Create a copy file
+		final File copy = FileUtil.createIfNotExists("debug/" + path);
+
+		// Strip sensitive keys from .YML files
+		if (file.getName().endsWith(".yml")) {
+			final YamlConfig config = YamlConfig.fromFile(file);
+			final YamlConfig copyConfig = YamlConfig.fromFile(copy);
+
+			for (final String key : config.getKeys(true)) {
+				final Object value = config.getObject(key);
+
+				if (!key.contains("MySQL"))
+					copyConfig.set(key, value);
+			}
+
+			copyConfig.save(copy);
+		} else {
+			Files.copy(file.toPath(), copy.toPath(), StandardCopyOption.REPLACE_EXISTING);
+		}
 	}
 
 	// ------------------------------------------------------------------------------------

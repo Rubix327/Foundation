@@ -1,6 +1,7 @@
 package org.mineacademy.fo;
 
 import lombok.Getter;
+import org.bukkit.Bukkit;
 import org.mineacademy.fo.exception.CommandException;
 
 /**
@@ -87,4 +88,11 @@ public class Logger {
         return Common.colorize(logPrefix + s);
     }
 
+    public static void printErrors(String... lines){
+        Bukkit.getLogger().severe(Common.consoleLine());
+        for (String s : lines){
+            Bukkit.getLogger().severe(s);
+        }
+        Bukkit.getLogger().severe(Common.consoleLine());
+    }
 }

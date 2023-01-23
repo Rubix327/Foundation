@@ -285,6 +285,8 @@ public abstract class SimplePlugin extends JavaPlugin implements Listener {
 		if (!this.isEnabled())
 			return;
 
+		onPluginPreStart();
+
 		try {
 
 			// --------------------------------------------
@@ -725,6 +727,12 @@ public abstract class SimplePlugin extends JavaPlugin implements Listener {
 	 * Called before the plugin is started, see {@link JavaPlugin#onLoad()}
 	 */
 	protected void onPluginLoad() {
+	}
+
+	/**
+	 * Called when the plugin is ready to start but before all configs are
+	 */
+	protected void onPluginPreStart(){
 	}
 
 	/**

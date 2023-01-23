@@ -7,13 +7,11 @@ import org.mineacademy.fo.FileUtil;
 import org.mineacademy.fo.TimeUtil;
 import org.mineacademy.fo.plugin.SimplePlugin;
 import org.mineacademy.fo.remain.Remain;
+import org.mineacademy.fo.settings.FileConfig;
 import org.mineacademy.fo.settings.SimpleLocalization;
-import org.mineacademy.fo.settings.YamlConfig;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -93,38 +91,14 @@ public final class DebugCommand extends SimpleSubCommand {
 	 * Copy the given files into debug/ folder
 	 */
 	private void copyFilesToDebug(List<File> files) {
-
-		for (final File file : files)
+		for (final File file : files){
 			try {
-				// Get the path in our folder
-				final String path = file.getPath().replace("\\", "/").replace("plugins/" + SimplePlugin.getNamed(), "");
-
-				// Create a copy file
-				final File copy = FileUtil.createIfNotExists("debug/" + path);
-
-				// Strip sensitive keys from .YML files
-				if (file.getName().endsWith(".yml")) {
-					final YamlConfig config = YamlConfig.fromFile(file);
-					final YamlConfig copyConfig = YamlConfig.fromFile(copy);
-
-					for (final String key : config.getKeys(true)) {
-						final Object value = config.getObject(key);
-
-						if (!key.contains("MySQL"))
-							copyConfig.set(key, value);
-					}
-
-					copyConfig.save(copy);
-				}
-
-				else
-					Files.copy(file.toPath(), copy.toPath(), StandardCopyOption.REPLACE_EXISTING);
-
+				FileConfig.copyFileToDebug(file);
 			} catch (final Exception ex) {
 				ex.printStackTrace();
-
 				this.returnTell(SimpleLocalization.Commands.DEBUG_COPY_FAIL.replace("{file}", file.getName()));
 			}
+		}
 	}
 
 	/*

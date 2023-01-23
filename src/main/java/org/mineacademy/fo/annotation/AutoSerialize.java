@@ -1,6 +1,7 @@
 package org.mineacademy.fo.annotation;
 
 import com.google.common.base.CaseFormat;
+import org.mineacademy.fo.model.ConfigSerializable;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -9,7 +10,7 @@ import java.lang.annotation.Target;
 
 /**
  * This annotation automatically serializes and deserializes fields for your
- * custom class implementing {@link org.mineacademy.fo.model.ConfigSerializable}.<br><br>
+ * custom class implementing {@link ConfigSerializable}.<br><br>
  * <b>On class</b>:
  * <ul>
  * <li>Serializes and deserializes all non-static class fields</li>
@@ -33,6 +34,13 @@ public @interface AutoSerialize {
      * When false, automatic serializing and deserializing does not work for class or field above which is set.
      */
     boolean value() default true;
+
+    /**
+     * If true, firstly calls parent's 'serialize()' method and then
+     * auto-serializes the fields of this class.
+     * @return should we serialize deeply
+     */
+    boolean deep() default false;
 
     /**
      * In what format should we convert your fields to SerializedMap.<br>

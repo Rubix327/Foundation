@@ -7,6 +7,7 @@ import org.bukkit.inventory.Recipe;
 import org.mineacademy.fo.*;
 import org.mineacademy.fo.MinecraftVersion.V;
 import org.mineacademy.fo.annotation.AutoRegister;
+import org.mineacademy.fo.boss.SimpleBossSkill;
 import org.mineacademy.fo.bungee.BungeeListener;
 import org.mineacademy.fo.command.SimpleCommand;
 import org.mineacademy.fo.command.SimpleCommandGroup;
@@ -23,13 +24,8 @@ import org.mineacademy.fo.settings.YamlConfig;
 import org.mineacademy.fo.settings.YamlStaticConfig;
 
 import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.List;
+import java.lang.reflect.*;
+import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Pattern;
@@ -147,7 +143,7 @@ final class AutoRegisterScanner {
 			}
 
 		// Register command groups later
-		registerCommandGroup(classes);
+		registerCommandGroups();
 	}
 
 	/*
@@ -226,7 +222,7 @@ final class AutoRegisterScanner {
 	/*
 	 * Registers command groups, automatically assuming the main command group from the main command label
 	 */
-	private static void registerCommandGroup(List<Class<?>> classes) {
+	private static void registerCommandGroups() {
 		boolean mainCommandGroupFound = false;
 
 		for (final SimpleCommandGroup group : registeredCommandGroups) {
@@ -375,6 +371,17 @@ final class AutoRegisterScanner {
 			}
 		}
 
+		else if (SimpleBossSkill.class.isAssignableFrom(clazz)){
+			enforceModeFor(clazz, mode, FindInstance.NEW_FROM_CONSTRUCTOR);
+			try{
+				SimpleBossSkill skill = (SimpleBossSkill) clazz.getConstructor().newInstance();
+				clazz.getMethod("register").invoke(skill);
+			} catch (InvocationTargetException | InstantiationException | IllegalAccessException |
+					 NoSuchMethodException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
 		else if (Tool.class.isAssignableFrom(clazz))
 			// Automatically registered in its constructor
 			enforceModeFor(clazz, mode, FindInstance.SINGLETON);
@@ -395,6 +402,7 @@ final class AutoRegisterScanner {
 	 */
 	private static List<Class<?>> findValidClasses() {
 		final List<Class<?>> classes = new ArrayList<>();
+		final HashMap<Class<?>, Integer> priorities = new HashMap<>();
 
 		// Ignore anonymous inner classes
 		final Pattern anonymousClassPattern = Pattern.compile("\\w+\\$[0-9]$");
@@ -420,12 +428,25 @@ final class AutoRegisterScanner {
 				}
 
 				// Ignore abstract or anonymous classes
-				if (!Modifier.isAbstract(clazz.getModifiers()) && !anonymousClassPattern.matcher(className).find())
-					classes.add(clazz);
+				if (Modifier.isAbstract(clazz.getModifiers()) || anonymousClassPattern.matcher(className).find()) continue;
+
+				AutoRegister ann = clazz.getAnnotation(AutoRegister.class);
+				int priority = 0;
+				if (ann != null){
+					priority = ann.priority();
+				}
+				priorities.put(clazz, priority);
 			}
 
 		} catch (final Throwable t) {
 			Remain.sneaky(t);
+		}
+
+		// Sort the list according to the priorities
+		List<Map.Entry<Class<?>, Integer>> list = new ArrayList<>(priorities.entrySet());
+		list.sort(Map.Entry.comparingByValue(Comparator.reverseOrder()));
+		for (Map.Entry<Class<?>, Integer> entry : list) {
+			classes.add(entry.getKey());
 		}
 
 		return classes;
@@ -436,46 +457,70 @@ final class AutoRegisterScanner {
 	 * or creating a new instance from constructor if valid
 	 */
 	private static Tuple<FindInstance, Object> findInstance(Class<?> clazz) {
-		final Constructor<?>[] constructors = clazz.getDeclaredConstructors();
+		final Constructor<?> constructor;
 
 		Object instance = null;
 		FindInstance mode = null;
 
-		// Strictly limit the class to one no args constructor
-		if (constructors.length == 1) {
-			final Constructor<?> constructor = constructors[0];
+		try{
+			constructor = clazz.getDeclaredConstructor();
+			final int modifiers = constructor.getModifiers();
 
-			if (constructor.getParameterCount() == 0) {
-				final int modifiers = constructor.getModifiers();
+			// Case 1: Public constructor
+			if (Modifier.isPublic(modifiers)) {
+				instance = ReflectionUtil.instantiate(constructor);
+				mode = FindInstance.NEW_FROM_CONSTRUCTOR;
+			}
 
-				// Case 1: Public constructor
-				if (Modifier.isPublic(modifiers)) {
-					instance = ReflectionUtil.instantiate(constructor);
-					mode = FindInstance.NEW_FROM_CONSTRUCTOR;
+			// Case 2: Singleton
+			// Requires private constructor and 'private static final Class instance' field
+			else if (Modifier.isPrivate(modifiers)) {
+				List<Field> suitable = new ArrayList<>();
+				Field instanceField = null;
+
+				for (final Field field : clazz.getDeclaredFields()) {
+					final int fieldMods = field.getModifiers();
+
+					if (Modifier.isPrivate(fieldMods) && Modifier.isStatic(fieldMods) && (Modifier.isFinal(fieldMods)
+							|| Modifier.isVolatile(fieldMods))){
+						suitable.add(field);
+					}
 				}
 
-				// Case 2: Singleton
-				else if (Modifier.isPrivate(modifiers)) {
-					Field instanceField = null;
-
-					for (final Field field : clazz.getDeclaredFields()) {
-						final int fieldMods = field.getModifiers();
-
-						if (Modifier.isPrivate(fieldMods) && Modifier.isStatic(fieldMods) && (Modifier.isFinal(fieldMods) || Modifier.isVolatile(fieldMods)))
+				if (suitable.size() == 1){
+					instanceField = suitable.get(0);
+				} else {
+					for (Field field : suitable){
+						if (field.getName().equals("instance")){
 							instanceField = field;
+						}
 					}
+					if (instanceField == null){
+						Logger.printErrors(
+								"PROBLEM:",
+								"Your " + clazz + " (using @AutoRegister) contains several",
+								"'private static final' fields that all suits to be a singleton instance.",
+								"",
+								"SOLUTION:",
+								"Please make one field called 'instance' like this:",
+								"'private static final " + clazz.getSimpleName() + " instance = new " + clazz.getSimpleName() + "();'");
+						throw new FoException("Found multiple fields that claim to be a singleton. Make only one OR call one of them 'instance'.");
+					}
+				}
 
-					if (instanceField != null) {
-						instance = ReflectionUtil.getFieldContent(instanceField, (Object) null);
-						mode = FindInstance.SINGLETON;
-					}
+				if (instanceField != null) {
+					instance = ReflectionUtil.getFieldContent(instanceField, (Object) null);
+					mode = FindInstance.SINGLETON;
 				}
 			}
 
+		} catch (NoSuchMethodException e){
+			Logger.printErrors("Your " + clazz + " using @AutoRegister must EITHER have ",
+					"1) one public no arguments constructor OR ",
+					"2) one private no arguments constructor and a 'private static final "
+					+ clazz.getSimpleName() + " instance' field.");
+			throw new FoException("Class " + clazz + " using @AutoRegister does not have any no-arguments constructor.");
 		}
-
-		Valid.checkNotNull(instance, "Your class " + clazz + " using @AutoRegister must EITHER have 1) one public no arguments constructor,"
-				+ " OR 2) one private no arguments constructor and a 'private static final " + clazz.getSimpleName() + " instance' field.");
 
 		return new Tuple<>(mode, instance);
 	}

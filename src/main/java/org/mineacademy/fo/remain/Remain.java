@@ -30,8 +30,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
-import org.bukkit.scoreboard.Objective;
-import org.bukkit.scoreboard.Score;
+import org.bukkit.scoreboard.*;
 import org.mineacademy.fo.*;
 import org.mineacademy.fo.MinecraftVersion.V;
 import org.mineacademy.fo.ReflectionUtil.ReflectionException;
@@ -2004,6 +2003,80 @@ public final class Remain {
 
 			nbt.removeKey("CustomNameVisible");
 			nbt.removeKey("CustomName");
+		}
+	}
+
+	/**
+	 * Set the entity as a baby (+ enable the age lock) or as an adult.
+	 * @param entity the entity
+	 * @param isBaby true - baby, false - adult
+	 * @return false if the operation cannot be done (the entity is not Ageable)
+	 * @author Rubix327
+	 */
+	public static boolean setBabyOrAdult(final Entity entity, final boolean isBaby){
+		// Do nothing if the entity is not Ageable
+		if (!(entity instanceof Ageable)) return false;
+
+		// If the entity should be a baby, make it a baby and enable the age lock
+		if (isBaby){
+			((Ageable) entity).setBaby();
+			if (entity instanceof Breedable){
+				try{
+					((Breedable) entity).setAgeLock(true);
+				} catch (NoSuchMethodError ignored){
+					((Ageable) entity).setAgeLock(true);
+				}
+			}
+			return true;
+		// If the entity should be an adult, set it clearly
+		} else {
+			((Ageable) entity).setAdult();
+			return true;
+		}
+	}
+
+	/**
+	 * Add a passenger to the vehicle or a living entity.
+	 * @param carrier the vehicle
+	 * @param passenger the passenger
+	 * @return false if it could not be done for whatever reason
+	 * @author Rubix327
+	 */
+	public static boolean addPassenger(Entity carrier, Entity passenger){
+		if (hasAddPassenger()){
+			return carrier.addPassenger(passenger);
+		} else {
+			return carrier.setPassenger(passenger);
+		}
+	}
+
+	/**
+	 * Add the glowing effect to the entity with the specified color.
+	 * @param entity the entity
+	 * @param glowColor the color of glow
+	 * @return false - if the operation could not be done
+	 * (either no worlds are loaded or this operation is not supported on your server version)
+	 * @author Rubix327
+	 * @since MC 1.12
+	 */
+	public static boolean setGlowing(Entity entity, CompColor glowColor){
+		try{
+			entity.setGlowing(true);
+			if (glowColor != CompColor.WHITE){
+				String name = glowColor.getName().toLowerCase() + "_tm";
+
+				ScoreboardManager manager = Bukkit.getScoreboardManager();
+				if (manager == null) return false;
+
+				Scoreboard board = manager.getMainScoreboard();
+				Team team = board.getTeam(name);
+				team = team != null ? team : board.registerNewTeam(name);
+				team.setColor(glowColor.getChatColor());
+				team.addEntry(entity.getUniqueId().toString());
+			}
+			return true;
+		} catch (NoSuchMethodError ignored){
+			return false;
 		}
 	}
 

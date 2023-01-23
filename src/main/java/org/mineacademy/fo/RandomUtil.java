@@ -66,7 +66,6 @@ public final class RandomUtil {
 	 * Return true if the given percent was matched
 	 *
 	 * @param percent the percent, from 0 to 100
-	 * @return
 	 */
 	public static boolean chance(final long percent) {
 		return chance((int) percent);
@@ -76,9 +75,17 @@ public final class RandomUtil {
 	 * Return true if the given percent was matched
 	 *
 	 * @param percent the percent, from 0 to 100
-	 * @return
 	 */
 	public static boolean chance(final int percent) {
+		return chance((double) percent);
+	}
+
+	/**
+	 * Return true if the given percent was matched
+	 *
+	 * @param percent the percent, from 0.0 to 100.0
+	 */
+	public static boolean chance(final double percent){
 		return random.nextDouble() * 100D < percent;
 	}
 

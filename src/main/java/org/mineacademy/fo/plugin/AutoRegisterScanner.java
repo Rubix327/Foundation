@@ -24,7 +24,10 @@ import org.mineacademy.fo.settings.YamlConfig;
 import org.mineacademy.fo.settings.YamlStaticConfig;
 
 import java.io.IOException;
-import java.lang.reflect.*;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -89,13 +92,21 @@ final class AutoRegisterScanner {
 				// Auto register classes
 				final AutoRegister autoRegister = clazz.getAnnotation(AutoRegister.class);
 
+				// Classes that should be auto registered without the annotation
+				boolean noAnnotationRequired = false;
+				List<Class<?>> registeredWithNoAnnotation = Arrays.asList(
+						Tool.class, SimpleEnchantment.class,
+						BungeeListener.class, SimpleExpansion.class,
+						PacketListener.class, DiscordListener.class
+				);
+				for (Class<?> cl : registeredWithNoAnnotation){
+					if (cl.isAssignableFrom(clazz)){
+						noAnnotationRequired = true;
+					}
+				}
+
 				// Require our annotation to be used, or support legacy classes from Foundation 5
-				if (autoRegister != null || Tool.class.isAssignableFrom(clazz)
-						|| SimpleEnchantment.class.isAssignableFrom(clazz)
-						|| BungeeListener.class.isAssignableFrom(clazz)
-						|| SimpleExpansion.class.isAssignableFrom(clazz)
-						|| PacketListener.class.isAssignableFrom(clazz)
-						|| DiscordListener.class.isAssignableFrom(clazz)) {
+				if (autoRegister != null || noAnnotationRequired) {
 
 					if (!Modifier.isFinal(clazz.getModifiers())){
 						Logger.error(new FoException("Non final class is attempted to be auto-registered!"),
@@ -278,22 +289,22 @@ final class AutoRegisterScanner {
 		}
 
 		final SimplePlugin plugin = SimplePlugin.getInstance();
-		final Tuple<FindInstance, Object> tuple = findInstance(clazz);
+		final Tuple<InstanceType, Object> tuple = findInstance(clazz);
 
-		final FindInstance mode = tuple.getKey();
+		final InstanceType mode = tuple.getKey();
 		final Object instance = tuple.getValue();
 
 		boolean eventsRegistered = false;
 
 		if (SimpleListener.class.isAssignableFrom(clazz)) {
-			enforceModeFor(clazz, mode, FindInstance.SINGLETON);
+			enforceModeFor(clazz, mode, InstanceType.SINGLETON);
 
 			plugin.registerEvents((SimpleListener<?>) instance);
 			eventsRegistered = true;
 		}
 
 		else if (BungeeListener.class.isAssignableFrom(clazz)) {
-			enforceModeFor(clazz, mode, FindInstance.SINGLETON);
+			enforceModeFor(clazz, mode, InstanceType.SINGLETON);
 
 			if (!bungeeListenerRegistered) {
 				bungeeListenerRegistered = true;
@@ -317,7 +328,7 @@ final class AutoRegisterScanner {
 		}
 
 		else if (SimpleExpansion.class.isAssignableFrom(clazz)) {
-			enforceModeFor(clazz, mode, FindInstance.SINGLETON);
+			enforceModeFor(clazz, mode, InstanceType.SINGLETON);
 
 			Variables.addExpansion((SimpleExpansion) instance);
 		}
@@ -325,7 +336,7 @@ final class AutoRegisterScanner {
 		else if (YamlConfig.class.isAssignableFrom(clazz)) {
 
 			// Automatically called onLoadFinish when getting instance
-			enforceModeFor(clazz, mode, FindInstance.SINGLETON);
+			enforceModeFor(clazz, mode, InstanceType.SINGLETON);
 
 			if (SimplePlugin.isReloading()) {
 				((YamlConfig) instance).save();
@@ -336,19 +347,19 @@ final class AutoRegisterScanner {
 		else if (PacketListener.class.isAssignableFrom(clazz)) {
 
 			// Automatically registered by means of adding packet adapters
-			enforceModeFor(clazz, mode, FindInstance.SINGLETON);
+			enforceModeFor(clazz, mode, InstanceType.SINGLETON);
 
 			((PacketListener) instance).onRegister();
 		}
 
 		else if (DiscordListener.class.isAssignableFrom(clazz))
 			// Automatically registered in its constructor
-			enforceModeFor(clazz, mode, FindInstance.SINGLETON);
+			enforceModeFor(clazz, mode, InstanceType.SINGLETON);
 
 		else if (SimpleEnchantment.class.isAssignableFrom(clazz)) {
 
 			// Automatically registered in its constructor
-			enforceModeFor(clazz, mode, FindInstance.SINGLETON);
+			enforceModeFor(clazz, mode, InstanceType.SINGLETON);
 
 			if (!enchantListenersRegistered) {
 				enchantListenersRegistered = true;
@@ -360,41 +371,31 @@ final class AutoRegisterScanner {
 		}
 
 		else if (SimpleCraft.class.isAssignableFrom(clazz)){
-			enforceModeFor(clazz, mode, FindInstance.SINGLETON);
-			try {
-				Field field = clazz.getDeclaredField("instance");
-				field.setAccessible(true);
-				CraftingHandler.register(((SimpleCraft<? extends Recipe>) field.get(null)));
-			} catch (IllegalAccessException | NoSuchFieldException e) {
-				throw new FoException("SimpleCraft class " + clazz.getName() + " must have 'private static final " +
-						clazz.getName() + " instance' field to be registered.");
-			}
+			enforceModeFor(clazz, mode, InstanceType.SINGLETON);
+			CraftingHandler.register((SimpleCraft<? extends Recipe>) instance);
 		}
 
 		else if (SimpleBossSkill.class.isAssignableFrom(clazz)){
-			enforceModeFor(clazz, mode, FindInstance.NEW_FROM_CONSTRUCTOR);
-			try{
-				SimpleBossSkill skill = (SimpleBossSkill) clazz.getConstructor().newInstance();
-				clazz.getMethod("register").invoke(skill);
-			} catch (InvocationTargetException | InstantiationException | IllegalAccessException |
-					 NoSuchMethodException e) {
-				throw new RuntimeException(e);
-			}
+			enforceModeFor(clazz, mode, InstanceType.NEW_FROM_CONSTRUCTOR);
+			((SimpleBossSkill) instance).register();
 		}
 
 		else if (Tool.class.isAssignableFrom(clazz))
 			// Automatically registered in its constructor
-			enforceModeFor(clazz, mode, FindInstance.SINGLETON);
+			enforceModeFor(clazz, mode, InstanceType.SINGLETON);
+
 		else if (instance instanceof Listener) {
 			// Pass-through to register events later
 		}
 
-		else
+		else {
 			throw new FoException("@AutoRegister cannot be used on " + clazz);
+		}
 
 		// Register events if needed
-		if (!eventsRegistered && instance instanceof Listener)
+		if (!eventsRegistered && instance instanceof Listener) {
 			plugin.registerEvents((Listener) instance);
+		}
 	}
 
 	/*
@@ -453,14 +454,14 @@ final class AutoRegisterScanner {
 	}
 
 	/*
-	 * Tries to return instance of the given class, either by returning its singleon
-	 * or creating a new instance from constructor if valid
+	 * Tries to return instance of the given class, either by returning its singleton
+	 * or creating a new instance from a constructor
 	 */
-	private static Tuple<FindInstance, Object> findInstance(Class<?> clazz) {
+	private static Tuple<InstanceType, Object> findInstance(Class<?> clazz) {
 		final Constructor<?> constructor;
 
 		Object instance = null;
-		FindInstance mode = null;
+		InstanceType mode = null;
 
 		try{
 			constructor = clazz.getDeclaredConstructor();
@@ -469,7 +470,7 @@ final class AutoRegisterScanner {
 			// Case 1: Public constructor
 			if (Modifier.isPublic(modifiers)) {
 				instance = ReflectionUtil.instantiate(constructor);
-				mode = FindInstance.NEW_FROM_CONSTRUCTOR;
+				mode = InstanceType.NEW_FROM_CONSTRUCTOR;
 			}
 
 			// Case 2: Singleton
@@ -495,7 +496,7 @@ final class AutoRegisterScanner {
 							instanceField = field;
 						}
 					}
-					if (instanceField == null){
+					if (instanceField == null && suitable.size() != 0){
 						Logger.printErrors(
 								"PROBLEM:",
 								"Your " + clazz + " (using @AutoRegister) contains several",
@@ -510,7 +511,7 @@ final class AutoRegisterScanner {
 
 				if (instanceField != null) {
 					instance = ReflectionUtil.getFieldContent(instanceField, (Object) null);
-					mode = FindInstance.SINGLETON;
+					mode = InstanceType.SINGLETON;
 				}
 			}
 
@@ -528,15 +529,15 @@ final class AutoRegisterScanner {
 	/*
 	 * Checks if the way the given class can be made a new instance of, correspond with the required way
 	 */
-	private static void enforceModeFor(Class<?> clazz, FindInstance actual, FindInstance required) {
-		Valid.checkBoolean(required == actual, clazz + " using @AutoRegister must have " + (required == FindInstance.NEW_FROM_CONSTRUCTOR ? "a single public no args constructor"
+	private static void enforceModeFor(Class<?> clazz, InstanceType actual, InstanceType required) {
+		Valid.checkBoolean(required == actual, clazz + " using @AutoRegister must have " + (required == InstanceType.NEW_FROM_CONSTRUCTOR ? "a single public no args constructor"
 				: "one private no args constructor and a 'private static final " + clazz.getSimpleName() + " instance' field to be a singleton"));
 	}
 
 	/*
 	 * How a new instance can be made to autoregister
 	 */
-	enum FindInstance {
+	enum InstanceType {
 		NEW_FROM_CONSTRUCTOR,
 		SINGLETON
 	}

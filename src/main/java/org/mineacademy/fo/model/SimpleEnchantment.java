@@ -1,15 +1,8 @@
 package org.mineacademy.fo.model;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.regex.Pattern;
-
+import lombok.NonNull;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
@@ -22,17 +15,13 @@ import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.mineacademy.fo.ChatUtil;
-import org.mineacademy.fo.Common;
-import org.mineacademy.fo.MathUtil;
-import org.mineacademy.fo.MinecraftVersion;
+import org.mineacademy.fo.*;
 import org.mineacademy.fo.MinecraftVersion.V;
-import org.mineacademy.fo.Valid;
-import org.mineacademy.fo.plugin.SimplePlugin;
 import org.mineacademy.fo.remain.Remain;
 
-import lombok.NonNull;
-import net.md_5.bungee.api.ChatColor;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.regex.Pattern;
 
 /**
  * Represents a simple way of getting your own enchantments into Minecraft
@@ -81,12 +70,11 @@ public abstract class SimpleEnchantment extends Enchantment {
 		if (!MinecraftVersion.atLeast(V.v1_13))
 			throw new RuntimeException("SimpleEnchantment requires Minecraft 1.13.2 or greater. Cannot make " + name);
 
-		name = new String(name);
 		name = name.toLowerCase().replace(" ", "_");
 		name = ChatUtil.replaceDiacritic(name);
 
 		Valid.checkBoolean(name != null && VALID_NAMESPACE.matcher(name).matches(), "Enchant name must only contain English alphabet names: " + name);
-		return new NamespacedKey(SimplePlugin.getInstance(), name);
+		return NamespacedKey.minecraft(name);
 	}
 
 	// ------------------------------------------------------------------------------------------
@@ -178,7 +166,7 @@ public abstract class SimpleEnchantment extends Enchantment {
 	 * @return
 	 */
 	public String getLore(int level) {
-		return this.name + " " + MathUtil.toRoman(level);
+		return "&r&7" + this.name + " " + MathUtil.toRoman(level);
 	}
 
 	/**
@@ -360,7 +348,7 @@ public abstract class SimpleEnchantment extends Enchantment {
 					final String lore = ((SimpleEnchantment) e.getKey()).getLore(e.getValue());
 
 					if (lore != null && !lore.isEmpty())
-						customEnchants.add(Common.colorize("&r&7" + lore));
+						customEnchants.add(Common.colorize(lore));
 				}
 
 		} catch (final NullPointerException ex) {

@@ -19,6 +19,11 @@ import java.util.List;
 
 import static org.mineacademy.fo.MinecraftVersion.atLeast;
 
+/**
+ * The manager of custom crafting recipes.
+ *
+ * @author Rubix327
+ */
 public final class CraftingHandler {
 
     /**

@@ -196,11 +196,9 @@ public abstract class YamlStaticConfig {
 	/**
 	 * Set all fields from the given class and from its nested classes to their correspondent values from the file.
 	 */
-	public void setNestedFields(Class<?> clazz){
-		if (clazz.getDeclaredClasses().length > 0){
-			for (Class<?> inner : clazz.getDeclaredClasses()){
-				setNestedFields(inner);
-			}
+	private void setNestedFields(Class<?> clazz){
+		for (Class<?> inner : clazz.getDeclaredClasses()) {
+			setNestedFields(inner);
 		}
 		for (Field field : clazz.getDeclaredFields()){
 			AutoStaticConfig ann = field.getAnnotation(AutoStaticConfig.class);

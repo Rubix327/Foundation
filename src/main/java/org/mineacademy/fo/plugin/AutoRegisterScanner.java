@@ -13,6 +13,8 @@ import org.mineacademy.fo.command.SimpleCommand;
 import org.mineacademy.fo.command.SimpleCommandGroup;
 import org.mineacademy.fo.craft.CraftingHandler;
 import org.mineacademy.fo.craft.SimpleCraft;
+import org.mineacademy.fo.enchant.FoundationEnchantmentListener;
+import org.mineacademy.fo.enchant.SimpleEnchantment;
 import org.mineacademy.fo.event.SimpleListener;
 import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.menu.tool.Tool;
@@ -184,7 +186,7 @@ final class AutoRegisterScanner {
 				load = true;
 			}
 
-			if (load || !load && YamlStaticConfig.class.isAssignableFrom(clazz))
+			if (load || YamlStaticConfig.class.isAssignableFrom(clazz))
 				staticCustom.add(clazz);
 		}
 
@@ -279,10 +281,10 @@ final class AutoRegisterScanner {
 		}
 
 		if (PacketListener.class.isAssignableFrom(clazz) && !HookManager.isProtocolLibLoaded()) {
-			if (printWarnings && !clazz.equals(EnchantmentPacketListener.class)) {
-				Bukkit.getLogger().warning("**** WARNING ****");
-				Bukkit.getLogger().warning("The following class requires ProtocolLib and won't be registered: " + clazz.getName()
-						+ ". To hide this message, put @AutoRegister(hideIncompatibilityWarnings=true) over the class.");
+			if (printWarnings) {
+				Logger.printErrors("**** WARNING ****",
+						"The following class requires ProtocolLib and won't be registered: " + clazz.getName(),
+						". To hide this message, put @AutoRegister(hideIncompatibilityWarnings=true) over the class.");
 			}
 
 			return;
@@ -365,8 +367,6 @@ final class AutoRegisterScanner {
 				enchantListenersRegistered = true;
 
 				plugin.registerEvents(FoundationEnchantmentListener.getInstance());
-
-				EnchantmentPacketListener.getInstance().onRegister();
 			}
 		}
 

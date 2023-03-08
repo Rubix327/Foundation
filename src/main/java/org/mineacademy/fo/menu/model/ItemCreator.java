@@ -22,8 +22,6 @@ import org.mineacademy.fo.MinecraftVersion;
 import org.mineacademy.fo.MinecraftVersion.V;
 import org.mineacademy.fo.ReflectionUtil;
 import org.mineacademy.fo.Valid;
-import org.mineacademy.fo.model.SimpleEnchant;
-import org.mineacademy.fo.model.SimpleEnchantment;
 import org.mineacademy.fo.remain.*;
 import org.mineacademy.fo.remain.nbt.NBTItem;
 
@@ -272,16 +270,6 @@ public final class ItemCreator {
 		this.lores.addAll(lore);
 
 		return this;
-	}
-
-	/**
-	 * Add the given enchant to the item.
-	 *
-	 * @param enchant
-	 * @return
-	 */
-	public ItemCreator enchant(SimpleEnchant enchant) {
-		return this.enchant(enchant.getEnchant(), enchant.getLevel());
 	}
 
 	/**
@@ -824,9 +812,6 @@ public final class ItemCreator {
 		//
 		// From now on we have to re-set the item
 		//
-
-		// Apply custom enchantment lores
-		compiledItem = Common.getOrDefault(SimpleEnchantment.addEnchantmentLores(compiledItem), compiledItem);
 
 		// 1.7.10 hack to add glow, requires no enchants
 		if (this.glow && MinecraftVersion.equals(V.v1_7) && (this.enchants == null || this.enchants.isEmpty())) {

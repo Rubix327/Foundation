@@ -1,8 +1,8 @@
-package org.mineacademy.fo.model;
+package org.mineacademy.fo.enchant;
 
-import java.util.Map.Entry;
-import java.util.function.BiConsumer;
-
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -20,21 +20,18 @@ import org.mineacademy.fo.MinecraftVersion;
 import org.mineacademy.fo.MinecraftVersion.V;
 import org.mineacademy.fo.remain.Remain;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import java.util.Map.Entry;
+import java.util.function.BiConsumer;
 
 /**
  * Listens and executes events for {@link SimpleEnchantment}
  * <p>
- * @deprecated Internal use only!
  */
-@Deprecated
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class FoundationEnchantmentListener implements Listener {
 
 	@Getter
-	private static volatile Listener instance = new FoundationEnchantmentListener();
+	private static final FoundationEnchantmentListener instance = new FoundationEnchantmentListener();
 
 	@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
 	public void onEntityDamage(EntityDamageByEntityEvent event) {
@@ -74,17 +71,47 @@ public final class FoundationEnchantmentListener implements Listener {
 		}
 	}
 
-	private void execute(LivingEntity source, BiConsumer<SimpleEnchantment, Integer> executer) {
+	/**
+	 * Executes the given executor function on the item
+	 * held in the main hand of the given living entity
+	 * for all its custom enchantments.
+	 * @param entity the living entity
+	 * @param executer the function to execute
+	 */
+	@SuppressWarnings("deprecation")
+	public void execute(LivingEntity entity, BiConsumer<SimpleEnchantment, Integer> executer) {
 		try {
-			final ItemStack hand = source instanceof Player ? ((Player) source).getItemInHand() : source.getEquipment().getItemInHand();
+			boolean isPlayer = entity instanceof Player;
+			final ItemStack hand;
+			if (isPlayer){
+				hand = ((Player)entity).getItemInHand();
+			} else {
+				if (entity.getEquipment() == null) return;
+				hand = entity.getEquipment().getItemInHand();
+			}
 
-			if (hand != null)
-				for (final Entry<SimpleEnchantment, Integer> e : SimpleEnchantment.findEnchantments(hand).entrySet())
-					executer.accept(e.getKey(), e.getValue());
-
+			this.execute(hand, executer);
 		} catch (final NoSuchMethodError ex) {
-			if (Remain.hasItemMeta())
+			if (Remain.hasItemMeta()){
 				ex.printStackTrace();
+			}
+		}
+	}
+
+	/**
+	 * Executes the given executor function on the given item for all its custom enchantments.
+	 * @param item the item
+	 * @param executer the function to execute
+	 */
+	public void execute(ItemStack item, BiConsumer<SimpleEnchantment, Integer> executer){
+		try{
+			for (final Entry<SimpleEnchantment, Integer> e : SimpleEnchantment.findEnchantments(item).entrySet()) {
+				executer.accept(e.getKey(), e.getValue());
+			}
+		} catch (final NoSuchMethodError ex) {
+			if (Remain.hasItemMeta()){
+				ex.printStackTrace();
+			}
 		}
 	}
 }

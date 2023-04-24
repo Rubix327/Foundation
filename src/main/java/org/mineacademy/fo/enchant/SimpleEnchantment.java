@@ -19,7 +19,6 @@ import org.jetbrains.annotations.Nullable;
 import org.mineacademy.fo.*;
 import org.mineacademy.fo.MinecraftVersion.V;
 import org.mineacademy.fo.remain.Remain;
-import testserver.enchants.DoubleLootEnchant;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -41,6 +40,7 @@ import static org.mineacademy.fo.enchant.EnchantStatus.*;
  * @author kangarko
  * @author Rubix327
  */
+@SuppressWarnings("unused")
 public abstract class SimpleEnchantment extends Enchantment {
 
 	/**
@@ -277,7 +277,7 @@ public abstract class SimpleEnchantment extends Enchantment {
 	public final int getCurrentLevel(ItemStack item){
 		if (item.hasItemMeta()){
 			assert item.getItemMeta() != null;
-			return item.getItemMeta().getEnchantLevel(DoubleLootEnchant.getInstance());
+			return item.getItemMeta().getEnchantLevel(this);
 		}
 		return 0;
 	}

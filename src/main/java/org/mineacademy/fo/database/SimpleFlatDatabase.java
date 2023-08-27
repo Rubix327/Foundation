@@ -1,12 +1,6 @@
 package org.mineacademy.fo.database;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nullable;
-
+import lombok.NonNull;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.mineacademy.fo.ChatUtil;
@@ -18,7 +12,11 @@ import org.mineacademy.fo.debug.Debugger;
 import org.mineacademy.fo.debug.LagCatcher;
 import org.mineacademy.fo.settings.SimpleSettings;
 
-import lombok.NonNull;
+import javax.annotation.Nullable;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Represents a simple database where values are flattened and stored
@@ -26,8 +24,8 @@ import lombok.NonNull;
  * <p>
  * The table structure is as follows:
  * <p>
- * UUID varchar(64) | Name text       | Data text      | Updated bigint
- * ------------------------------------------------------------
+ * UUID varchar(64) | Name text       | Data text      | Updated bigint<br>
+ * ------------------------------------------------------------<br>
  * Player's uuid    | Last known name | {json data}    | Date of last save call
  * <p>
  * We use JSON to flatten those values and provide convenience methods
@@ -36,17 +34,17 @@ import lombok.NonNull;
  * Also see getExpirationDays(), by default we remove values not touched
  * within the last 90 days.
  * <p>
- * For a less-restricting solution see {@link SimpleDatabase} however you will
+ * For a less-restricting solution see {@link SimpleDatabaseManager} however you will
  * need to run own queries and implement own table structure that requires MySQL
  * command syntax knowledge.
  *
  * @param <T> the model you use to load/save entries, such as your player cache
  */
-public abstract class SimpleFlatDatabase<T> extends SimpleDatabase {
+public abstract class SimpleFlatDatabase<T> extends SimpleDatabaseManager {
 
 	/**
 	 * An internal flag to prevent dead lock so that we do not call any
-	 * more queries within the {@link #load(UUID, Object)} or {@link #save(UUID, Object)} methods
+	 * more queries within the {@link #load(UUID, Object)} or {@link #save(Player, Object)} methods
 	 */
 	private boolean isQuerying = false;
 
@@ -93,8 +91,6 @@ public abstract class SimpleFlatDatabase<T> extends SimpleDatabase {
 	 * for the given amount of days.
 	 * <p>
 	 * Default: 90 days
-	 *
-	 * @return
 	 */
 	protected int getExpirationDays() {
 		return 90;
@@ -102,9 +98,6 @@ public abstract class SimpleFlatDatabase<T> extends SimpleDatabase {
 
 	/**
 	 * Load the data for the given unique ID and his cache
-	 *
-	 * @param player
-	 * @param cache
 	 */
 	public final void load(final Player player, final T cache) {
 		this.load(player.getUniqueId(), cache, null);
@@ -112,9 +105,6 @@ public abstract class SimpleFlatDatabase<T> extends SimpleDatabase {
 
 	/**
 	 * Load the data for the given unique ID and his cache
-	 *
-	 * @param player
-	 * @param cache
 	 * @param runAfterLoad callback synced on the main thread
 	 */
 	public final void load(final Player player, final T cache, @Nullable Runnable runAfterLoad) {
@@ -123,9 +113,6 @@ public abstract class SimpleFlatDatabase<T> extends SimpleDatabase {
 
 	/**
 	 * Load the data for the given unique ID and his cache
-	 *
-	 * @param uuid
-	 * @param cache
 	 */
 	public final void load(final UUID uuid, final T cache) {
 		this.load(uuid, cache, null);
@@ -133,13 +120,10 @@ public abstract class SimpleFlatDatabase<T> extends SimpleDatabase {
 
 	/**
 	 * Load the data for the given unique ID and his cache async.
-	 *
-	 * @param uuid
-	 * @param cache
 	 * @param runAfterLoad callback synced on the main thread
 	 */
 	public final void load(final UUID uuid, final T cache, @Nullable Runnable runAfterLoad) {
-		if (!this.isLoaded() || this.isQuerying)
+		if (!this.getConnector().isLoaded() || this.isQuerying)
 			return;
 
 		LagCatcher.start("mysql");
@@ -202,11 +186,8 @@ public abstract class SimpleFlatDatabase<T> extends SimpleDatabase {
 
 	/**
 	 * Save the data for the given name, unique ID and his cache
-	 * <p>
+	 * <br><br>
 	 * If the onSave returns empty data we delete the row
-	 *
-	 * @param player
-	 * @param cache
 	 */
 	public final void save(final Player player, final T cache) {
 		this.save(player.getName(), player.getUniqueId(), cache);
@@ -214,12 +195,8 @@ public abstract class SimpleFlatDatabase<T> extends SimpleDatabase {
 
 	/**
 	 * Save the data for the given name, unique ID and his cache
-	 * <p>
+	 * <br><br>
 	 * If the onSave returns empty data we delete the row
-	 *
-	 * @param name
-	 * @param uuid
-	 * @param cache
 	 */
 	public final void save(final String name, final UUID uuid, final T cache) {
 		this.save(name, uuid, cache, null);
@@ -227,11 +204,8 @@ public abstract class SimpleFlatDatabase<T> extends SimpleDatabase {
 
 	/**
 	 * Save the data for the given name, unique ID and his cache
-	 * <p>
+	 * <br><br>
 	 * If the onSave returns empty data we delete the row
-	 *
-	 * @param player
-	 * @param cache
 	 * @param runAfterSave sync callback to be run when save is done
 	 */
 	public final void save(final Player player, final T cache, @Nullable final Runnable runAfterSave) {
@@ -240,16 +214,12 @@ public abstract class SimpleFlatDatabase<T> extends SimpleDatabase {
 
 	/**
 	 * Save the data for the given name, unique ID and his cache async.
-	 *
+	 * <br><br>
 	 * If the onSave returns empty data we delete the row
-	 *
-	 * @param name
-	 * @param uuid
-	 * @param cache
 	 * @param runAfterSave sync callback to be run when save is done
 	 */
 	public final void save(final String name, final UUID uuid, final T cache, @Nullable final Runnable runAfterSave) {
-		if (!this.isLoaded() || this.isQuerying)
+		if (!this.getConnector().isLoaded() || this.isQuerying)
 			return;
 
 		LagCatcher.start("mysql");
@@ -278,7 +248,7 @@ public abstract class SimpleFlatDatabase<T> extends SimpleDatabase {
 					this.update("INSERT INTO {table}(UUID, Name, Data, Updated) VALUES ('" + uuid + "', '" + name + "', '" + data.toJson() + "', '" + System.currentTimeMillis() + "');");
 
 				if (runAfterSave != null)
-					Common.runLater(() -> runAfterSave.run());
+					Common.runLater(runAfterSave);
 
 			} catch (final Throwable ex) {
 				Common.error(ex,
@@ -329,11 +299,8 @@ public abstract class SimpleFlatDatabase<T> extends SimpleDatabase {
 
 	/**
 	 * Your method to save the data for the given unique ID and his cache
-	 * <p>
+	 * <br><br>
 	 * Return an empty data to delete the row
-	 *
-	 * @param data
-	 * @return
 	 */
 	protected abstract SerializedMap onSave(T data);
 }

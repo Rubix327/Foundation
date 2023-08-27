@@ -113,7 +113,7 @@ public final class SerializeUtil {
 			ConfigSerializable obj = (ConfigSerializable) object;
 
 			if (obj instanceof AutoSerializable){
-				return autoSerialize(obj);
+				return autoSerialize(obj).serialize();
 			}
 
 			// Default serialization and Auto-serialization
@@ -353,7 +353,7 @@ public final class SerializeUtil {
 		SerializedMap map = new SerializedMap();
 
 		// Get the map from super class if deep=true
-		if (instance.serializeDeeply() && superCl != ConfigSerializable.class){
+		if (instance.serializeDeeply() && superCl != AutoSerializable.class){
 			// TODO what if the super class does not implement ConfigSerializable?
 			try {
 				map = (SerializedMap) superCl.getDeclaredMethod("serialize").invoke(object);

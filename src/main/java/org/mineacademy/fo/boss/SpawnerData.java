@@ -5,7 +5,7 @@ import org.bukkit.block.CreatureSpawner;
 import org.bukkit.entity.EntityType;
 import org.jetbrains.annotations.NotNull;
 import org.mineacademy.fo.annotation.AutoSerialize;
-import org.mineacademy.fo.model.ConfigSerializable;
+import org.mineacademy.fo.model.AutoSerializable;
 
 /**
  * This class encapsulates data for spawners.
@@ -19,7 +19,7 @@ import org.mineacademy.fo.model.ConfigSerializable;
 @AutoSerialize
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public final class SpawnerData implements ConfigSerializable {
+public final class SpawnerData implements AutoSerializable {
     /**
      * The type of the entity which is spinning in the spawner.<br>
      * Default: EntityType.PIG

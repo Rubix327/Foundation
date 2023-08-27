@@ -4,6 +4,10 @@ import lombok.Getter;
 import org.bukkit.enchantments.Enchantment;
 import org.mineacademy.fo.Logger;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * An easy way to represent checks results on enchanting.
  *
@@ -48,10 +52,10 @@ public class EnchantStatus {
     public static EnchantStatus ALREADY_ENCHANTED = new EnchantStatus(6, true);
 
     /**
-     * The last code used.<br>
-     * Begins with 10 because 0-9 codes are reserved for the built-in statuses.
+     * The codes used by the user.<br>
+     * Does not contain system's used codes.
      */
-    public static int lastCode = 10;
+    public static List<Integer> usedCodes = new ArrayList<>();
 
     @Getter
     private final int code;
@@ -62,7 +66,7 @@ public class EnchantStatus {
      * The constructor with the automatic code generation.
      */
     public EnchantStatus() {
-        this(lastCode++);
+        this(usedCodes.isEmpty() ? 10 : Collections.max(usedCodes) + 1);
     }
 
     /**
@@ -70,15 +74,17 @@ public class EnchantStatus {
      */
     public EnchantStatus(int code) {
         if (code >= 0 && code <= 9){
-            Logger.printErrors("EnchantStatus codes from 0 to 9 is reserved for the system.",
+            Logger.printErrors("EnchantStatus codes from 0 to 9 are reserved for the system.",
                     "Please choose a code greater than 9 or use no-args constructor.");
-            throw new RuntimeException("EnchantStatus codes from 0 to 9 is reserved for the system.");
+            throw new RuntimeException("EnchantStatus codes from 0 to 9 are reserved for the system.");
         }
-        if (code <= lastCode){
+        if (usedCodes.contains(code)){
             Logger.printErrors("EnchantStatus code " + code + " is already taken by another status.",
                     "Please choose another code for your EnchantStatus.");
             throw new RuntimeException("EnchantStatus code " + code + " is already taken by another status.");
         }
+
+        usedCodes.add(code);
         this.code = code;
         this.builtin = false;
     }

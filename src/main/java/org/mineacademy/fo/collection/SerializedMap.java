@@ -20,6 +20,9 @@ import org.mineacademy.fo.remain.CompMaterial;
 import org.mineacademy.fo.remain.Remain;
 import org.mineacademy.fo.settings.ConfigSection;
 
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.BiConsumer;
@@ -1096,13 +1099,31 @@ public final class SerializedMap extends StrictCollection implements Iterable<Ma
 	}
 
 	/**
-	 * Parses the given object into Serialized map
-	 *
-	 * @param object
+	 * Parses the given object into SerializedMap
 	 * @return the serialized map, or an empty map if object could not be parsed
 	 */
 	public static SerializedMap of(@NonNull Object object) {
 		return of(object, Mode.YAML);
+	}
+
+	/**
+	 * Parses the given ResultSet into SerializedMap
+	 */
+	public static SerializedMap of(@NonNull ResultSet set){
+		SerializedMap map = new SerializedMap();
+		try{
+			ResultSetMetaData rsmd = set.getMetaData();
+			int columnCount = rsmd.getColumnCount();
+
+			for (int i = 1; i <= columnCount; i++ ) {
+				String name = rsmd.getColumnName(i);
+				Object value = set.getObject(name);
+				map.put(name, value);
+			}
+		} catch (SQLException e){
+			throw new FoException("SQLException: " + e.getMessage());
+		}
+		return map;
 	}
 
 	/*
@@ -1124,6 +1145,10 @@ public final class SerializedMap extends StrictCollection implements Iterable<Ma
 
 		if (object instanceof ConfigSection)
 			return of(((ConfigSection) object).getValues(false));
+
+		if (object instanceof ResultSet){
+			return of((ResultSet) object);
+		}
 
 		if (object instanceof Map) {
 			final Map<String, Object> copyOf = new LinkedHashMap<>();

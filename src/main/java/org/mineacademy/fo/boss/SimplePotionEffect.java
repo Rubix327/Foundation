@@ -5,8 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.mineacademy.fo.annotation.SerializeToString;
-import org.mineacademy.fo.model.ConfigSerializable;
+import org.jetbrains.annotations.NotNull;
+import org.mineacademy.fo.model.StringSerializable;
 
 /**
  * Potion effect wrapper that can be easily serialized to a full-properties string.
@@ -16,9 +16,8 @@ import org.mineacademy.fo.model.ConfigSerializable;
  */
 @Getter
 @Setter
-@SerializeToString
 @AllArgsConstructor
-public final class SimplePotionEffect implements ConfigSerializable {
+public final class SimplePotionEffect implements StringSerializable {
 
     /**
      * The type of the potion.
@@ -64,7 +63,8 @@ public final class SimplePotionEffect implements ConfigSerializable {
     }
 
     @Override
-    public String serializeToString(){
+    @NotNull
+    public String serialize(){
         return type.getName() + " " + duration + " " + amplifier + " " + ambient + " " + particles + " " + icon;
     }
 

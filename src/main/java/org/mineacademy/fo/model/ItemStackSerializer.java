@@ -32,7 +32,7 @@ import java.util.*;
 @AutoSerialize
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public final class ItemStackSerializer implements ConfigSerializable{
+public final class ItemStackSerializer implements AutoSerializable{
 
     private Material type = Material.AIR;
     private int amount = 0;

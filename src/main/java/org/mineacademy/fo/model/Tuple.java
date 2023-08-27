@@ -1,12 +1,11 @@
 package org.mineacademy.fo.model;
 
+import lombok.Data;
 import org.mineacademy.fo.SerializeUtil;
 import org.mineacademy.fo.SerializeUtil.Mode;
 import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.collection.SerializedMap;
 import org.mineacademy.fo.exception.FoException;
-
-import lombok.Data;
 
 /**
  * Simple tuple for key-value pairs

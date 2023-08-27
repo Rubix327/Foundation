@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.mineacademy.fo.annotation.AutoSerialize;
-import org.mineacademy.fo.model.ConfigSerializable;
+import org.mineacademy.fo.model.AutoSerializable;
 import org.mineacademy.fo.model.ItemStackSerializer;
 
 import java.util.ArrayList;
@@ -21,7 +21,7 @@ import java.util.List;
  */
 @Getter
 @AutoSerialize
-public final class SimpleDropTable implements ConfigSerializable {
+public final class SimpleDropTable implements AutoSerializable {
 
     private List<ItemStackSerializer> table = new ArrayList<>();
     private double chance = 50;

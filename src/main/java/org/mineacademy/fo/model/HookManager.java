@@ -31,7 +31,6 @@ import github.scarsz.discordsrv.util.DiscordUtil;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import me.clip.placeholderapi.PlaceholderAPI;
 import me.clip.placeholderapi.PlaceholderAPIPlugin;
 import me.clip.placeholderapi.PlaceholderHook;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
@@ -73,6 +72,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Our main class hooking into different plugins, providing you
@@ -178,7 +178,7 @@ public final class HookManager {
 
 				try {
 					mplayer = Class.forName("com.massivecraft.factions.entity.MPlayer"); // only support the free version of the plugin
-				} catch (final ClassNotFoundException ex) {
+				} catch (final ClassNotFoundException ignored) {
 				}
 
 				if (mplayer != null)
@@ -2413,7 +2413,8 @@ class PlaceholderAPIHook {
 	}
 
 	private String setRelationalPlaceholders(final Player one, final Player two, String text) {
-		final Map<String, PlaceholderHook> hooks = PlaceholderAPI.getPlaceholders();
+		final Map<String, PlaceholderHook> hooks = PlaceholderAPIPlugin.getInstance().getLocalExpansionManager()
+				.getExpansions().stream().collect(Collectors.toMap(PlaceholderExpansion::getIdentifier, ex -> ex));;
 
 		if (hooks.isEmpty())
 			return text;
@@ -2429,7 +2430,7 @@ class PlaceholderAPIHook {
 			final String format = matcher.group(2);
 			final int index = format.indexOf("_");
 
-			if (index <= 0 || index >= format.length())
+			if (index <= 0)
 				continue;
 
 			final String identifier = format.substring(0, index);
@@ -2465,8 +2466,8 @@ class PlaceholderAPIHook {
 		}
 
 		/**
-		 * Because this is a internal class, this check is not needed
-		 * and we can simply return {@code true}
+		 * Because this is an internal class, this check is not needed,
+		 * so we can simply return {@code true}
 		 *
 		 * @return Always true since it's an internal class.
 		 */
@@ -3208,7 +3209,19 @@ class CMIHook {
 		final CMIUser user = this.getUser(player);
 
 		if (user != null)
-			user.setGod(godMode);
+			try {
+				CMI.getInstance().getNMS().changeGodMode(player, godMode);
+
+			} catch (final Throwable tt) {
+				try {
+					final Method setGod = CMIUser.class.getMethod("setGod", Boolean.class);
+
+					setGod.invoke(user, godMode);
+
+				} catch (final Throwable t) {
+					// unavailable
+				}
+			}
 	}
 
 	void setLastTeleportLocation(final Player player, final Location location) {

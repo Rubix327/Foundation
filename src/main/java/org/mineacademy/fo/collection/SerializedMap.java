@@ -1188,7 +1188,8 @@ public final class SerializedMap extends StrictCollection implements Iterable<Ma
 		if (object instanceof List && ((List<?>) object).isEmpty())
 			return new SerializedMap(mode);
 
-		throw new FoException("Cannot instantiate SerializedMap(" + mode + ") from " + object.getClass().getSimpleName() + ": " + object);
+		throw new FoException("Cannot instantiate SerializedMap(" + mode + ") from " + object.getClass().getSimpleName() + ": " + object + "\n" +
+				"If you are using this object as a key in your map, then it cannot be deserialized as a key. Use a custom class instead of a map.");
 	}
 
 	/**

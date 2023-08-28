@@ -599,7 +599,7 @@ public final class SerializeUtil {
 		else if (classOf == CompColor.class)
 			object = CompColor.valueOf(object.toString());
 
-		else if (classOf == ItemStack.class && mode == Mode.JSON)
+		else if (classOf == ItemStack.class)
 			object = deserializeItemStack(mode, object);
 
 		else if (classOf == UUID.class)

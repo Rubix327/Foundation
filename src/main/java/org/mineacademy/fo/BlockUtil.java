@@ -11,6 +11,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.util.Vector;
+import org.jetbrains.annotations.NotNull;
 import org.mineacademy.fo.MinecraftVersion.V;
 import org.mineacademy.fo.remain.CompMaterial;
 import org.mineacademy.fo.remain.Remain;
@@ -22,6 +23,7 @@ import java.util.regex.Pattern;
 /**
  * Utility class for block manipulation.
  */
+@SuppressWarnings({"unused", "DuplicatedCode"})
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class BlockUtil {
 
@@ -61,11 +63,6 @@ public final class BlockUtil {
 
 	/**
 	 * Returns true if the given location is within the two vector cuboid bounds
-	 *
-	 * @param location
-	 * @param primary
-	 * @param secondary
-	 * @return
 	 */
 	public static boolean isWithinCuboid(final Location location, final Location primary, final Location secondary) {
 		final double locX = location.getX();
@@ -82,18 +79,14 @@ public final class BlockUtil {
 
 		if (locX >= x && locX <= x1 || locX <= x && locX >= x1)
 			if (locZ >= z && locZ <= z1 || locZ <= z && locZ >= z1)
-				if (locY >= y && locY <= y1 || locY <= y && locY >= y1)
-					return true;
+				return locY >= y && locY <= y1 || locY <= y && locY >= y1;
 
 		return false;
 	}
 
 	/**
-	 * Return locations representing the bounding box of a chunk,
+	 * Return locations representing the bounding box (walls) of a chunk,
 	 * used when rendering particle effects for example.
-	 *
-	 * @param chunk
-	 * @return
 	 */
 	public static Set<Location> getBoundingBox(@NonNull Chunk chunk) {
 		final int minX = chunk.getX() << 4;
@@ -111,12 +104,8 @@ public final class BlockUtil {
 	}
 
 	/**
-	 * Return locations representing the bounding box of a cuboid region,
+	 * Return locations representing the bounding box (walls) of a cuboid region,
 	 * used when rendering particle effects
-	 *
-	 * @param primary
-	 * @param secondary
-	 * @return
 	 */
 	public static Set<Location> getBoundingBox(final Location primary, final Location secondary) {
 		final List<VectorHelper> shape = new ArrayList<>();
@@ -135,7 +124,7 @@ public final class BlockUtil {
 
 		for (int i = 0; i < bottomCorners.size(); i++) {
 			final VectorHelper p1 = bottomCorners.get(i);
-			final VectorHelper p2 = i + 1 < bottomCorners.size() ? (VectorHelper) bottomCorners.get(i + 1) : (VectorHelper) bottomCorners.get(0);
+			final VectorHelper p2 = i + 1 < bottomCorners.size() ? bottomCorners.get(i + 1) : bottomCorners.get(0);
 
 			final VectorHelper p3 = p1.add(0, height, 0);
 			final VectorHelper p4 = p2.add(0, height, 0);
@@ -156,6 +145,111 @@ public final class BlockUtil {
 			locations.add(new Location(primary.getWorld(), vector.getX(), vector.getY(), vector.getZ()));
 
 		return locations;
+	}
+
+	/**
+	 * Get a set of locations that form a 2D frame (in X-Z dimension).<br>
+	 * If locations Y coordinates are not equal, the
+	 * {@link #get3DFrame(Location, Location, boolean)} method is used instead.
+	 * @param first the first location
+	 * @param second the second location
+	 * @param reversed if true, returns the reversed set of blocks
+	 * @return the set of locations
+	 * @author Rubix327
+	 * @since 6.2.5.11
+	 */
+	public static Set<Location> get2DFrame(Location first, Location second, boolean reversed){
+		Valid.checkBoolean(first.getWorld() != null, "The first location's world is null");
+		Valid.checkBoolean(second.getWorld() != null, "The second location's world is null");
+		Valid.checkBoolean(first.getWorld().equals(second.getWorld()), "The worlds do not equal");
+
+		if (first.getY() != second.getY()){
+			Logger.printErrors(
+					"Warning: BlockUtil#get2DFrame: the given first location's Y coordinate is not equal to the second location's Y.",
+					"Using the BlockUtil#get3DFrame method instead."
+			);
+			return get3DFrame(first, second, reversed);
+		}
+
+		World world = first.getWorld();
+		int y = first.getBlockY();
+
+		Set<Location> set = new HashSet<>();
+		Set<Location> reversedSet = new HashSet<>();
+
+		int minX = Math.min(first.getBlockX(), second.getBlockX());
+		int maxX = Math.max(first.getBlockX(), second.getBlockX());
+		int minZ = Math.min(first.getBlockZ(), second.getBlockZ());
+		int maxZ = Math.max(first.getBlockZ(), second.getBlockZ());
+
+		for (int x = minX; x <= maxX; x++){
+			for (int z = minZ; z <= maxZ; z++) {
+				Location loc = new Location(world, x, y, z);
+
+				// Check if the block is on the border
+				if (x == minX || x == maxX || z == minZ || z == maxZ){
+					set.add(loc);
+				} else {
+					reversedSet.add(loc);
+				}
+
+			}
+		}
+
+		return reversed ? reversedSet : set;
+	}
+
+	/**
+	 * Get a set of locations that form a 3D frame.<br>
+	 * If locations Y coordinates are equal, the {@link #get2DFrame(Location, Location, boolean)}
+	 * method is used instead for better performance.
+	 * @param first the first location
+	 * @param second the second location
+	 * @param reversed if true, returns the reversed set of blocks
+	 * @return the set of locations
+	 * @author Rubix327
+	 * @since 6.2.5.11
+	 */
+	public static Set<Location> get3DFrame(Location first, Location second, boolean reversed){
+		Valid.checkBoolean(first.getWorld() != null, "The first location's world is null");
+		Valid.checkBoolean(second.getWorld() != null, "The second location's world is null");
+		Valid.checkBoolean(first.getWorld().equals(second.getWorld()), "The worlds do not equal");
+
+		if (first.getY() == second.getY()){
+			return get2DFrame(first, second, reversed);
+		}
+
+		World world = first.getWorld();
+		Set<Location> set = new HashSet<>();
+		Set<Location> reversedSet = new HashSet<>();
+
+		int minX = Math.min(first.getBlockX(), second.getBlockX());
+		int maxX = Math.max(first.getBlockX(), second.getBlockX());
+		int minY = Math.min(first.getBlockY(), second.getBlockY());
+		int maxY = Math.max(first.getBlockY(), second.getBlockY());
+		int minZ = Math.min(first.getBlockZ(), second.getBlockZ());
+		int maxZ = Math.max(first.getBlockZ(), second.getBlockZ());
+
+		for (int x = minX; x <= maxX; x++){
+			for (int y = minY; y <= maxY; y++){
+				for (int z = minZ; z <= maxZ; z++) {
+					Location loc = new Location(world, x, y, z);
+
+					// Check if the block is on the border
+					if (y == maxY && (z == minZ || z == maxZ) || y == maxY && (x == minX || x == maxX) ||
+							y == minY && (z == minZ || z == maxZ) || y == minY && (x == minX || x == maxX) ||
+							x == minX && (z == minZ || z == maxZ) || x == maxX && (z == minZ || z == maxZ)
+					){
+						set.add(loc);
+					} else {
+						reversedSet.add(loc);
+					}
+
+				}
+			}
+		}
+
+		return reversed ? reversedSet : set;
 	}
 
 	private static List<VectorHelper> plotLine(final VectorHelper p1, final VectorHelper p2) {
@@ -184,11 +278,6 @@ public final class BlockUtil {
 	 * Get all locations within the given 3D spherical radius, hollow or not
 	 * <p>
 	 * NOTE: Calling this operation causes performance penaulty (>100ms for 30 radius!), be careful.
-	 *
-	 * @param location
-	 * @param radius
-	 * @param hollow
-	 * @return
 	 */
 	public static Set<Location> getSphere(final Location location, final int radius, final boolean hollow) {
 		final Set<Location> blocks = new HashSet<>();
@@ -221,11 +310,6 @@ public final class BlockUtil {
 	 * Get all locations within the given 2D circle radius, hollow or full circle
 	 * <p>
 	 * NOTE: Calling this operation causes performance penaulty (>100ms for 30 radius!), be careful.
-	 *
-	 * @param location
-	 * @param radius
-	 * @param hollow
-	 * @return
 	 */
 	public static Set<Location> getCircle(final Location location, final int radius, final boolean hollow) {
 		final Set<Location> blocks = new HashSet<>();
@@ -255,10 +339,6 @@ public final class BlockUtil {
 
 	/**
 	 * Creates a new list of outer location points from all given points
-	 *
-	 * @param blocks
-	 * @param sphere
-	 * @return
 	 */
 	private static Set<Location> makeHollow(final Set<Location> blocks, final boolean sphere) {
 		final Set<Location> edge = new HashSet<>();
@@ -309,34 +389,34 @@ public final class BlockUtil {
 	// ------------------------------------------------------------------------------------------------------------
 
 	/**
-	 * Returns all blocks within the two cuboid bounds (may take a while)
+	 * Get all blocks within the two cuboid bounds (may take a while)
 	 *
-	 * @param primary
-	 * @param secondary
-	 * @return
+	 * @param primary the first position
+	 * @param secondary the seconds position
+	 * @return the list of blocks
 	 */
 	public static List<Block> getBlocks(final Location primary, final Location secondary) {
 		Valid.checkNotNull(primary, "Primary region point must be set!");
 		Valid.checkNotNull(secondary, "Secondary region point must be set!");
+		Valid.checkNotNull(primary.getWorld());
 
 		final List<Block> blocks = new ArrayList<>();
 
-		final int topBlockX = primary.getBlockX() < secondary.getBlockX() ? secondary.getBlockX() : primary.getBlockX();
-		final int bottomBlockX = primary.getBlockX() > secondary.getBlockX() ? secondary.getBlockX() : primary.getBlockX();
+		final int topBlockX = Math.max(primary.getBlockX(), secondary.getBlockX());
+		final int bottomBlockX = Math.min(primary.getBlockX(), secondary.getBlockX());
 
-		final int topBlockY = primary.getBlockY() < secondary.getBlockY() ? secondary.getBlockY() : primary.getBlockY();
-		final int bottomBlockY = primary.getBlockY() > secondary.getBlockY() ? secondary.getBlockY() : primary.getBlockY();
+		final int topBlockY = Math.max(primary.getBlockY(), secondary.getBlockY());
+		final int bottomBlockY = Math.min(primary.getBlockY(), secondary.getBlockY());
 
-		final int topBlockZ = primary.getBlockZ() < secondary.getBlockZ() ? secondary.getBlockZ() : primary.getBlockZ();
-		final int bottomBlockZ = primary.getBlockZ() > secondary.getBlockZ() ? secondary.getBlockZ() : primary.getBlockZ();
+		final int topBlockZ = Math.max(primary.getBlockZ(), secondary.getBlockZ());
+		final int bottomBlockZ = Math.min(primary.getBlockZ(), secondary.getBlockZ());
 
 		for (int x = bottomBlockX; x <= topBlockX; x++)
 			for (int z = bottomBlockZ; z <= topBlockZ; z++)
 				for (int y = bottomBlockY; y <= topBlockY; y++) {
 					final Block block = primary.getWorld().getBlockAt(x, y, z);
 
-					if (block != null)
-						blocks.add(block);
+					blocks.add(block);
 				}
 
 		return blocks;
@@ -344,9 +424,6 @@ public final class BlockUtil {
 
 	/**
 	 * Return all blocks in the given chunk
-	 *
-	 * @param chunk
-	 * @return
 	 */
 	public static List<Block> getBlocks(@NonNull Chunk chunk) {
 		final List<Block> blocks = new ArrayList<>();
@@ -368,11 +445,6 @@ public final class BlockUtil {
 
 	/**
 	 * Get all the blocks in a specific area centered around the Location passed in
-	 *
-	 * @param loc
-	 * @param height
-	 * @param radius
-	 * @return
 	 */
 	public static List<Block> getBlocks(final Location loc, final int height, final int radius) {
 		final List<Block> blocks = new ArrayList<>();
@@ -382,22 +454,69 @@ public final class BlockUtil {
 				for (int z = -radius; z <= radius; z++) {
 					final Block checkBlock = loc.getBlock().getRelative(x, y, z);
 
-					if (checkBlock != null && checkBlock.getType() != Material.AIR)
+					if (checkBlock.getType() != Material.AIR)
 						blocks.add(checkBlock);
 				}
 		return blocks;
 	}
 
 	/**
-	 * Return chunks around the given location
+	 * Get locations from two cuboid bounds.
 	 *
-	 * @param location
-	 * @param radius
-	 * @return
+	 * @param first the first bound
+	 * @param second the second bound
+	 * @param toCenter if true, the location will be centered to the center of the block
+	 * @return the list of locations within bounds
+	 * @author Rubix327
+	 * @since 6.2.5.11
+	 */
+	public static List<Location> getLocations(@NotNull Location first, @NotNull Location second, boolean toCenter){
+		Valid.checkNotNull(first.getWorld(), "First location world is null");
+		Valid.checkNotNull(second.getWorld(), "Second location world is null");
+		Valid.checkBoolean(first.getWorld().equals(second.getWorld()),
+				"First location world (" + first.getWorld().getName() +
+						") differs from the second location world (" +
+						second.getWorld().getName());
+
+		World world = first.getWorld();
+		List<Location> locations = new ArrayList<>();
+		int minX = Math.min(first.getBlockX(), second.getBlockX());
+		int maxX = Math.max(first.getBlockX(), second.getBlockX());
+		int minY = Math.min(first.getBlockY(), second.getBlockY());
+		int maxY = Math.max(first.getBlockY(), second.getBlockY());
+		int minZ = Math.min(first.getBlockZ(), second.getBlockZ());
+		int maxZ = Math.max(first.getBlockZ(), second.getBlockZ());
+		for (int x = minX; x <= maxX; x++){
+			for (int y = minY; y <= maxY; y++){
+				for (int z = minZ; z <= maxZ; z++) {
+					Location location = new Location(world, x, y, z);
+					locations.add(toCenter ? getBlockCenter(location) : location);
+				}
+			}
+		}
+		return locations;
+	}
+
+	/**
+	 * Center the location to the center of the block
+	 * @param location the location
+	 * @return the centered location
+	 * @author Rubix327
+	 * @since 6.2.5.11
+	 */
+	public static Location getBlockCenter(@NonNull Location location){
+		Location exactLocation = new Location(location.getWorld(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
+		exactLocation.add(0.5, 0, 0.5);
+		return exactLocation;
+	}
+
+	/**
+	 * Return chunks around the given location
 	 */
 	public static List<Chunk> getChunks(final Location location, final int radius) {
 		final HashSet<Chunk> addedChunks = new HashSet<>();
 		final World world = location.getWorld();
+		Valid.checkNotNull(world);
 
 		final int chunkX = location.getBlockX() >> 4;
 		final int chunkZ = location.getBlockZ() >> 4;
@@ -412,9 +531,6 @@ public final class BlockUtil {
 
 	/**
 	 * Return all x-z locations within a chunk
-	 *
-	 * @param chunk
-	 * @return
 	 */
 	public static List<Location> getXZLocations(Chunk chunk) {
 		final List<Location> found = new ArrayList<>();
@@ -431,10 +547,11 @@ public final class BlockUtil {
 
 	/**
 	 * Return all leaves/logs upwards connected to that given tree block.
-	 * Parts are sorted according to their Y coordinate from lowest to highest.
-	 *
-	 * @param treeBase
-	 * @return
+	 * Parts are sorted according to their Y coordinate from lowest to highest.<br>
+	 * Does not catch corner blocks that are not directly adjacent.<br>
+	 * For more accuracy use {@link #getTreePartsUp(Block, Block, CompMaterial)}
+	 * @param treeBase the root of the tree
+	 * @return the blocks
 	 */
 	public static List<Block> getTreePartsUp(final Block treeBase) {
 		final Material baseMaterial = treeBase.getState().getType();
@@ -475,6 +592,179 @@ public final class BlockUtil {
 		return new ArrayList<>(treeParts);
 	}
 
+	/**
+	 * Return all leaves/logs upwards connected to that given tree block.<br>
+	 * Catches all corner blocks that are not directly adjacent.
+	 *
+	 * @param treeBase the tree root
+	 * @param treeTrunkTop the top of the tree's trunk (use {@link #getTopTreeTrunkBlock(Block)} to calculate it)
+	 * @param logMaterial the material of the tree log
+	 * @return the blocks
+	 * @author Rubix327
+	 * @since 6.2.5.11
+	 */
+	public static List<Block> getTreePartsUp(Block treeBase, Block treeTrunkTop, CompMaterial logMaterial) {
+		String logType = MinecraftVersion.atLeast(MinecraftVersion.V.v1_13) ? logMaterial.getMaterial().toString() : "LOG";
+		String leaveType = MinecraftVersion.atLeast(MinecraftVersion.V.v1_13) ? logType.replace("_LOG", "") + "_LEAVES" : "LEAVES";
+		Set<Block> toSearch = new HashSet<>(getBlocks(treeBase.getLocation(), treeTrunkTop.getLocation()));
+		Set<Block> initialBlocks = new HashSet<>(toSearch);
+		Set<Block> searched = new HashSet<>();
+		Set<Block> treeParts = new HashSet<>();
+
+		for(int cycle = 0; cycle < 1000 && !toSearch.isEmpty(); ++cycle) {
+			Block block = toSearch.iterator().next();
+			toSearch.remove(block);
+			searched.add(block);
+
+			if (initialBlocks.contains(block) || block.getType().toString().equals(logType) || block.getType().toString().equals(leaveType)){
+				treeParts.add(block);
+
+				for (Block bl : getNeighbourBlocksUp(block)){
+					if (bl.getType().toString().equals(logType) || bl.getType().toString().equals(leaveType)){
+						if (!searched.contains(bl)) {
+							toSearch.add(bl);
+						}
+					}
+				}
+			}
+		}
+
+		return new ArrayList<>(treeParts);
+	}
+
+	/**
+	 * Get neighbour block from the anchor up.
+	 * @param anchor the anchor block
+	 * @return the list of neighbours up
+	 * @author Rubix327
+	 * @since 6.2.5.11
+	 */
+	public static List<Block> getNeighbourBlocksUp(Block anchor){
+		Location loc = anchor.getLocation();
+		Set<Block> blocks = new HashSet<>();
+
+		for (int x = -1; x <= 1; x++) {
+			for (int y = 0; y <= 1; y++) {
+				for (int z = -1; z <= 1; z++) {
+					blocks.add(loc.clone().add(x, y, z).getBlock());
+					blocks.remove(anchor);
+				}
+			}
+		}
+
+		return new ArrayList<>(blocks);
+	}
+
+	/**
+	 * Get the top block of the tree trunk.<br>
+	 * Works both for 1x1 and 2x2 trunks.
+	 * @param treeBase the root of the tree (the place where the sapling was)
+	 * @return the top trunk block
+	 * @author Rubix327
+	 * @since 6.2.5.11
+	 */
+	public static Block getTopTreeTrunkBlock(Block treeBase){
+		World world = treeBase.getWorld();
+		Material baseMaterial = treeBase.getState().getType();
+		String logType = MinecraftVersion.atLeast(MinecraftVersion.V.v1_13) ? baseMaterial.toString() : "LOG";
+
+		int treeBaseSide = -1;
+		Block baseNW = null, baseNE = null, baseSW = null, baseSE = null;
+
+		if (treeBase.getRelative(BlockFace.NORTH).getType().toString().equals(logType)){
+			if (treeBase.getRelative(BlockFace.WEST).getType().toString().equals(logType)){
+				baseNW = treeBase.getLocation().clone().add(-1, 0, -1).getBlock();
+				if (baseNW.getType().toString().equals(logType)){
+					treeBaseSide = 4;
+					baseSE = treeBase;
+					baseNE = treeBase.getRelative(BlockFace.NORTH);
+					baseSW = treeBase.getRelative(BlockFace.WEST);
+				}
+			} else if (treeBase.getRelative(BlockFace.EAST).getType().toString().equals(logType)){
+				baseNE = treeBase.getLocation().clone().add(1, 0, -1).getBlock();
+				if (baseNE.getType().toString().equals(logType)){
+					treeBaseSide = 3;
+					baseSW = treeBase;
+					baseNW = treeBase.getRelative(BlockFace.NORTH);
+					baseSE = treeBase.getRelative(BlockFace.EAST);
+				}
+			}
+		} else if (treeBase.getRelative(BlockFace.SOUTH).getType().toString().equals(logType)){
+			if (treeBase.getRelative(BlockFace.WEST).getType().toString().equals(logType)){
+				baseSW = treeBase.getLocation().clone().add(-1, 0, 1).getBlock();
+				if (baseSW.getType().toString().equals(logType)){
+					treeBaseSide = 2;
+					baseNE = treeBase;
+					baseSE = treeBase.getRelative(BlockFace.SOUTH);
+					baseNW = treeBase.getRelative(BlockFace.WEST);
+				}
+			} else if (treeBase.getRelative(BlockFace.EAST).getType().toString().equals(logType)){
+				baseSE = treeBase.getLocation().clone().add(1, 0, 1).getBlock();
+				if (baseSE.getType().toString().equals(logType)){
+					treeBaseSide = 1;
+					baseNW = treeBase;
+					baseNE = treeBase.getRelative(BlockFace.EAST);
+					baseSW = treeBase.getRelative(BlockFace.SOUTH);
+				}
+			}
+		}
+
+		// The tree is 2x2 (2 blocks wide and 2 blocks long)
+		if (treeBaseSide != -1){
+			Block topNW = getHighestLogBlock(baseNW);
+			Block topNE = getHighestLogBlock(baseNE);
+			Block topSW = getHighestLogBlock(baseSW);
+			Block topSE = getHighestLogBlock(baseSE);
+
+			int maxMinY = Math.min(Math.min(topNW.getY(), topNE.getY()), Math.min(topSW.getY(), topSE.getY()));
+			if (treeBaseSide == 1){
+				return world.getBlockAt(topSE.getX(), maxMinY, topSE.getZ());
+			}
+			else if (treeBaseSide == 2){
+				return world.getBlockAt(topSW.getX(), maxMinY, topSW.getZ());
+			}
+			else if (treeBaseSide == 3){
+				return world.getBlockAt(topNE.getX(), maxMinY, topNE.getZ());
+			}
+			else {
+				return world.getBlockAt(topNW.getX(), maxMinY, topNW.getZ());
+			}
+		}
+		else {
+			return getHighestLogBlock(treeBase);
+		}
+	}
+
+	/**
+	 * Get the highest log block using the binary search algorithm
+	 * @param baseBlock the base block to search up from
+	 * @return the highest block in that Y-line
+	 * @author Rubix327
+	 * @since 6.2.5.11
+	 */
+	public static Block getHighestLogBlock(Block baseBlock){
+		World world = baseBlock.getWorld();
+		Material baseMaterial = baseBlock.getState().getType();
+		String logType = MinecraftVersion.atLeast(MinecraftVersion.V.v1_13) ? baseMaterial.toString() : "LOG";
+
+		int x = baseBlock.getX();
+		int z = baseBlock.getZ();
+		int low = baseBlock.getY();
+		int high = baseBlock.getY() + 32;
+		int mid;
+
+		while (low <= high) {
+			mid = low + (high - low) / 2;
+			if (world.getBlockAt(x, mid, z).getType().toString().equals(logType)) {
+				low = mid + 1;
+			} else {
+				high = mid - 1;
+			}
+		}
+
+		return world.getBlockAt(x, high, z);
+	}
+
 	// ------------------------------------------------------------------------------------------------------------
 	// Block type checkers
 	// ------------------------------------------------------------------------------------------------------------
@@ -482,9 +772,6 @@ public final class BlockUtil {
 	/**
 	 * Returns true whether the given block is a "LOG" type and we perform a search
 	 * down to the bottom most connected block to find if that stands on tree ground blocks.
-	 *
-	 * @param treeBaseBlock
-	 * @return
 	 */
 	public static boolean isLogOnGround(Block treeBaseBlock) {
 		// Validates the block passed in is actually a log
@@ -520,9 +807,6 @@ public final class BlockUtil {
 
 	/**
 	 * Return true when the given material is a tool, e.g. doesn't stack
-	 *
-	 * @param material
-	 * @return
 	 */
 	public static boolean isTool(final Material material) {
 		return material.name().endsWith("AXE") // axe & pickaxe
@@ -539,9 +823,6 @@ public final class BlockUtil {
 
 	/**
 	 * Return true if the material is an armor
-	 *
-	 * @param material
-	 * @return
 	 */
 	public static boolean isArmor(final Material material) {
 		return material.name().endsWith("HELMET")
@@ -552,26 +833,22 @@ public final class BlockUtil {
 
 	/**
 	 * Returns true if block is safe to select
-	 *
-	 * @param material the material
-	 * @return
 	 */
 	public static boolean isForBlockSelection(final Material material) {
-		if (!material.isBlock() || material == Material.AIR)
+		if (!material.isBlock() || material == Material.AIR) {
 			return false;
+		}
 
 		try {
 			if (material.isInteractable()) // Ignore chests etc.
 				return false;
 
-		} catch (final Throwable t) {
-		}
+		} catch (final Throwable ignored) {}
 
 		try {
 			if (material.hasGravity()) // Ignore falling blocks
 				return false;
-		} catch (final Throwable t) {
-		}
+		} catch (final Throwable ignored) {}
 
 		return material.isSolid();
 	}
@@ -584,10 +861,10 @@ public final class BlockUtil {
 	 * Scan the location from top to bottom to find the highest Y coordinate that is not air and not snow.
 	 * This will return the free coordinate above the snow layer.
 	 *
-	 * @param location
 	 * @return the y coordinate, or -1 if not found
 	 */
 	public static int findHighestBlockNoSnow(final Location location) {
+		Valid.checkNotNull(location.getWorld());
 		return findHighestBlockNoSnow(location.getWorld(), location.getBlockX(), location.getBlockZ());
 	}
 
@@ -595,9 +872,6 @@ public final class BlockUtil {
 	 * Scan the location from top to bottom to find the highest Y coordinate that is not air and not snow.
 	 * This will return the free coordinate above the snow layer.
 	 *
-	 * @param world
-	 * @param x
-	 * @param z
 	 * @return the y coordinate, or -1 if not found
 	 */
 	public static int findHighestBlockNoSnow(final World world, final int x, final int z) {
@@ -622,12 +896,9 @@ public final class BlockUtil {
 	/**
 	 * Scans the location from top to bottom to find the highest Y non-air coordinate that matches
 	 * the given predicate.
-	 *
-	 * @param location
-	 * @param predicate
-	 * @return
 	 */
 	public static int findHighestBlock(final Location location, final Predicate<Material> predicate) {
+		Valid.checkNotNull(location.getWorld());
 		return findHighestBlock(location.getWorld(), location.getBlockX(), location.getBlockZ(), predicate);
 	}
 
@@ -635,10 +906,6 @@ public final class BlockUtil {
 	 * Scans the location from top to bottom to find the highest Y non-air coordinate that matches
 	 * the given predicate. For nether worlds, we recommend you see {@link #findHighestNetherAirBlock(World, int, int)}
 	 *
-	 * @param world
-	 * @param x
-	 * @param z
-	 * @param predicate
 	 * @return the y coordinate, or -1 if not found
 	 */
 	public static int findHighestBlock(final World world, final int x, final int z, final Predicate<Material> predicate) {
@@ -647,7 +914,7 @@ public final class BlockUtil {
 		for (int y = world.getMaxHeight() - 1; y > minHeight; y--) {
 			final Block block = world.getBlockAt(x, y, z);
 
-			if (block != null && !CompMaterial.isAir(block) && predicate.test(block.getType()))
+			if (!CompMaterial.isAir(block) && predicate.test(block.getType()))
 				return y + 1;
 		}
 
@@ -657,10 +924,6 @@ public final class BlockUtil {
 	/**
 	 * Scans the coordinates to find the highest Y non-air coordinate that matches
 	 * the given predicate. For nether worlds, we recommend you see {@link #findHighestNetherAirBlock(World, int, int)}
-	 *
-	 * @param location
-	 * @param predicate
-	 * @return
 	 */
 	public static int findAirBlock(final Location location, final boolean topDown, final Predicate<Material> predicate) {
 		return findAirBlock(location.getWorld(), location.getBlockX(), location.getBlockZ(), topDown, predicate);
@@ -669,13 +932,6 @@ public final class BlockUtil {
 	/**
 	 * Scans the coordinates to find the highest Y non-air coordinate that matches
 	 * the given predicate. For nether worlds, we recommend you see {@link #findHighestNetherAirBlock(World, int, int)}
-	 *
-	 * @param world
-	 * @param x
-	 * @param z
-	 * @param topDown
-	 * @param predicate
-	 * @return
 	 */
 	public static int findAirBlock(final World world, final int x, final int z, final boolean topDown, final Predicate<Material> predicate) {
 		final int minHeight = (MinecraftVersion.atLeast(V.v1_18) ? world.getMinHeight() : 0) + 1;
@@ -684,7 +940,7 @@ public final class BlockUtil {
 			for (int y = world.getMaxHeight() - 1; y > minHeight; y--) {
 				final Block block = world.getBlockAt(x, y, z);
 
-				if (block != null && !CompMaterial.isAir(block) && predicate.test(block.getType()))
+				if (!CompMaterial.isAir(block) && predicate.test(block.getType()))
 					return y + 1;
 			}
 		else
@@ -693,7 +949,7 @@ public final class BlockUtil {
 				final Block blockAbove = block.getRelative(BlockFace.UP);
 				final Block blockTwoAbove = blockAbove.getRelative(BlockFace.UP);
 
-				if (block != null && CompMaterial.isAir(blockAbove) && CompMaterial.isAir(blockTwoAbove) && predicate.test(block.getType()))
+				if (CompMaterial.isAir(blockAbove) && CompMaterial.isAir(blockTwoAbove) && predicate.test(block.getType()))
 					return y + 1;
 			}
 
@@ -702,22 +958,15 @@ public final class BlockUtil {
 
 	/**
 	 * @see #findHighestNetherAirBlock(World, int, int)
-	 *
-	 * @param location
-	 * @return
 	 */
 	public static int findHighestNetherAirBlock(@NonNull Location location) {
+		Valid.checkNotNull(location.getWorld());
 		return findHighestNetherAirBlock(location.getWorld(), location.getBlockX(), location.getBlockZ());
 	}
 
 	/**
 	 * Returns the first air block that has air block above it and a solid block below. Useful for finding
 	 * nether location from the bottom up to spawn mobs (not spawning them on the top bedrock as per {@link #findHighestBlock(Location, Predicate)}).
-	 *
-	 * @param world
-	 * @param x
-	 * @param z
-	 * @return
 	 */
 	public static int findHighestNetherAirBlock(@NonNull World world, int x, int z) {
 		Valid.checkBoolean(world.getEnvironment() == Environment.NETHER, "findHighestNetherAirBlock must be called in nether worlds, " + world.getName() + " is of type " + world.getEnvironment());
@@ -727,7 +976,7 @@ public final class BlockUtil {
 			final Block above = block.getRelative(BlockFace.UP);
 			final Block below = block.getRelative(BlockFace.DOWN);
 
-			if (block != null && CompMaterial.isAir(block) && CompMaterial.isAir(above) && !CompMaterial.isAir(below) && below.getType().isSolid())
+			if (CompMaterial.isAir(block) && CompMaterial.isAir(above) && !CompMaterial.isAir(below) && below.getType().isSolid())
 				return y;
 		}
 
@@ -736,16 +985,12 @@ public final class BlockUtil {
 
 	/**
 	 * Returns the closest location to the given one of the given locations
-	 *
-	 * @param location
-	 * @param locations
-	 * @return
 	 */
 	public static Location findClosestLocation(Location location, List<Location> locations) {
 		locations = new ArrayList<>(locations);
 		final Location playerLocation = location;
 
-		Collections.sort(locations, (f, s) -> Double.compare(f.distance(playerLocation), s.distance(playerLocation)));
+		locations.sort(Comparator.comparingDouble(f -> f.distance(playerLocation)));
 		return locations.get(0);
 	}
 
@@ -756,10 +1001,6 @@ public final class BlockUtil {
 	/**
 	 * Shoot the given block to the sky with the given velocity (maybe your arrow velocity?)
 	 * and can even make the block burn on impact. The shot block is set to air
-	 *
-	 * @param block
-	 * @param velocity
-	 * @return
 	 */
 	public static FallingBlock shootBlock(final Block block, final Vector velocity) {
 		return shootBlock(block, velocity, 0D);
@@ -768,14 +1009,11 @@ public final class BlockUtil {
 	/**
 	 * Shoot the given block to the sky with the given velocity (maybe your arrow velocity?)
 	 * and can even make the block burn on impact. The shot block is set to air
-	 *
+	 * <p>
 	 * We adjust velocity a bit using random to add a bit for more realism, if you do not
 	 * want this, use {@link #spawnFallingBlock(Block, Vector)}
 	 *
-	 * @param block
-	 * @param velocity
 	 * @param burnOnFallChance from 0.0 to 1.0
-	 * @return
 	 */
 	public static FallingBlock shootBlock(final Block block, final Vector velocity, final double burnOnFallChance) {
 		if (!canShootBlock(block))
@@ -805,10 +1043,6 @@ public final class BlockUtil {
 
 	/**
 	 * Just spawns the falling block without adjusting its velocity
-	 *
-	 * @param block
-	 * @param velocity
-	 * @return
 	 */
 	public static FallingBlock spawnFallingBlock(final Block block, final Vector velocity) {
 		final FallingBlock falling = Remain.spawnFallingBlock(block.getLocation().clone().add(0.5, 0, 0.5), block.getType());
@@ -827,9 +1061,6 @@ public final class BlockUtil {
 
 	/**
 	 * Return the allowed material types to shoot this block
-	 *
-	 * @param block
-	 * @return
 	 */
 	private static boolean canShootBlock(final Block block) {
 		final Material material = block.getType();
@@ -839,8 +1070,6 @@ public final class BlockUtil {
 
 	/**
 	 * Schedule to set the flying block on fire upon impact
-	 *
-	 * @param block
 	 */
 	private static void scheduleBurnOnFall(final FallingBlock block) {
 		EntityUtil.trackFalling(block, () -> {
@@ -874,7 +1103,7 @@ public final class BlockUtil {
 	private final static class VectorHelper {
 
 		@Getter
-		protected final double x, y, z;
+		private final double x, y, z;
 
 		public VectorHelper add(final VectorHelper other) {
 			return this.add(other.x, other.y, other.z);

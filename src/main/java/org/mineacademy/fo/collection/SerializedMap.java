@@ -1124,10 +1124,12 @@ public final class SerializedMap extends StrictCollection implements Iterable<Ma
 			for (int i = 1; i <= columnCount; i++ ) {
 				String name = rsmd.getColumnName(i);
 				Object value = set.getObject(name);
-				if (wrapNamesInQuotes){
-					map.put("\"" + name + "\"", value);
-				} else {
-					map.put(name, value);
+				if (value != null){
+					if (wrapNamesInQuotes){
+						map.put("\"" + name + "\"", value);
+					} else {
+						map.put(name, value);
+					}
 				}
 			}
 		} catch (SQLException e){

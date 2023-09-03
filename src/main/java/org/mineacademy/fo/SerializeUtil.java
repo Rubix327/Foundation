@@ -51,42 +51,23 @@ public final class SerializeUtil {
 	/**
 	 * A list of custom serializers
 	 */
-	private static Map<Class<Object>, Function<Object, String>> serializers = new HashMap<>();
+	private static final Map<Class<Object>, Function<Object, String>> serializers = new HashMap<>();
 
 	/**
 	 * Add a custom serializer to the list
-	 *
-	 * @param <T>
-	 * @param fromClass
-	 * @param serializer
 	 */
 	public static <T> void addSerializer(Class<T> fromClass, Function<T, String> serializer) {
 		serializers.put((Class<Object>) fromClass, (Function<Object, String>) serializer);
 	}
 
 	// ------------------------------------------------------------------------------------------------------------
-	// Converting objects into strings so you can save them in your files
+	// Converting objects into strings, so you can save them in your files
 	// ------------------------------------------------------------------------------------------------------------
-
-	/**
-	 * Converts the given object into something you can safely save in YAML file as a string
-	 *
-	 * @param object
-	 * @return
-	 *
-	 * @deprecated defaults to YAML always, it's recommended you call {@link #serialize(Mode, Object)} to avoid confusion
-	 */
-	@Deprecated
-	public static Object serialize(Object object) {
-		return serialize(Mode.YAML, object);
-	}
 
 	/**
 	 * Converts the given object into something you can safely save in file as a string
 	 *
 	 * @param mode determines the file that the object originated from, if unsure just set to YAML
-	 * @param object
-	 * @return
 	 */
 	@SuppressWarnings("ConstantValue")
 	public static Object serialize(Mode mode, Object object) {
@@ -112,12 +93,15 @@ public final class SerializeUtil {
 		if (object instanceof ConfigSerializable){
 			ConfigSerializable obj = (ConfigSerializable) object;
 
+			// Auto serialization
 			if (obj instanceof AutoSerializable){
-				return autoSerialize(obj).serialize();
+				AutoSerializable autoObj = (AutoSerializable) obj;
+				return serialize(autoObj.getMode(), objectsMapToValuesMap(saveObjectsToMap(obj), autoObj.getMode()));
 			}
 
-			// Default serialization and Auto-serialization
-			SerializedMap map = obj.serialize();
+			// Default serialization
+			// Fill map with objects
+			SerializedMap map = saveObjectsToMap(obj);
 			if (map == null){
 				Logger.printErrors("Could not serialize object " + obj + " because the SerializedMap is null.");
 				throw new NullPointerException("SerializedMap for object " + obj.getClass().getSimpleName() + " is null.");
@@ -153,7 +137,7 @@ public final class SerializeUtil {
 		else if (object instanceof BoxedMessage) {
 			final String message = ((BoxedMessage) object).getMessage();
 
-			return "".equals(message) || "null".equals(message) ? null : message;
+			return message.isEmpty() || "null".equals(message) ? null : message;
 
 		} else if (object instanceof UUID)
 			return object.toString();
@@ -337,49 +321,99 @@ public final class SerializeUtil {
 	}
 
 	/**
-	 * Set values from the AutoSerializable object and save them to SerializedMap.
+	 * Get values from the AutoSerializable object and save them to SerializedMap.
+	 * At this moment the values are represented as simple objects, not serialized properly.
+	 * Use {@link #serialize(Mode, Object)} on this map to serialize
 	 * @author Rubix327
 	 */
-	public static SerializedMap autoSerialize(Object object){
+	public static SerializedMap saveObjectsToMap(ConfigSerializable object){
 		Class<?> classOf = object.getClass();
 		Class<?> superCl = classOf.getSuperclass();
-		AutoSerializable instance;
 
-		try{
-			instance = (AutoSerializable) getAutoSerializableInstance(classOf);
-		} catch (InvocationTargetException | InstantiationException | IllegalAccessException e){
-			throw new RuntimeException(e);
-		}
-		SerializedMap map = new SerializedMap();
+		SerializedMap mapWithObjects = new SerializedMap();
 
 		// Get the map from super class if deep=true
-		if (instance.serializeDeeply() && superCl != AutoSerializable.class){
-			// TODO what if the super class does not implement ConfigSerializable?
-			try {
-				map = (SerializedMap) superCl.getDeclaredMethod("serialize").invoke(object);
-			} catch (NoSuchMethodException e) {
-				Logger.printErrors("Class " + superCl.getSimpleName() + " must be ConfigSerializable or AutoSerializable ",
-						"because its child class' " + classOf.getSimpleName() + "#serializeDeeply() is true.");
-				throw new FoException("Class " + superCl.getSimpleName() + " must be serializable.");
-			} catch (InvocationTargetException | IllegalAccessException e) {
-				throw new RuntimeException(e);
+		if (object instanceof AutoSerializable){
+			AutoSerializable auto = (AutoSerializable) object;
+
+			if (auto.serializeDeeply() && superCl != AutoSerializable.class){
+				boolean isAbstract = Modifier.isAbstract(superCl.getModifiers());
+				if (!ConfigSerializable.class.isAssignableFrom(superCl)){
+					if (isAbstract){
+						Logger.printErrors("Abstract class " + superCl.getSimpleName() + " must be ConfigSerializable ",
+								"because its child class' " + classOf.getSimpleName() + "#serializeDeeply() is true.");
+					} else {
+						Logger.printErrors("Class " + superCl.getSimpleName() + " must be ConfigSerializable or AutoSerializable ",
+								"because its child class' " + classOf.getSimpleName() + "#serializeDeeply() is true.");
+					}
+					throw new FoException("Class " + superCl.getSimpleName() + " must be serializable.");
+				}
+
+				// If the super class is abstract, we call only call a #serialize method
+				if (isAbstract){
+					if (AutoSerializable.class.isAssignableFrom(superCl)){
+						throw new FoException("Abstract classes cannot be AutoSerializable (" + superCl.getSimpleName() + "). Use ConfigSerializable instead.");
+					}
+
+					try{
+						mapWithObjects = (SerializedMap) superCl.getDeclaredMethod("serialize").invoke(object);
+					} catch (NoSuchMethodException e){
+						// Check for #serialize method existence because class is abstract and may not contain it
+						Logger.printErrors("Class " + superCl.getSimpleName() + " must implement #serialize() method ",
+							"because its child class' " + classOf.getSimpleName() + "#serializeDeeply() is true.");
+						throw new FoException("Class " + superCl.getSimpleName() + " must implement #serialize() method.");
+					}  catch (InvocationTargetException | IllegalAccessException e) {
+						throw new FoException("Could not invoke " + superCl.getSimpleName() + "#serialize() method.");
+					}
+				}
+				// If the super class is not abstract, then we can dig deeper until we run out of serializable classes.
+				else {
+					try {
+						ConfigSerializable superConfig = getConfigSerializableInstance(superCl);
+						mapWithObjects = saveObjectsToMap(superConfig);
+					} catch (NoSuchMethodException e){
+						throw new RuntimeException("Your class " + superCl.getSimpleName() + " must contain a no-arguments " +
+								"constructor because its child class' " + classOf.getSimpleName() + "#serializeDeeply() is true.");
+					}
+				}
 			}
+
+			// Add object's fields to the map
+			for (Field field : getFieldsToAutoSerialize(classOf)){
+				field.setAccessible(true);
+				try {
+					String name = getFormattedFieldName(object, field);
+					Object rawObject = field.get(object);
+					if (rawObject != null){
+						mapWithObjects.put(name, rawObject);
+					}
+				} catch (IllegalAccessException e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}
+		else {
+			mapWithObjects = object.serialize();
 		}
 
-		// Add object's fields to the map
-		for (Field field : getFieldsToAutoSerialize(classOf)){
-			field.setAccessible(true);
-			try {
-				String name = getFormattedFieldName(object, field);
-				Object value = field.get(object);
-				if (value != null){
-					map.put(name, value);
-				}
-			} catch (IllegalAccessException e) {
-				throw new RuntimeException(e);
-			}
+		return mapWithObjects;
+	}
+
+	public static SerializedMap objectToValuesMap(ConfigSerializable object, Mode mode){
+		SerializedMap objectsMap = object.serialize();
+		SerializedMap valuesMap = new SerializedMap();
+		for (Map.Entry<String, Object> entry : objectsMap){
+			valuesMap.put(entry.getKey(), serialize(mode, entry.getValue()));
 		}
-		return map;
+		return valuesMap;
+	}
+
+	public static SerializedMap objectsMapToValuesMap(SerializedMap objectsMap, Mode mode){
+		SerializedMap valuesMap = new SerializedMap();
+		for (Map.Entry<String, Object> entry : objectsMap){
+			valuesMap.put(entry.getKey(), serialize(mode, entry.getValue()));
+		}
+		return valuesMap;
 	}
 
 	/**
@@ -441,30 +475,23 @@ public final class SerializeUtil {
 	/**
 	 * Converts a {@link Location} into "world x y z yaw pitch" string
 	 * Decimals not supported, use {@link #deserializeLocD(Object)} for them
-	 *
-	 * @param loc
-	 * @return
 	 */
 	public static String serializeLoc(final Location loc) {
+		Valid.checkNotNull(loc.getWorld());
 		return loc.getWorld().getName() + " " + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ() + (loc.getPitch() != 0F || loc.getYaw() != 0F ? " " + Math.round(loc.getYaw()) + " " + Math.round(loc.getPitch()) : "");
 	}
 
 	/**
 	 * Converts a {@link Location} into "world x y z yaw pitch" string with decimal support
 	 * Unused, you have to call this in your save() method otherwise we remove decimals and use the above method
-	 *
-	 * @param loc
-	 * @return
 	 */
 	public static String serializeLocD(final Location loc) {
+		Valid.checkNotNull(loc.getWorld());
 		return loc.getWorld().getName() + " " + loc.getX() + " " + loc.getY() + " " + loc.getZ() + (loc.getPitch() != 0F || loc.getYaw() != 0F ? " " + loc.getYaw() + " " + loc.getPitch() : "");
 	}
 
 	/**
 	 * Converts a {@link PotionEffect} into a "type duration amplifier" string
-	 *
-	 * @param effect
-	 * @return
 	 */
 	private static String serializePotionEffect(final PotionEffect effect) {
 		return effect.getType().getName() + " " + effect.getDuration() + " " + effect.getAmplifier();
@@ -479,11 +506,6 @@ public final class SerializeUtil {
 	 * <p>
 	 * Example: Call deserialize(Location.class, "worldName 5 -1 47") to convert that into a Bukkit location object
 	 *
-	 * @param <T>
-	 * @param classOf
-	 * @param object
-	 * @return
-	 *
 	 * @deprecated defaults to YAML always, it's recommended you call {@link #deserialize(Mode, Class, Object)} to avoid confusion
 	 */
 	@Deprecated
@@ -496,11 +518,7 @@ public final class SerializeUtil {
 	 * <p>
 	 * Example: Call deserialize(Location.class, "worldName 5 -1 47") to convert that into a Bukkit location object
 	 *
-	 * @param <T>
 	 * @param mode determines the file that the object originated from, if unsure just set to YAML
-	 * @param classOf
-	 * @param object
-	 * @return
 	 */
 	public static <T> T deserialize(@NonNull Mode mode, @NonNull final Class<T> classOf, @NonNull final Object object) {
 		return deserialize(mode, classOf, object, (Object[]) null);
@@ -509,12 +527,6 @@ public final class SerializeUtil {
 	/**
 	 * Please see {@link #deserialize(Class, Object)}, plus that this method
 	 * allows you to parse through more arguments to the static deserialize method
-	 *
-	 * @param <T>
-	 * @param classOf
-	 * @param object
-	 * @param parameters
-	 * @return
 	 *
 	 * @deprecated defaults to YAML always, it's recommended you call {@link #deserialize(Mode, Class, Object, Object...)} to avoid confusion
 	 */
@@ -527,12 +539,7 @@ public final class SerializeUtil {
 	 * Please see {@link #deserialize(Class, Object)}, plus that this method
 	 * allows you to parse through more arguments to the static deserialize method
 	 *
-	 * @param <T>
 	 * @param mode determines the file that the object originated from, if unsure just set to YAML
-	 * @param classOf
-	 * @param object
-	 * @param parameters
-	 * @return
 	 */
 	@SuppressWarnings("rawtypes")
 	public static <T> T deserialize(@NonNull Mode mode, @NonNull final Class<T> classOf, @NonNull Object object, final Object... parameters) {
@@ -741,7 +748,7 @@ public final class SerializeUtil {
 
 		// Try to call our own serializers
 		else if (ConfigSerializable.class.isAssignableFrom(classOf)) {
-			SerializedMap map = isJson ? SerializedMap.fromJson(object.toString()) : SerializedMap.of(object);
+			SerializedMap map = isJson ? SerializedMap.fromJson(object.toString().replace("\"=", "\":")) : SerializedMap.of(object);
 
 			if (AutoSerializable.class.isAssignableFrom(classOf)){
 				return autoDeserialize(classOf, map);
@@ -957,6 +964,31 @@ public final class SerializeUtil {
 		return constructor.newInstance();
 	}
 
+	private static ConfigSerializable getConfigSerializableInstance(Class<?> classOf) throws NoSuchMethodException {
+		boolean isAbstract = Modifier.isAbstract(classOf.getModifiers());
+		if (isAbstract){
+			String error = "Class " + classOf.getSimpleName() + " is abstract and cannot be initiated.";
+			Logger.printErrors(error);
+			throw new FoException(error);
+		}
+
+		if (!ConfigSerializable.class.isAssignableFrom(classOf)){
+			String error = "Class " + classOf.getName() + " does not implement ConfigSerializable or AutoSerializable and cannot be serialized and deserialized.";
+			Logger.printErrors(error);
+			throw new FoException(error);
+		}
+
+		Constructor<?> constructor;
+		constructor = classOf.getDeclaredConstructor();
+
+		constructor.setAccessible(true);
+		try {
+			return (ConfigSerializable) constructor.newInstance();
+		} catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+			throw new FoException(e);
+		}
+    }
+
 	/**
 	 * Converts a string into location, see {@link #deserializeLoc(Object)} for how strings are saved
 	 * Decimals not supported, use {@link #deserializeLocD(Object)} to use them
@@ -1052,11 +1084,13 @@ public final class SerializeUtil {
 	private static ItemStack deserializeItemStack(@NonNull Mode mode, @NonNull Object obj) {
 		try {
 
-			if (obj instanceof ItemStack)
+			if (obj instanceof ItemStack) {
 				return (ItemStack) obj;
+			}
 
-			if (mode == Mode.JSON)
+			if (mode == Mode.JSON) {
 				return JsonItemStack.fromJson(obj.toString());
+			}
 
 			final SerializedMap map = SerializedMap.of(obj);
 

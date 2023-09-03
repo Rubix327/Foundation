@@ -1,12 +1,7 @@
 package org.mineacademy.fo.remain;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-
-import javax.annotation.Nullable;
-
+import com.google.gson.Gson;
+import com.google.gson.JsonPrimitive;
 import org.bukkit.Color;
 import org.bukkit.DyeColor;
 import org.bukkit.FireworkEffect;
@@ -16,16 +11,7 @@ import org.bukkit.block.banner.PatternType;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.BannerMeta;
-import org.bukkit.inventory.meta.BookMeta;
-import org.bukkit.inventory.meta.EnchantmentStorageMeta;
-import org.bukkit.inventory.meta.FireworkEffectMeta;
-import org.bukkit.inventory.meta.FireworkMeta;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.LeatherArmorMeta;
-import org.bukkit.inventory.meta.MapMeta;
-import org.bukkit.inventory.meta.PotionMeta;
-import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.inventory.meta.*;
 import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -37,8 +23,11 @@ import org.mineacademy.fo.jsonsimple.JSONObject;
 import org.mineacademy.fo.jsonsimple.JSONParseException;
 import org.mineacademy.fo.jsonsimple.JSONParser;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonPrimitive;
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Parse {@link ItemStack} to JSON
@@ -349,6 +338,7 @@ public class JsonItemStack {
 
 		Valid.checkBoolean(element instanceof JSONObject, "Expected JSONObject from JSON ItemStack, got " + (element == null ? "null" : element.getClass().getSimpleName()) + ": " + element);
 
+		assert element instanceof JSONObject;
 		final JSONObject itemJson = (JSONObject) element;
 
 		final String type = itemJson.getString("type");

@@ -209,6 +209,9 @@ public class SimpleDatabaseConnector {
 
 			for (SimpleDatabaseManager m : managers){
 				m.onConnected();
+				if (m.getAfterConnected() != null){
+					m.getAfterConnected().accept(m);
+				}
 			}
 
 		} catch (final Exception ex) {
@@ -332,7 +335,7 @@ public class SimpleDatabaseConnector {
 	 * Checks if the "connect(...)" function was called
 	 */
 	public void checkEstablished() {
-		Valid.checkBoolean(this.isLoaded(), "Connection was never established, did you call connect() on " + this + "? Use isLoaded() to check.");
+		Valid.checkBoolean(this.isLoaded(), "Connection has never been established, did you call connect() on " + this + "? Use isLoaded() to check.");
 	}
 
 	/**

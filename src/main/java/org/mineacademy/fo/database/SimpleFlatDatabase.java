@@ -3,6 +3,7 @@ package org.mineacademy.fo.database;
 import lombok.NonNull;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 import org.mineacademy.fo.ChatUtil;
 import org.mineacademy.fo.Common;
 import org.mineacademy.fo.MathUtil;
@@ -59,7 +60,7 @@ public abstract class SimpleFlatDatabase<T> extends SimpleDatabaseManager {
 		Valid.checkBoolean(this.hasVariable("table"), "Please call addVariable in the constructor of your " + this);
 
 		// First, see if the database exists, create it if not
-		this.update("CREATE TABLE IF NOT EXISTS {table}(UUID varchar(64), Name text, Data text, Updated bigint, PRIMARY KEY (`UUID`))");
+		this.update("CREATE TABLE IF NOT EXISTS {table}(UUID varchar(64), Name text, Data text, Updated bigint, PRIMARY KEY (`UUID`))", new EmptyCallback<>());
 
 		// Remove entries that have not been updated in the last X days
 		this.removeOldEntries();
@@ -82,7 +83,7 @@ public abstract class SimpleFlatDatabase<T> extends SimpleDatabaseManager {
 	private void removeOldEntries() {
 		final long threshold = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(this.getExpirationDays());
 
-		this.update("DELETE FROM {table} WHERE Updated < " + threshold + "");
+		this.update("DELETE FROM {table} WHERE Updated < " + threshold + "", new EmptyCallback<>());
 	}
 
 	/**
@@ -100,7 +101,7 @@ public abstract class SimpleFlatDatabase<T> extends SimpleDatabaseManager {
 	 * Load the data for the given unique ID and his cache
 	 */
 	public final void load(final Player player, final T cache) {
-		this.load(player.getUniqueId(), cache, null);
+		this.load(player.getUniqueId(), cache, null, new EmptyCallback<>());
 	}
 
 	/**
@@ -108,21 +109,22 @@ public abstract class SimpleFlatDatabase<T> extends SimpleDatabaseManager {
 	 * @param runAfterLoad callback synced on the main thread
 	 */
 	public final void load(final Player player, final T cache, @Nullable Runnable runAfterLoad) {
-		this.load(player.getUniqueId(), cache, runAfterLoad);
+		this.load(player.getUniqueId(), cache, runAfterLoad, new EmptyCallback<>());
 	}
 
 	/**
 	 * Load the data for the given unique ID and his cache
 	 */
 	public final void load(final UUID uuid, final T cache) {
-		this.load(uuid, cache, null);
+		this.load(uuid, cache, null, new EmptyCallback<>());
 	}
 
 	/**
 	 * Load the data for the given unique ID and his cache async.
 	 * @param runAfterLoad callback synced on the main thread
+	 * @param callback callback to be run on query fail
 	 */
-	public final void load(final UUID uuid, final T cache, @Nullable Runnable runAfterLoad) {
+	public final void load(final UUID uuid, final T cache, @Nullable Runnable runAfterLoad, @NotNull Callback<ResultSet> callback) {
 		if (!this.getConnector().isLoaded() || this.isQuerying)
 			return;
 
@@ -132,46 +134,57 @@ public abstract class SimpleFlatDatabase<T> extends SimpleDatabaseManager {
 		Debugger.debug("mysql", "---------------- MySQL - Loading data for " + uuid);
 
 		Common.runAsync(() -> {
-
-			try {
-				final ResultSet resultSet = this.query("SELECT * FROM {table} WHERE UUID='" + uuid + "'");
-				final String dataRaw = resultSet.next() ? resultSet.getString("Data") : "{}";
-				Debugger.debug("mysql", "JSON: " + dataRaw);
-
-				Common.runLater(() -> {
-
+			this.query("SELECT * FROM {table} WHERE UUID='" + uuid + "'", new Callback<ResultSet>() {
+				@Override
+				public void onSuccess(ResultSet resultSet) {
 					try {
-						final SerializedMap data = SerializedMap.fromJson(dataRaw);
-						Debugger.debug("mysql", "Deserialized data: " + data);
+						final String dataRaw = resultSet != null && resultSet.next() ? resultSet.getString("Data") : "{}";
+						Debugger.debug("mysql", "JSON: " + dataRaw);
 
-						// Call the user specified load method
-						this.onLoad(data, cache);
+						Common.runLater(() -> {
 
-						// Invoke sync callback when load finish
-						if (runAfterLoad != null)
-							runAfterLoad.run();
+							try {
+								final SerializedMap data = SerializedMap.fromJson(dataRaw);
+								Debugger.debug("mysql", "Deserialized data: " + data);
 
-					} catch (final Throwable t) {
-						Common.error(t,
-								"Failed to parse loaded data from MySQL!",
-								"UUID: " + uuid,
-								"Raw data: " + dataRaw,
-								"Error: %error");
+								// Call the user specified load method
+								onLoad(data, cache);
 
+								// Invoke sync callback when load finish
+								if (runAfterLoad != null)
+									runAfterLoad.run();
+
+							} catch (final Throwable t) {
+								Common.error(t,
+										"Failed to parse loaded data from MySQL!",
+										"UUID: " + uuid,
+										"Raw data: " + dataRaw,
+										"Error: %error");
+
+							}
+						});
 					}
-				});
+					catch (SQLException e){
+						Common.error(e,
+								"Failed to load data from MySQL!",
+								"UUID: " + uuid,
+								"Error: %error");
+					}
+					finally {
+						isQuerying = false;
+						logPerformance("loading");
+					}
+				}
 
-			} catch (final Throwable t) {
-				Common.error(t,
-						"Failed to load data from MySQL!",
-						"UUID: " + uuid,
-						"Error: %error");
-
-			} finally {
-				this.isQuerying = false;
-
-				this.logPerformance("loading");
-			}
+				@Override
+				public void onFail(Throwable t) {
+					Common.error(t,
+							"Failed to load data from MySQL!",
+							"UUID: " + uuid,
+							"Error: %error");
+					isQuerying = false;
+				}
+			});
 		});
 	}
 
@@ -199,7 +212,7 @@ public abstract class SimpleFlatDatabase<T> extends SimpleDatabaseManager {
 	 * If the onSave returns empty data we delete the row
 	 */
 	public final void save(final String name, final UUID uuid, final T cache) {
-		this.save(name, uuid, cache, null);
+		this.save(name, uuid, cache, null, new EmptyCallback<>());
 	}
 
 	/**
@@ -209,16 +222,17 @@ public abstract class SimpleFlatDatabase<T> extends SimpleDatabaseManager {
 	 * @param runAfterSave sync callback to be run when save is done
 	 */
 	public final void save(final Player player, final T cache, @Nullable final Runnable runAfterSave) {
-		this.save(player.getName(), player.getUniqueId(), cache, runAfterSave);
+		this.save(player.getName(), player.getUniqueId(), cache, runAfterSave, new EmptyCallback<>());
 	}
 
 	/**
-	 * Save the data for the given name, unique ID and his cache async.
+	 * Save the data for the given name, unique ID and its cache async.
 	 * <br><br>
 	 * If the onSave returns empty data we delete the row
 	 * @param runAfterSave sync callback to be run when save is done
+	 * @param callback callback to be run when the execution has finished or in case of fail
 	 */
-	public final void save(final String name, final UUID uuid, final T cache, @Nullable final Runnable runAfterSave) {
+	public final void save(final String name, final UUID uuid, final T cache, @Nullable final Runnable runAfterSave, @NotNull Callback<Void> callback) {
 		if (!this.getConnector().isLoaded() || this.isQuerying)
 			return;
 
@@ -236,21 +250,40 @@ public abstract class SimpleFlatDatabase<T> extends SimpleDatabaseManager {
 
 			try {
 				// Remove data if empty
-				if (data == null || data.isEmpty()) {
-					this.update("DELETE FROM {table} WHERE UUID= '" + uuid + "';");
+				this.isStored(uuid, new Callback<Boolean>() {
+					@Override
+					public void onSuccess(Boolean object) {
+						if (data == null || data.isEmpty()) {
+							update("DELETE FROM {table} WHERE UUID= '" + uuid + "';", callback);
 
-					if (Debugger.isDebugged("mysql"))
-						Debugger.debug("mysql", "Data was empty, row has been removed.");
+							if (Debugger.isDebugged("mysql")) {
+								Debugger.debug("mysql", "Data was empty, row has been removed.");
+							}
 
-				} else if (this.isStored(uuid))
-					this.update("UPDATE {table} SET Data='" + data.toJson() + "', Updated='" + System.currentTimeMillis() + "' WHERE UUID='" + uuid + "';");
-				else
-					this.update("INSERT INTO {table}(UUID, Name, Data, Updated) VALUES ('" + uuid + "', '" + name + "', '" + data.toJson() + "', '" + System.currentTimeMillis() + "');");
+						} else if (object != null && object){
+							update("UPDATE {table} SET Data='" + data.toJson() + "', Updated='" + System.currentTimeMillis() + "' WHERE UUID='" + uuid + "';", callback);
+						} else {
+							update("INSERT INTO {table}(UUID, Name, Data, Updated) VALUES ('" + uuid + "', '" + name + "', '" + data.toJson() + "', '" + System.currentTimeMillis() + "');", callback);
+						}
 
-				if (runAfterSave != null)
-					Common.runLater(runAfterSave);
+						if (runAfterSave != null) {
+							Common.runLater(runAfterSave);
+						}
+						isQuerying = false;
+					}
+
+					@Override
+					public void onFail(Throwable t) {
+						Common.error(t,
+								"Failed to save data to MySQL!",
+								"UUID: " + uuid,
+								"Error: %error");
+						isQuerying = false;
+					}
+				});
 
 			} catch (final Throwable ex) {
+				callback.onFail(ex);
 				Common.error(ex,
 						"Failed to save data to MySQL!",
 						"UUID: " + uuid,
@@ -285,16 +318,29 @@ public abstract class SimpleFlatDatabase<T> extends SimpleDatabaseManager {
 	 * @return
 	 * @throws SQLException
 	 */
-	private boolean isStored(@NonNull final UUID uuid) throws SQLException {
-		final ResultSet resultSet = this.query("SELECT * FROM {table} WHERE UUID= '" + uuid.toString() + "'");
+	private void isStored(@NonNull final UUID uuid, Callback<Boolean> callback) throws SQLException {
+		this.query("SELECT * FROM {table} WHERE UUID= '" + uuid + "'", new Callback<ResultSet>() {
+			@Override
+			public void onSuccess(ResultSet resultSet) {
+				if (resultSet == null) {
+					callback.onSuccess(false);
+					return;
+				}
 
-		if (resultSet == null)
-			return false;
+				try{
+					if (resultSet.next()) {
+						callback.onSuccess(resultSet.getString("UUID") != null);
+					}
+				} catch (SQLException ex){
+					callback.onFail(ex);
+				}
+			}
 
-		if (resultSet.next())
-			return resultSet.getString("UUID") != null;
-
-		return false;
+			@Override
+			public void onFail(Throwable t) {
+				callback.onFail(t);
+			}
+		});
 	}
 
 	/**

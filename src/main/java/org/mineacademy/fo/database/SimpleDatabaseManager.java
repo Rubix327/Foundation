@@ -1,6 +1,8 @@
 package org.mineacademy.fo.database;
 
 import lombok.*;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.mineacademy.fo.*;
 import org.mineacademy.fo.collection.SerializedMap;
 import org.mineacademy.fo.collection.StrictMap;
@@ -12,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * Represents a simple MySQL database
@@ -33,25 +36,36 @@ public class SimpleDatabaseManager {
     @Getter
     private SimpleDatabaseConnector connector;
     private Connection connection;
+    @Getter(AccessLevel.PACKAGE)
+    private Consumer<SimpleDatabaseManager> afterConnected;
 
     /**
      * Map of variables you can use with the {} syntax in SQL
      */
     private final StrictMap<String, String> sqlVariables = new StrictMap<>();
 
-    void setConnector(SimpleDatabaseConnector connector){
+    void setConnector(SimpleDatabaseConnector connector) {
         this.connector = connector;
         this.connection = connector.getConnection();
     }
 
-    protected void onConnected(){};
+    protected void onConnected() {}
 
-    private Connection getConnection(){
+    private Connection getConnection() {
         return connector.getConnection();
     }
 
-    private String getUrl(){
+    private String getUrl() {
         return connector.getUrl();
+    }
+
+    /**
+     * Set a runnable to be executed after {@link #onConnected()}
+     * @param afterConnected the consumer
+     */
+    public final SimpleDatabaseManager setAfterConnected(Consumer<SimpleDatabaseManager> afterConnected) {
+        this.afterConnected = afterConnected;
+        return this;
     }
 
     // --------------------------------------------------------------------
@@ -61,7 +75,7 @@ public class SimpleDatabaseManager {
     /**
      * Creates a database table, to be used in onConnected
      */
-    protected final void createTable(TableCreator creator) {
+    protected final void createTable(TableCreator creator, @NotNull Callback<Void> callback) {
         StringBuilder columns = new StringBuilder();
 
         for (final TableRow column : creator.getColumns()) {
@@ -83,41 +97,41 @@ public class SimpleDatabaseManager {
         try {
             final boolean isSQLite = getUrl() != null && getUrl().startsWith("jdbc:sqlite");
 
-            this.update("CREATE TABLE IF NOT EXISTS `" + creator.getName() + "` (" + columns + ")" + (isSQLite ? "" : " DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci") + ";");
+            this.update("CREATE TABLE IF NOT EXISTS `" + creator.getName() + "` (" + columns + ")" + (isSQLite ? "" : " DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci") + ";", callback);
 
         } catch (final Throwable t) {
             if (t.toString().contains("Unknown collation")) {
                 Common.log("You need to update your database driver to support utf8mb4_unicode_520_ci collation. We switched to support unicode using 4 bits length because the previous system only supported 3 bits.");
                 Common.log("Some characters such as smiley or Chinese are stored in 4 bits so they would crash the 3-bit database leading to more problems. Most hosting providers have now widely adopted the utf8mb4_unicode_520_ci encoding you seem lacking. Disable database connection or update your driver to fix this.");
-            }
-
-            else
+            } else {
+                callback.onFail(t);
                 throw t;
+            }
         }
     }
 
     /**
      * Insert the given serializable object as its column-value pairs into the given table
      */
-    protected final <T extends ConfigSerializable> void insert(String table, @NonNull T serializableObject) {
-        this.insert(table, serializableObject.serialize());
+    protected final <T extends ConfigSerializable> void insert(String table, @NonNull T serializableObject, @NotNull Callback<Void> callback) {
+        this.insert(table, SerializeUtil.objectToValuesMap(serializableObject, getMode()), callback);
     }
 
     /**
      * Insert the given column-values pairs into the given table
      */
-    protected final void insert(String table, @NonNull SerializedMap columnsAndValues) {
+    protected final void insert(String table, @NonNull SerializedMap columnsAndValues, @NotNull Callback<Void> callback) {
         final String columns = Common.join(columnsAndValues.keySet());
         final String values = Common.join(columnsAndValues.values(), ", ", value -> value == null || value.equals("NULL") ? "NULL" : "'" + value + "'");
         final String duplicateUpdate = Common.join(columnsAndValues.entrySet(), ", ", entry -> entry.getKey() + "=VALUES(" + entry.getKey() + ")");
 
-        this.update("INSERT INTO " + this.replaceVariables(table) + " (" + columns + ") VALUES (" + values + ") ON DUPLICATE KEY UPDATE " + duplicateUpdate + ";");
+        this.update("INSERT INTO " + this.replaceVariables(table) + " (" + columns + ") VALUES (" + values + ") ON DUPLICATE KEY UPDATE " + duplicateUpdate + ";", callback);
     }
 
     /**
      * Insert the batch map into the database
      */
-    protected final void insertBatch(String table, @NonNull List<SerializedMap> maps) {
+    protected final void insertBatch(String table, @NonNull List<SerializedMap> maps, @NotNull Callback<Void> callback) {
         final List<String> sqls = new ArrayList<>();
 
         for (final SerializedMap map : maps) {
@@ -128,14 +142,14 @@ public class SimpleDatabaseManager {
             sqls.add("INSERT INTO " + table + " (" + columns + ") VALUES (" + values + ") ON DUPLICATE KEY UPDATE " + duplicateUpdate + ";");
         }
 
-        this.batchUpdate(sqls);
+        this.batchUpdate(sqls, callback);
     }
 
-    /*
+    /**
      * A helper method to insert compatible value to db
      */
     private String parseValue(Object value) {
-        return value == null || value.equals("NULL") ? "NULL" : "'" + SerializeUtil.serialize(SerializeUtil.Mode.YAML, value).toString() + "'";
+        return value == null || value.equals("NULL") ? "NULL" : "'" + SerializeUtil.serialize(getMode(), value).toString() + "'";
     }
 
     /**
@@ -143,7 +157,7 @@ public class SimpleDatabaseManager {
      * <p>
      * Make sure you called connect() first otherwise an error will be thrown
      */
-    protected final void update(String sql) {
+    protected final void update(String sql, @NotNull Callback<Void> callback) {
         if (!this.connector.isConnecting()){
             Valid.checkAsync("Updating database must be done async! Call: " + sql);
         }
@@ -159,44 +173,105 @@ public class SimpleDatabaseManager {
 
         try (Statement statement = this.connection.createStatement()) {
             statement.executeUpdate(sql);
-
-        } catch (final SQLException e) {
+            callback.onSuccess(null);
+        }
+        catch (SQLException e) {
+            callback.onFail(e);
             this.handleError(e, "Error on updating database with: " + sql);
         }
     }
 
     /**
-     * Lists all rows in the given table with the "*" parameter, listing all rows
+     * Lists all columns from all rows in the given table.
+     * See {@link #select(String, String, Callback)} for more detailed info.
      */
-    protected final void selectAll(String table, ResultReader consumer) {
-        this.select(table, "*", consumer);
+    protected final void selectAll(String table, @NotNull Callback<ResultSet> callback) {
+        this.select(table, "*", callback);
     }
 
     /**
-     * Lists all rows in the given table with the given parameter.
+     * Lists all columns from all rows in the given table with the given "where" clause
+     * See {@link #select(String, String, Callback)} for more detailed info.
+     */
+    protected final void selectAll(String table, String where, @NotNull Callback<ResultSet> callback) {
+        this.select(table, "*", where, callback);
+    }
+
+    /**
+     * @see #select(String, String, String, Callback)
+     */
+    protected final void select(@NotNull String table, @NotNull String columns, @NotNull Callback<ResultSet> callback) {
+        this.select(table, columns, null, callback);
+    }
+
+    /**
+     * Lists all given columns from all rows in the given table.<br><br>
+     * Here you should go over all rows yourself (while resultSet.next()).<br>
+     * To use a ready solution for this please see {@link #selectForEach(String, String, String, Callback)} and {@link #forEachRow(ResultSet, Callback)}.<br><br>
      * Do not forget to close the connection when done in your consumer.
      */
-    protected final void select(String table, String param, ResultReader consumer) {
+    protected final void select(@NotNull String table, @NotNull String columns, @Nullable String where, @NotNull Callback<ResultSet> callback){
         if (!this.connector.isLoaded()){
             return;
         }
 
-        try (ResultSet resultSet = this.query("SELECT " + param + " FROM " + table)) {
-            while (resultSet.next()){
+        this.query("SELECT " + columns + " FROM " + table + (where == null ? "" : " WHERE " + where), callback);
+    }
+
+    /**
+     * Go over every row in the given resultSet
+     * @param resultSet the resultSet
+     * @param callbackForEachRow the callback applied to each row
+     */
+    protected final void forEachRow(ResultSet resultSet, @NotNull Callback<ResultSet> callbackForEachRow){
+        try {
+            while (resultSet != null && resultSet.next()){
                 try {
-                    consumer.accept(resultSet);
-
-                } catch (final Throwable t) {
-                    Common.log("Error reading a row from table " + table + " with param '" + param + "', aborting...");
-
-                    t.printStackTrace();
+                    callbackForEachRow.onSuccess(resultSet);
+                }
+                catch (final Throwable t) {
+                    callbackForEachRow.onFail(t);
                     break;
                 }
             }
-
-        } catch (final Throwable t) {
-            Common.error(t, "Error selecting rows from table " + table + " with param '" + param + "'");
+        } catch (SQLException ex){
+            callbackForEachRow.onFail(ex);
         }
+    }
+
+    protected final void selectAllForEach(@NotNull String table, @NotNull Callback<ResultSet> callbackForEachElement) {
+        this.selectForEach(table, "*", null, callbackForEachElement);
+    }
+
+    protected final void selectAllForEach(@NotNull String table, @Nullable String where, @NotNull Callback<ResultSet> callbackForEachElement){
+        this.selectForEach(table, "*", where, callbackForEachElement);
+    }
+
+    /**
+     * Select rows from the given table (only specified columns) and run through each found row using the callback
+     * @param table the table name
+     * @param columns the columns
+     * @param callbackForEachElement the callback applied to each found row
+     */
+    protected final void selectForEach(@NotNull String table, @NotNull String columns, @Nullable String where, @NotNull Callback<ResultSet> callbackForEachElement){
+        this.select(table, columns, where, new Callback<ResultSet>() {
+            @Override
+            public void onSuccess(ResultSet object) {
+                forEachRow(object, callbackForEachElement);
+            }
+
+            @Override
+            public void onFail(Throwable t) {
+                if (t instanceof SQLException){
+                    Common.error(t, "Error selecting rows from table " + table + " with param '" + columns + "'");
+                    callbackForEachElement.onFail(t);
+                    return;
+                }
+                Common.log("Error reading a row from table " + table + " with columns '" + columns + "', aborting...");
+                callbackForEachElement.onFail(t);
+                t.printStackTrace();
+            }
+        });
     }
 
     /**
@@ -205,8 +280,8 @@ public class SimpleDatabaseManager {
      * Example conditions: count("MyTable", "Player", "kangarko", "Status", "PENDING")
      * This example will return all rows where column Player is equal to kangarko and Status column equals PENDING.
      */
-    protected final int count(String table, Object... array) {
-        return this.count(table, SerializedMap.ofArray(array));
+    protected final void count(String table, @NotNull Callback<Integer> callback, Object... array) {
+        this.count(table, SerializedMap.ofArray(array), callback);
     }
 
     /**
@@ -215,31 +290,40 @@ public class SimpleDatabaseManager {
      * Example conditions: SerializedMap.ofArray("Player", "kangarko", "Status", "PENDING")
      * This example will return all rows where column Player is equal to kangarko and Status column equals PENDING.
      */
-    protected final int count(String table, SerializedMap conditions) {
+    protected final void count(String table, SerializedMap conditions, @NotNull Callback<Integer> callback) {
 
         // Convert conditions into SQL syntax
-        final Set<String> conditionsList = Common.convertSet(conditions.entrySet(), entry -> entry.getKey() + " = '" + SerializeUtil.serialize(SerializeUtil.Mode.YAML, entry.getValue()) + "'");
+        final Set<String> conditionsList = Common.convertSet(conditions.entrySet(), entry -> entry.getKey() + " = '" + SerializeUtil.serialize(getMode(), entry.getValue()) + "'");
 
         // Run the query
         final String sql = "SELECT * FROM " + table + (conditionsList.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditionsList)) + ";";
 
-        try (ResultSet resultSet = this.query(sql)) {
-            int count = 0;
+        this.query(sql, new Callback<ResultSet>() {
+            @Override
+            public void onSuccess(ResultSet resultSet) {
+                try{
+                    int count = 0;
 
-            while (resultSet.next()){
-                count++;
+                    while (resultSet != null && resultSet.next()){
+                        count++;
+                    }
+
+                    callback.onSuccess(count);
+                } catch (SQLException ex){
+                    callback.onFail(ex);
+                    Common.throwError(ex,
+                            "Unable to count rows!",
+                            "Table: " + replaceVariables(table),
+                            "Conditions: " + conditions,
+                            "Query: " + sql);
+                }
             }
 
-            return count;
-        } catch (final SQLException ex) {
-            Common.throwError(ex,
-                    "Unable to count rows!",
-                    "Table: " + this.replaceVariables(table),
-                    "Conditions: " + conditions,
-                    "Query: " + sql);
-        }
-
-        return 0;
+            @Override
+            public void onFail(Throwable t) {
+                callback.onFail(t);
+            }
+        });
     }
 
     /**
@@ -247,7 +331,7 @@ public class SimpleDatabaseManager {
      * <p>
      * Make sure you called connect() first otherwise an error will be thrown
      */
-    protected final ResultSet query(String sql) {
+    protected final void query(String sql, @NotNull Callback<ResultSet> callback) {
         Valid.checkAsync("Sending database query must be called async, command: " + sql);
 
         this.connector.checkEstablished();
@@ -264,24 +348,23 @@ public class SimpleDatabaseManager {
             final Statement statement = this.connection.createStatement();
             final ResultSet resultSet = statement.executeQuery(sql);
 
-            return resultSet;
+            callback.onSuccess(resultSet);
+        }
+        catch (final SQLException ex) {
+            if (ex instanceof SQLSyntaxErrorException && ex.getMessage().startsWith("Table") && ex.getMessage().endsWith("doesn't exist")){
+                callback.onSuccess(new DummyResultSet());
+                return;
+            }
 
-        } catch (final SQLException ex) {
-            if (ex instanceof SQLSyntaxErrorException && ex.getMessage().startsWith("Table") && ex.getMessage().endsWith("doesn't exist"))
-                return new DummyResultSet();
-
+            callback.onFail(ex);
             this.handleError(ex, "Error on querying database with: " + sql);
         }
-
-        return null;
     }
 
     /**
      * Executes a massive batch update
-     *
-     * @param sqls
      */
-    protected final void batchUpdate(@NonNull List<String> sqls) {
+    protected final void batchUpdate(@NonNull List<String> sqls, @NotNull Callback<Void> callback) {
         if (sqls.isEmpty())
             return;
 
@@ -310,8 +393,9 @@ public class SimpleDatabaseManager {
 
                 // This will block the thread
                 this.getConnection().commit();
-
-            } catch (final Throwable t) {
+                callback.onSuccess(null);
+            }
+            catch (final Throwable t) {
                 // Cancel the task but handle the error upstream
                 throw t;
             }
@@ -326,9 +410,10 @@ public class SimpleDatabaseManager {
             for (final String statement : sqls)
                 errorLog.add(this.replaceVariables(statement));
 
-            FileUtil.write("sql-error.log", sqls);
+            FileUtil.write("sql-error.log", errorLog);
 
             t.printStackTrace();
+            callback.onFail(t);
 
         } finally {
             try {
@@ -336,6 +421,7 @@ public class SimpleDatabaseManager {
 
             } catch (final SQLException ex) {
                 ex.printStackTrace();
+                callback.onFail(ex);
             }
         }
     }
@@ -439,6 +525,10 @@ public class SimpleDatabaseManager {
         } else {
             Common.throwError(t, fallbackMessage);
         }
+    }
+
+    protected SerializeUtil.Mode getMode(){
+        return SerializeUtil.Mode.JSON;
     }
 
     // --------------------------------------------------------------------
@@ -561,10 +651,34 @@ public class SimpleDatabaseManager {
 
         /**
          * Reads and process the given results set, we handle exceptions for you
-         *
-         * @param set
-         * @throws SQLException
          */
         void accept(ResultSet set) throws SQLException;
     }
+
+    public interface Callback<T>{
+        /**
+         * Called when the execution of a query has finished successfully
+         * @param object the object
+         */
+        void onSuccess(T object);
+
+        /**
+         * Called if the execution of a query has failed
+         * @param t the throwable that occurred during the execution
+         */
+        void onFail(Throwable t);
+    }
+
+    /**
+     * An empty callback, does nothing, use it as a filler
+     */
+    public static class EmptyCallback<T> implements Callback<T>{
+
+        @Override
+        public void onSuccess(T object) {}
+
+        @Override
+        public void onFail(Throwable t) {}
+    }
+
 }

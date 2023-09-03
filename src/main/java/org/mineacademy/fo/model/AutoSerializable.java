@@ -36,8 +36,12 @@ public interface AutoSerializable extends ConfigSerializable {
         return CaseFormat.LOWER_UNDERSCORE;
     }
 
+    default SerializeUtil.Mode getMode(){
+        return SerializeUtil.Mode.YAML;
+    }
+
     @Override
     default SerializedMap serialize() {
-        return SerializeUtil.autoSerialize(this);
+        return SerializeUtil.saveObjectsToMap(this);
     }
 }

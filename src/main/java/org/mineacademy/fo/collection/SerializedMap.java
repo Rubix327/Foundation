@@ -834,8 +834,9 @@ public final class SerializedMap extends StrictCollection implements Iterable<Ma
 		Object raw = this.removeOnGet ? this.map.removeWeak(key) : this.map.get(key);
 
 		// Try to get the value by key with ignoring case
-		if (raw == null)
+		if (raw == null) {
 			raw = this.getValueIgnoreCase(key);
+		}
 
 		// Assume empty means default for enumerations
 		if ("".equals(raw) && Enum.class.isAssignableFrom(type))
@@ -1106,10 +1107,15 @@ public final class SerializedMap extends StrictCollection implements Iterable<Ma
 		return of(object, Mode.YAML);
 	}
 
+	public static SerializedMap of(@NonNull ResultSet set){
+		return of(set, true);
+	}
+
 	/**
 	 * Parses the given ResultSet into SerializedMap
+	 * @param wrapNamesInQuotes should we wrap column names in quotes - used when saving data with JSON
 	 */
-	public static SerializedMap of(@NonNull ResultSet set){
+	public static SerializedMap of(@NonNull ResultSet set, boolean wrapNamesInQuotes){
 		SerializedMap map = new SerializedMap();
 		try{
 			ResultSetMetaData rsmd = set.getMetaData();
@@ -1118,7 +1124,11 @@ public final class SerializedMap extends StrictCollection implements Iterable<Ma
 			for (int i = 1; i <= columnCount; i++ ) {
 				String name = rsmd.getColumnName(i);
 				Object value = set.getObject(name);
-				map.put(name, value);
+				if (wrapNamesInQuotes){
+					map.put("\"" + name + "\"", value);
+				} else {
+					map.put(name, value);
+				}
 			}
 		} catch (SQLException e){
 			throw new FoException("SQLException: " + e.getMessage());

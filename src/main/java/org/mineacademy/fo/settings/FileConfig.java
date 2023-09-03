@@ -1619,13 +1619,13 @@ public abstract class FileConfig {
 	 * Types whose getters names do not match their names.
 	 * @author Rubix327
 	 */
+	@Getter
 	private enum TypeMethod {
 		ACCUSATIVE_HELPER("getAccusativePeriod"),
 		SIMPLE_SOUND("getSound"),
 		TITLE_HELPER("getTitle"),
 		SIMPLE_TIME("getTime");
 
-		@Getter
 		final String method;
 		TypeMethod(String method){
 			this.method = method;

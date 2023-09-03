@@ -7,7 +7,6 @@ import org.mineacademy.fo.*;
 import org.mineacademy.fo.collection.SerializedMap;
 import org.mineacademy.fo.collection.StrictMap;
 import org.mineacademy.fo.debug.Debugger;
-import org.mineacademy.fo.model.ConfigSerializable;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -73,6 +72,13 @@ public class SimpleDatabaseManager {
     // --------------------------------------------------------------------
 
     /**
+     * Creates a database table with an empty callback
+     */
+    protected final void createTable(TableCreator creator){
+        createTable(creator, new EmptyCallback<>());
+    }
+
+    /**
      * Creates a database table, to be used in onConnected
      */
     protected final void createTable(TableCreator creator, @NotNull Callback<Void> callback) {
@@ -111,21 +117,18 @@ public class SimpleDatabaseManager {
     }
 
     /**
-     * Insert the given serializable object as its column-value pairs into the given table
-     */
-    protected final <T extends ConfigSerializable> void insert(String table, @NonNull T serializableObject, @NotNull Callback<Void> callback) {
-        this.insert(table, SerializeUtil.objectToValuesMap(serializableObject, getMode()), callback);
-    }
-
-    /**
      * Insert the given column-values pairs into the given table
      */
     protected final void insert(String table, @NonNull SerializedMap columnsAndValues, @NotNull Callback<Void> callback) {
         final String columns = Common.join(columnsAndValues.keySet());
-        final String values = Common.join(columnsAndValues.values(), ", ", value -> value == null || value.equals("NULL") ? "NULL" : "'" + value + "'");
+        final String values = Common.join(columnsAndValues.values(), ", ", this::formatValue);
         final String duplicateUpdate = Common.join(columnsAndValues.entrySet(), ", ", entry -> entry.getKey() + "=VALUES(" + entry.getKey() + ")");
 
         this.update("INSERT INTO " + this.replaceVariables(table) + " (" + columns + ") VALUES (" + values + ") ON DUPLICATE KEY UPDATE " + duplicateUpdate + ";", callback);
+    }
+
+    private String formatValue(Object value){
+        return value == null || value.equals("NULL") ? "NULL" : value instanceof Boolean ? String.valueOf(value) : "'" + value + "'";
     }
 
     /**

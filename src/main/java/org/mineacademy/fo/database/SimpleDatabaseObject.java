@@ -2,25 +2,32 @@ package org.mineacademy.fo.database;
 
 import lombok.NonNull;
 import org.jetbrains.annotations.NotNull;
+import org.mineacademy.fo.Logger;
+import org.mineacademy.fo.ReflectionUtil;
 import org.mineacademy.fo.SerializeUtil;
 import org.mineacademy.fo.collection.SerializedMap;
-import org.mineacademy.fo.model.ConfigSerializable;
 
+import java.lang.reflect.Method;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class SimpleDatabaseObject<T extends ConfigSerializable> extends SimpleDatabaseManager {
+public abstract class SimpleDatabaseObject<T> extends SimpleDatabaseManager {
 
     public SimpleDatabaseObject() {
         this.addVariable("table", getTableName());
+
+        // Check if deserialize method exist
+        this.getDeserializeMethod();
     }
 
     public abstract String getTableName();
     public abstract Class<T> getObjectClass();
+    @NonNull
+    public abstract SerializedMap serialize(T object);
 
     public final void insert(@NotNull T object, @NotNull Callback<Void> callback) {
-        this.insert(getTableName(), object, callback);
+        this.insert(getTableName(), serialize(object), callback);
     }
 
     public final void insert(@NonNull SerializedMap columnsAndValues, @NotNull Callback<Void> callback) {
@@ -29,6 +36,14 @@ public abstract class SimpleDatabaseObject<T extends ConfigSerializable> extends
 
     public final void insertBatch(@NonNull List<SerializedMap> maps, @NotNull Callback<Void> callback) {
         this.insertBatch(getTableName(), maps, callback);
+    }
+
+    protected final void count(@NotNull Callback<Integer> callback, Object... array) {
+        this.count(getTableName(), callback, SerializedMap.ofArray(array));
+    }
+
+    protected final void count(SerializedMap conditions, @NotNull Callback<Integer> callback) {
+        this.count(getTableName(), conditions, callback);
     }
 
     public final void select(String columns, @NotNull Callback<ResultSet> callback) {
@@ -46,9 +61,7 @@ public abstract class SimpleDatabaseObject<T extends ConfigSerializable> extends
         this.selectAllForEach(getTableName(), where, new Callback<ResultSet>() {
             @Override
             public void onSuccess(ResultSet set) {
-                SerializedMap map = SerializedMap.of(set);
-                T object = SerializeUtil.deserialize(getMode(), getObjectClass(), map);
-                objects.add(object);
+                objects.add(invokeDeserialize(set));
             }
 
             @Override
@@ -63,11 +76,21 @@ public abstract class SimpleDatabaseObject<T extends ConfigSerializable> extends
         }
     }
 
-    protected final void count(@NotNull Callback<Integer> callback, Object... array) {
-        this.count(getTableName(), callback, SerializedMap.ofArray(array));
+    private Method getDeserializeMethod(){
+        final Method des = ReflectionUtil.getMethod(getClass(), "deserialize", ResultSet.class);
+
+        if (des == null){
+            Logger.printErrors("Unable to deserialize ResultSet to class " + getObjectClass().getSimpleName(),
+                    "Your class " + getClass().getSimpleName() + " is extending SimpleDatabaseObject",
+                    "and must contain the following method:",
+                    "public static " + getObjectClass().getSimpleName() + " deserialize(ResultSet set)");
+            throw new SerializeUtil.SerializeFailedException("Unable to deserialize ResultSet to class " + getObjectClass().getSimpleName());
+        }
+
+        return des;
     }
 
-    protected final void count(SerializedMap conditions, @NotNull Callback<Integer> callback) {
-        this.count(getTableName(), conditions, callback);
+    private T invokeDeserialize(ResultSet set){
+        return ReflectionUtil.invokeStatic(getDeserializeMethod(), set);
     }
 }

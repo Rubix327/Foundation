@@ -121,7 +121,7 @@ public class SimpleDatabaseManager {
      */
     protected final void insert(String table, @NonNull SerializedMap columnsAndValues, @NotNull Callback<Void> callback) {
         final String columns = Common.join(columnsAndValues.keySet());
-        final String values = Common.join(columnsAndValues.values(), ", ", this::formatValue);
+        final String values = Common.join(columnsAndValues.values(), ", ", this::parseValue);
         final String duplicateUpdate = Common.join(columnsAndValues.entrySet(), ", ", entry -> entry.getKey() + "=VALUES(" + entry.getKey() + ")");
 
         this.update("INSERT INTO " + this.replaceVariables(table) + " (" + columns + ") VALUES (" + values + ") ON DUPLICATE KEY UPDATE " + duplicateUpdate + ";", callback);
@@ -531,7 +531,7 @@ public class SimpleDatabaseManager {
     }
 
     protected SerializeUtil.Mode getMode(){
-        return SerializeUtil.Mode.JSON;
+        return SerializeUtil.Mode.YAML;
     }
 
     // --------------------------------------------------------------------

@@ -120,7 +120,7 @@ public abstract class Menu {
 	/**
 	 * The size of the menu
 	 */
-	private Integer size = 9 * 3;
+	private int size = 9 * 3;
 
 	/**
 	 * The description of the menu
@@ -368,16 +368,17 @@ public abstract class Menu {
 	 * @param player the player
 	 */
 	protected final void displayTo(final Player player) {
-		Valid.checkNotNull(this.size, "Size not set in " + this + " (call setSize in your constructor)");
 		Valid.checkNotNull(this.title, "Title not set in " + this + " (call setTitle in your constructor)");
 
 		if (MinecraftVersion.olderThan(V.v1_5)) {
 			final String error = "Displaying menus require Minecraft 1.5.2 or greater.";
 
-			if (Messenger.ENABLED)
+			if (Messenger.ENABLED) {
 				Messenger.error(player, error);
-			else
+			}
+			else {
 				Common.tell(player, error);
+			}
 
 			return;
 		}
@@ -392,8 +393,9 @@ public abstract class Menu {
 		for (int i = 0; i < drawer.getSize(); i++) {
 			final ItemStack item = getItemAt(i);
 
-			if (item != null && !drawer.isSet(i))
+			if (item != null && !drawer.isSet(i)) {
 				drawer.setItem(i, item);
+			}
 		}
 
 		// Allow last minute modifications
@@ -409,35 +411,31 @@ public abstract class Menu {
 		// Prevent menu in conversation
 		if (player.isConversing()) {
 			player.sendRawMessage(Common.colorize(SimpleLocalization.Menu.CANNOT_OPEN_DURING_CONVERSATION));
-
 			return;
 		}
 
 		// Play the pop sound
-		if (sound != null)
+		if (sound != null) {
 			sound.play(player);
+		}
 
 		// Register previous menu if exists
-		{
-			final Menu previous = getMenu(player);
-
-			if (previous != null)
-				player.setMetadata(FoConstants.NBT.TAG_MENU_PREVIOUS, new FixedMetadataValue(SimplePlugin.getInstance(), previous));
+		final Menu previous = getMenu(player);
+		if (previous != null) {
+			player.setMetadata(FoConstants.NBT.TAG_MENU_PREVIOUS, new FixedMetadataValue(SimplePlugin.getInstance(), previous));
 		}
 
 		// Register current menu
-		Common.runLater(1, () -> {
+		Common.runLater(0, () -> {
 			try {
 				drawer.display(player);
-
-			} catch (final Throwable t) {
+			}
+			catch (final Throwable t) {
 				Common.error(t, "Error opening menu " + Menu.this);
-
 				return;
 			}
 
 			player.setMetadata(FoConstants.NBT.TAG_MENU_CURRENT, new FixedMetadataValue(SimplePlugin.getInstance(), Menu.this));
-
 			this.opened = true;
 		});
 	}
@@ -640,8 +638,6 @@ public abstract class Menu {
 
 	/**
 	 * Return the middle slot in the last menu row (in the hotbar)
-	 *
-	 * @return
 	 */
 	protected final int getBottomCenterSlot() {
 		return this.size - 5;
@@ -706,14 +702,14 @@ public abstract class Menu {
 	 * @deprecated
 	 */
 	@Deprecated
-	private final Menu getParent() {
+	private Menu getParent() {
 		return this.parent;
 	}
 
 	/**
 	 * Get the size of this menu
 	 */
-	public final Integer getSize() {
+	public final int getSize() {
 		return this.size;
 	}
 
@@ -771,15 +767,6 @@ public abstract class Menu {
 	}
 
 	/**
-	 * Updates a slot in this menu
-	 */
-	protected final void setItem(int slot, ItemStack item) {
-		final Inventory inventory = this.getInventory();
-
-		inventory.setItem(slot, item);
-	}
-
-	/**
 	 * If you wonder what slot numbers does each empty slot in your menu has then
 	 * set this to true in your constructor
 	 *
@@ -809,7 +796,7 @@ public abstract class Menu {
 	 * Called automatically when the menu is clicked.
 	 *
 	 * <p>
-	 * By default we call the shorter {@link #onMenuClick(Player, int, ItemStack)}
+	 * By default, we call the shorter {@link #onMenuClick(Player, int, ItemStack)}
 	 * method.
 	 *
 	 * @param player    the player
@@ -831,8 +818,7 @@ public abstract class Menu {
 	 * @param slot    the slot
 	 * @param clicked the item clicked
 	 */
-	protected void onMenuClick(final Player player, final int slot, final ItemStack clicked) {
-	}
+	protected void onMenuClick(final Player player, final int slot, final ItemStack clicked) {}
 
 	/**
 	 * Called automatically when a registered button is clicked
@@ -876,8 +862,7 @@ public abstract class Menu {
 	 * @param player    the player
 	 * @param inventory the menu inventory that is being closed
 	 */
-	protected void onMenuClose(final Player player, final Inventory inventory) {
-	}
+	protected void onMenuClose(final Player player, final Inventory inventory) {}
 
 	@Override
 	public String toString() {

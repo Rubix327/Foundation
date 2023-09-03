@@ -139,7 +139,7 @@ public abstract class MenuContainer extends AdvancedMenu {
 			clicked = this.onItemClick(slot, clickType, clicked);
 
 			// Update item
-			this.setItem(slot, clicked);
+			this.addItem(slot, clicked);
 		}
 	}
 

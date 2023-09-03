@@ -250,7 +250,7 @@ public abstract class MenuContainerChances extends AdvancedMenu implements MenuQ
 			this.editedDropChances.override(slot, newChance);
 
 			// Update item
-			this.setItem(slot, this.getItemAt(slot));
+			this.addItem(slot, this.getItemAt(slot));
 		}
 	}
 

@@ -61,7 +61,6 @@ public abstract class SimpleDatabaseObject<T extends ConfigSerializable> extends
         if (!failed[0]){
             callback.onSuccess(objects);
         }
-        this.getConnector().close();
     }
 
     protected final void count(@NotNull Callback<Integer> callback, Object... array) {

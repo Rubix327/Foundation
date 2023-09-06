@@ -127,10 +127,6 @@ public class SimpleDatabaseManager {
         this.update("INSERT INTO " + this.replaceVariables(table) + " (" + columns + ") VALUES (" + values + ") ON DUPLICATE KEY UPDATE " + duplicateUpdate + ";", callback);
     }
 
-    private String formatValue(Object value){
-        return value == null || value.equals("NULL") ? "NULL" : value instanceof Boolean ? String.valueOf(value) : "'" + value + "'";
-    }
-
     /**
      * Insert the batch map into the database
      */
@@ -152,7 +148,11 @@ public class SimpleDatabaseManager {
      * A helper method to insert compatible value to db
      */
     private String parseValue(Object value) {
-        return value == null || value.equals("NULL") ? "NULL" : "'" + SerializeUtil.serialize(getMode(), value).toString() + "'";
+        return value == null || value.equals("NULL") ? "NULL" : value instanceof Boolean ? serializeObject(value) : "'" + serializeObject(value) + "'";
+    }
+
+    private String serializeObject(Object value){
+        return SerializeUtil.serialize(getMode(), value).toString();
     }
 
     /**

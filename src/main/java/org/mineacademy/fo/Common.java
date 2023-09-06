@@ -2439,6 +2439,13 @@ public final class Common {
 	// ------------------------------------------------------------------------------------------------------------
 
 	/**
+	 * Run the task on the main thread
+	 */
+	public static <T extends Runnable> BukkitTask runSync(final T task){
+		return runLater(0, task);
+	}
+
+	/**
 	 * Runs the task if the plugin is enabled correctly
 	 *
 	 * @param task the task

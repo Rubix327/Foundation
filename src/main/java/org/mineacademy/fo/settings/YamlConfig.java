@@ -211,7 +211,7 @@ public class YamlConfig extends FileConfig {
 				} catch (NoSuchMethodException | InstantiationException | IllegalAccessException |
 						 InvocationTargetException e){
 					throw new RuntimeException("Your class " + clazz.getName() + " must contain a no-arguments constructor " +
-							"because is annotated with @AutoConfig.");
+							"because is using YamlConfig.loadAll() method.");
 				}
 				t.loadConfiguration(null, folder + "/" + file.getName());
 			}

@@ -1297,7 +1297,8 @@ public abstract class FileConfig {
 
 	/**
 	 * Called automatically when the configuration has been loaded, used to load your
-	 * fields in your class if @AutoConfig is not used.
+	 * fields in your class.<br>
+	 * If @AutoConfig is enabled, this method is executed after AutoConfig fields have been loaded.
 	 * <br>
 	 * You can throw {@link EventHandledException} here to indicate to your child class to interrupt loading
 	 */
@@ -1399,6 +1400,8 @@ public abstract class FileConfig {
 	/**
 	 * Called automatically on saving the configuration, you can call "set(path, value)" methods here
 	 * to save your class fields. We automatically save what you have in {@link #saveToMap()} if not null.
+	 * <br>
+	 * If @AutoConfig is enabled, this method is executed after AutoConfig fields have been saved.
 	 * <br>
 	 * Called after {@link #canSaveFile()}
 	 */

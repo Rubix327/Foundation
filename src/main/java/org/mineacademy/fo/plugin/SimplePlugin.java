@@ -67,13 +67,11 @@ public abstract class SimplePlugin extends JavaPlugin implements Listener {
 	/**
 	 * Shortcut for getDescription().getVersion()
 	 */
-	@Getter
 	private static String version;
 
 	/**
 	 * Shortcut for getName()
 	 */
-	@Getter
 	private static String named;
 
 	/**
@@ -1021,6 +1019,14 @@ public abstract class SimplePlugin extends JavaPlugin implements Listener {
 	// ----------------------------------------------------------------------------------------
 	// Additional features
 	// ----------------------------------------------------------------------------------------
+
+	public static String getNamed(){
+		return named == null ? "" : named;
+	}
+
+	public static String getVersion(){
+		return version == null ? "" : version;
+	}
 
 	/**
 	 * The start-up fancy logo

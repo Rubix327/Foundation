@@ -178,6 +178,7 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
      * or it is locked then this slot will not be used.
      */
     private void setElementsSlots(){
+        currentSlot = 0;
         elementsSlots.clear();
         for (T element : getElements()){
             putElementOnFreeSlot(element);
@@ -186,7 +187,6 @@ public abstract class AdvancedMenuPagged<T> extends AdvancedMenu {
 
     /**
      * Put the element on the first found free slot.
-     * @param element
      */
     private void putElementOnFreeSlot(T element){
         int slot = currentSlot % getSize();

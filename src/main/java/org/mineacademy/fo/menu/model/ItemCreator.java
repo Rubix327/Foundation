@@ -750,7 +750,7 @@ public final class ItemCreator {
 					((ItemMeta) compiledMeta).addEnchant(enchant, level, true);
 			}
 
-			if (this.name != null && !"".equals(this.name))
+			if (this.name != null && !this.name.isEmpty())
 				((ItemMeta) compiledMeta).setDisplayName(Common.colorize("&r&f" + this.name));
 
 			if (!this.lores.isEmpty()) {

@@ -110,7 +110,7 @@ public final class Common {
 	 * The log prefix applied on log() methods, defaults to [PluginName]
 	 */
 	@Getter
-	private static String logPrefix = "[" + SimplePlugin.getNamed() + "]";
+	private static String logPrefix = SimplePlugin.getNamed() == null ? "[Plugin]" : "[" + SimplePlugin.getNamed() + "]";
 
 	/**
 	 * Set the tell prefix applied for messages to players from tell() methods
@@ -586,18 +586,29 @@ public final class Common {
 
 		final char[] letters = message.toCharArray();
 
-		for (int index = 0; index < letters.length - 1; index++)
+		for (int index = 0; index < letters.length - 1; index++) {
 			if (letters[index] == '&' && "0123456789AaBbCcDdEeFfKkLlMmNnOoRrXx".indexOf(letters[index + 1]) > -1) {
 				letters[index] = ChatColor.COLOR_CHAR;
 
 				letters[index + 1] = Character.toLowerCase(letters[index + 1]);
 			}
+		}
 
-		String result = new String(letters)
-				.replace("{prefix}", message.startsWith(tellPrefix) ? "" : removeSurroundingSpaces(tellPrefix.trim()))
-				.replace("{server}", SimpleLocalization.SERVER_PREFIX)
-				.replace("{plugin_name}", SimplePlugin.getNamed())
-				.replace("{plugin_version}", SimplePlugin.getVersion());
+		String result = new String(letters).replace("{prefix}", message.startsWith(tellPrefix) ? "" : removeSurroundingSpaces(tellPrefix.trim()));
+
+		if (SimpleLocalization.SERVER_PREFIX != null){
+			result = result.replace("{server}", SimpleLocalization.SERVER_PREFIX);
+		}
+
+		String simplePluginName = SimplePlugin.getNamed();
+		if (simplePluginName != null){
+			result = result.replace("{plugin_name}", simplePluginName);
+		}
+
+		String simplePluginVersion = SimplePlugin.getVersion();
+		if (simplePluginVersion != null){
+			result = result.replace("{plugin_version}", simplePluginVersion);
+		}
 
 		// RGB colors - return the closest color for legacy MC versions
 		final Matcher match = HEX_COLOR_REGEX.matcher(result);
@@ -609,9 +620,7 @@ public final class Common {
 
 			try {
 				replacement = CompChatColor.of("#" + colorCode).toString();
-
-			} catch (final IllegalArgumentException ex) {
-			}
+			} catch (final IllegalArgumentException ignored) {}
 
 			result = result.replaceAll(Pattern.quote(matched), replacement);
 		}

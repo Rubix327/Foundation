@@ -104,9 +104,6 @@ public abstract class MenuContainer extends AdvancedMenu {
 	 * items to get edited in your menu (if you do not want
 	 * to allow editing the entire container window).
 	 *
-	 * If you want users to edit chances for all items except
-	 * bottom bar, simply always return true here.
-	 *
 	 * @param slot
 	 * @return
 	 */

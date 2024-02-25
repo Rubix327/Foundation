@@ -17,7 +17,6 @@ import org.yaml.snakeyaml.representer.Representer;
 
 import javax.annotation.Nullable;
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
@@ -45,34 +44,49 @@ public class YamlConfig extends FileConfig {
 	 * Create a new instance (do not load it, use {@link #load(File)} to load)
 	 */
 	protected YamlConfig() {
-		final YamlConstructor constructor = new YamlConstructor();
-		final YamlRepresenter representer = new YamlRepresenter();
-		representer.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-
 		final DumperOptions dumperOptions = new DumperOptions();
 		dumperOptions.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
 		dumperOptions.setIndent(2);
 		dumperOptions.setWidth(4096); // Do not wrap long lines
 
+		YamlRepresenter representer;
+
+		try {
+			representer = new YamlRepresenter(dumperOptions);
+
+		} catch (final Throwable t) {
+			representer = new YamlRepresenter();
+		}
+
+		representer.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+
 		// Load options only if available
 		if (ReflectionUtil.isClassAvailable("org.yaml.snakeyaml.LoaderOptions")) {
+			final LoaderOptions loaderOptions = new LoaderOptions();
+
 			Yaml yaml;
+			YamlConstructor constructor;
 
 			try {
-				final LoaderOptions loaderOptions = new LoaderOptions();
+				constructor = new YamlConstructor(loaderOptions);
 
+			} catch (final Throwable t) {
+				// 1.12
+				constructor = new YamlConstructor();
+			}
+
+			try {
 				loaderOptions.setMaxAliasesForCollections(Integer.MAX_VALUE);
+				loaderOptions.setCodePointLimit(Integer.MAX_VALUE);
 
-				try {
-					loaderOptions.setCodePointLimit(Integer.MAX_VALUE);
-				} catch (Throwable t) {
-					// Thankfully unsupported
-					// https://i.imgur.com/wAgKukK.png
-				}
+			} catch (final Throwable t) {
+				// Thankfully unsupported
+				// https://i.imgur.com/wAgKukK.png
+			}
 
+			try {
 				yaml = new Yaml(constructor, representer, dumperOptions, loaderOptions);
-
-			} catch (final NoSuchMethodError ex) {
+			} catch (final Throwable t) {
 				yaml = new Yaml(constructor, representer, dumperOptions);
 			}
 
@@ -80,7 +94,7 @@ public class YamlConfig extends FileConfig {
 		}
 
 		else
-			this.yaml = new Yaml(constructor, representer, dumperOptions);
+			this.yaml = new Yaml(new YamlConstructor(), representer, dumperOptions);
 	}
 
 	/**
@@ -233,8 +247,9 @@ public class YamlConfig extends FileConfig {
 	/*
 	 * Dumps all values in this config into a saveable format
 	 */
+	@NonNull
 	@Override
-	final String saveToString() {
+	public final String saveToString() {
 
 		// Do not use comments
 		if (this.defaults == null || !this.saveComments()) {
@@ -254,12 +269,7 @@ public class YamlConfig extends FileConfig {
 		}
 
 		// Special case, write using comments engine
-		try {
-			YamlComments.writeComments(this.defaultsPath, this.file, null, this.getUncommentedSections());
-
-		} catch (final IOException ex) {
-			ex.printStackTrace();
-		}
+		YamlComments.writeComments(this.defaultsPath, this.file, this.getUncommentedSections());
 
 		return null;
 	}
@@ -480,7 +490,15 @@ public class YamlConfig extends FileConfig {
 	 */
 	private final static class YamlConstructor extends SafeConstructor {
 
+		public YamlConstructor(LoaderOptions options) {
+			super(options);
+
+			this.yamlConstructors.put(Tag.MAP, new ConstructCustomObject());
+		}
+
 		public YamlConstructor() {
+			super();
+
 			this.yamlConstructors.put(Tag.MAP, new ConstructCustomObject());
 		}
 
@@ -520,7 +538,17 @@ public class YamlConfig extends FileConfig {
 	 */
 	private final static class YamlRepresenter extends Representer {
 
+		public YamlRepresenter(DumperOptions options) {
+			super(options);
+
+			this.multiRepresenters.put(ConfigurationSerializable.class, new RepresentConfigurationSerializable());
+			this.multiRepresenters.put(ConfigSection.class, new RepresentConfigurationSection());
+			this.multiRepresenters.remove(Enum.class);
+		}
+
 		public YamlRepresenter() {
+			super();
+
 			this.multiRepresenters.put(ConfigurationSerializable.class, new RepresentConfigurationSerializable());
 			this.multiRepresenters.put(ConfigSection.class, new RepresentConfigurationSection());
 			this.multiRepresenters.remove(Enum.class);

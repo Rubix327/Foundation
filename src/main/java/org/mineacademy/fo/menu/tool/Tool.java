@@ -51,8 +51,9 @@ public abstract class Tool {
 
 			final Tool instance = Tool.this;
 
-			if (!isRegistered(instance))
-				register(instance);
+			if (!isRegistered(instance)) {
+                register(instance);
+            }
 		}).start();
 	}
 
@@ -101,9 +102,9 @@ public abstract class Tool {
 	public static Tool[] getTools() {
 		return tools.toArray(new Tool[tools.size()]);
 	}
+
 	// -------------------------------------------------------------------------------------------
 	// Main class implementation
-
 	// -------------------------------------------------------------------------------------------
 
 	public final boolean isConsumable(){

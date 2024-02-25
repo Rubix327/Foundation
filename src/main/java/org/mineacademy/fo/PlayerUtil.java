@@ -336,8 +336,8 @@ public final class PlayerUtil {
 	 * @param permission
 	 * @return
 	 */
-	public static boolean hasPerm(final Permissible sender, String permission) {
-		Valid.checkNotNull(sender, "cannot call hasPerm for null sender!");
+	public static boolean hasPerm(final Permissible sender, final String permission) {
+		Valid.checkNotNull(sender, "Cannot call PlayerUtil#hasPerm() for null sender!");
 
 		if (permission == null) {
 			Common.log("THIS IS NOT AN ACTUAL ERROR, YOUR PLUGIN WILL WORK FINE");
@@ -402,6 +402,7 @@ public final class PlayerUtil {
 
 				try {
 					CompAttribute.GENERIC_MAX_HEALTH.set(player, 20);
+					CompAttribute.GENERIC_ATTACK_SPEED.set(player, 4.0);
 
 				} catch (final Throwable t) {
 					try {
@@ -517,11 +518,12 @@ public final class PlayerUtil {
 		final ItemStack[] inv = player.getInventory().getContents();
 		final ItemStack[] armor = player.getInventory().getArmorContents();
 
-		final ItemStack[] everything = (ItemStack[]) Common.joinArrays(inv, armor);
+		final Object[] everything = Common.joinArrays(inv, armor);
 
-		for (final ItemStack i : everything)
-			if (i != null && i.getType() != Material.AIR)
-				return false;
+		for (final Object i : everything)
+			if (i instanceof ItemStack)
+				if (((ItemStack) i).getType() != Material.AIR)
+					return false;
 
 		return true;
 	}
@@ -665,6 +667,7 @@ public final class PlayerUtil {
 
 	/**
 	 * Return true if the player has a stored snapshot of inventory and properties
+	 * @param player
 	 *
 	 * @return
 	 */

@@ -5,6 +5,10 @@ import org.bukkit.ChatColor;
 import org.mineacademy.fo.Common;
 import org.mineacademy.fo.FileUtil;
 import org.mineacademy.fo.Valid;
+import org.mineacademy.fo.command.DebugCommand;
+import org.mineacademy.fo.command.PermsCommand;
+import org.mineacademy.fo.command.ReloadCommand;
+import org.mineacademy.fo.model.ChatPaginator;
 import org.mineacademy.fo.command.PermsCommand;
 import org.mineacademy.fo.plugin.SimplePlugin;
 
@@ -63,8 +67,10 @@ public class SimpleLocalization extends YamlStaticConfig {
 
 	/**
 	 * The configuration version number, found in the "Version" key in the file.,
+	 *
+	 * Defaults to 1 if not set in the file.
 	 */
-	protected static Integer VERSION;
+	public static Integer VERSION = 1;
 
 	/**
 	 * Set and update the config version automatically, however the {@link #VERSION} will
@@ -78,8 +84,9 @@ public class SimpleLocalization extends YamlStaticConfig {
 		// Load version first so we can use it later
 		setPathPrefix(null);
 
-		if ((VERSION = getInteger("Version")) != this.getConfigVersion())
-			set("Version", this.getConfigVersion());
+		if (isSetDefault("Version"))
+			if ((VERSION = getInteger("Version")) != this.getConfigVersion())
+				set("Version", this.getConfigVersion());
 	}
 
 	/**
@@ -227,6 +234,21 @@ public class SimpleLocalization extends YamlStaticConfig {
 		public static ChatColor HEADER_SECONDARY_COLOR = ChatColor.RED;
 
 		/**
+		 * The format of the header
+		 */
+		public static String HEADER_FORMAT = "&r\n{theme_color}&m<center>&r{theme_color} {title} &m\n&r";
+
+		/**
+		 * The center character of the format in case \<center\> is used
+		 */
+		public static String HEADER_CENTER_LETTER = "-";
+
+		/**
+		 * The padding of the header in case \<center\> is used
+		 */
+		public static Integer HEADER_CENTER_PADDING = 130;
+
+		/**
 		 * Key for when plugin is reloading {@link org.mineacademy.fo.plugin.SimplePlugin}
 		 */
 		public static String RELOADING = "reloading";
@@ -239,7 +261,12 @@ public class SimpleLocalization extends YamlStaticConfig {
 		/**
 		 * The message shown when plugin is reloading or was disabled and player attempts to run command
 		 */
-		public static String USE_WHILE_NULL = "&cCannot use this command while the plugin is {state}.";
+		public static String CANNOT_USE_WHILE_NULL = "&cCannot use this command while the plugin is {state}.";
+
+		/**
+		 * The message shown in SimpleCommand.findWorld()
+		 */
+		public static String CANNOT_AUTODETECT_WORLD = "Only living players can use ~ for their world!";
 
 		/**
 		 * The keys below are used in the {@link DebugCommand}
@@ -367,6 +394,18 @@ public class SimpleLocalization extends YamlStaticConfig {
 			if (isSetDefault("Header_Secondary_Color"))
 				HEADER_SECONDARY_COLOR = get("Header_Secondary_Color", ChatColor.class);
 
+			if (isSetDefault("Header_Format"))
+				HEADER_FORMAT = getString("Header_Format");
+
+			if (isSetDefault("Header_Center_Letter")) {
+				HEADER_CENTER_LETTER = getString("Header_Center_Letter");
+
+				Valid.checkBoolean(HEADER_CENTER_LETTER.length() == 1, "Header_Center_Letter must only have 1 letter, not " + HEADER_CENTER_LETTER.length() + ":" + HEADER_CENTER_LETTER);
+			}
+
+			if (isSetDefault("Header_Center_Padding"))
+				HEADER_CENTER_PADDING = getInteger("Header_Center_Padding");
+
 			if (isSet("Reloading"))
 				RELOADING = getString("Reloading");
 
@@ -374,7 +413,10 @@ public class SimpleLocalization extends YamlStaticConfig {
 				DISABLED = getString("Disabled");
 
 			if (isSet("Use_While_Null"))
-				USE_WHILE_NULL = getString("Use_While_Null");
+				CANNOT_USE_WHILE_NULL = getString("Use_While_Null");
+
+			if (isSet("Cannot_Autodetect_World"))
+				CANNOT_AUTODETECT_WORLD = getString("Cannot_Autodetect_World");
 
 			if (isSetDefault("Debug_Description"))
 				DEBUG_DESCRIPTION = getString("Debug_Description");
@@ -717,7 +759,7 @@ public class SimpleLocalization extends YamlStaticConfig {
 	public static String CONSOLE_NAME = "Console";
 
 	/**
-	 * The message when a section is missing from data.db file (typically we use
+	 * The message when a section is missing from data file (the one ending in .db) (typically we use
 	 * this file to store serialized values such as arenas from minigame plugins).
 	 */
 	public static String DATA_MISSING = "&c{name} lacks database information! Please only create {type} in-game! Skipping..";
@@ -749,8 +791,6 @@ public class SimpleLocalization extends YamlStaticConfig {
 
 	/**
 	 * Was this class loaded?
-	 *
-	 * @return
 	 */
 	public static Boolean isLocalizationCalled() {
 		return localizationClassCalled;

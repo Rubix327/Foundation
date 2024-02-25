@@ -41,7 +41,7 @@ import java.util.regex.Pattern;
 final class AutoRegisterScanner {
 
 	/**
-	 * Prevent duplicating registering of our {@link EnchantmentPacketListener}
+	 * Prevent duplicating registering of our {@link FoundationPacketListener}
 	 */
 	private static boolean enchantListenersRegistered = false;
 
@@ -348,6 +348,11 @@ final class AutoRegisterScanner {
 
 		else if (PacketListener.class.isAssignableFrom(clazz)) {
 
+			// Handled in SimpleEnchantment
+			if (clazz.equals(FoundationPacketListener.class)) {
+                return;
+            }
+
 			// Automatically registered by means of adding packet adapters
 			enforceModeFor(clazz, mode, InstanceType.SINGLETON);
 
@@ -367,18 +372,20 @@ final class AutoRegisterScanner {
 				enchantListenersRegistered = true;
 
 				plugin.registerEvents(FoundationEnchantmentListener.getInstance());
+
+				FoundationPacketListener.getInstance().onRegister();
 			}
 		}
 
-		else if (SimpleCraft.class.isAssignableFrom(clazz)){
-			enforceModeFor(clazz, mode, InstanceType.SINGLETON);
-			CraftingHandler.register((SimpleCraft<? extends Recipe>) instance);
-		}
+        else if (SimpleCraft.class.isAssignableFrom(clazz)){
+            enforceModeFor(clazz, mode, InstanceType.SINGLETON);
+            CraftingHandler.register((SimpleCraft<? extends Recipe>) instance);
+        }
 
-		else if (SimpleBossSkill.class.isAssignableFrom(clazz)){
-			enforceModeFor(clazz, mode, InstanceType.NEW_FROM_CONSTRUCTOR);
-			((SimpleBossSkill) instance).register();
-		}
+        else if (SimpleBossSkill.class.isAssignableFrom(clazz)){
+            enforceModeFor(clazz, mode, InstanceType.NEW_FROM_CONSTRUCTOR);
+            ((SimpleBossSkill) instance).register();
+        }
 
 		else if (Tool.class.isAssignableFrom(clazz))
 			// Automatically registered in its constructor
@@ -522,6 +529,11 @@ final class AutoRegisterScanner {
 					+ clazz.getSimpleName() + " instance' field.");
 			throw new FoException("Class " + clazz + " using @AutoRegister does not have any no-arguments constructor.");
 		}
+
+		Valid.checkBoolean(!(instance instanceof Boolean), "Used " + mode + " to find instance of " + clazz.getSimpleName() + " but got a boolean instead!");
+
+		Valid.checkNotNull(instance, "Your class " + clazz + " using @AutoRegister must EITHER have 1) one public no arguments constructor,"
+				+ " OR 2) one private no arguments constructor plus a 'private static final " + clazz.getSimpleName() + " instance' instance field.");
 
 		return new Tuple<>(mode, instance);
 	}

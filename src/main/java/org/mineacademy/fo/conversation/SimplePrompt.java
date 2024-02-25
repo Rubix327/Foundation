@@ -209,7 +209,7 @@ public abstract class SimplePrompt extends ValidatingPrompt {
 	 * @param player
 	 * @return
 	 */
-	public final SimpleConversation show(final Player player) {
+	public final Conversation show(final Player player) {
 		Valid.checkBoolean(!player.isConversing(), "Player " + player.getName() + " is already conversing! Show them their next prompt in acceptValidatedInput() in " + this.getClass().getSimpleName() + " instead!");
 
 		this.player = player;
@@ -258,9 +258,7 @@ public abstract class SimplePrompt extends ValidatingPrompt {
 				conversation.setMenuToReturnTo(menu);
 		}
 
-		conversation.start(player);
-
-		return conversation;
+		return conversation.start(player);
 	}
 
 	/**

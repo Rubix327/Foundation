@@ -71,14 +71,11 @@ public abstract class Rocket extends Tool {
 	}
 
 	/**
-	 * Create a new rocket with the given projectile and its speed (1=normal, 5=insane, 10=max,buggy)
-	 * as well as the explosion power (1-30 although it bugs over 15 already) and if it should break blocks
-	 * <p>
-	 * For explosion powers see https://minecraft.gamepedia.com/Explosion
-	 *
-	 * @param projectile
-	 * @param flightSpeed
-	 */
+     * Create a new rocket with the given projectile and its speed (1=normal, 5=insane, 10=max,buggy)
+     * as well as the explosion power (1-30 although it bugs over 15 already) and if it should break blocks
+     * <p>
+     * For explosion powers see <a href="https://minecraft.wiki/w/Explosion">...</a>
+     */
 	protected Rocket(Class<? extends Projectile> projectile, float flightSpeed, float explosionPower, boolean breakBlocks) {
 		Valid.checkBoolean(flightSpeed <= 10F, "Rocket cannot have speed over 10");
 		Valid.checkBoolean(explosionPower <= 30F, "Rocket cannot have explosion power over 30");

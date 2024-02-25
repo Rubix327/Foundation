@@ -1190,6 +1190,10 @@ public abstract class FileConfig {
 	 * Attempts to load the file configuration, not saving any changes made since last loading it.
 	 */
 	public final void reload() {
+		if (this.file == null && this.skipSaveIfNoFile()) {
+			return;
+		}
+
 		Valid.checkNotNull(this.file, "Cannot call reload() before loading a file!");
 
 		this.load(this.file);
@@ -1315,6 +1319,10 @@ public abstract class FileConfig {
 	 * Save the configuration to the file immediately (you need to call loadConfiguration(File) first)
 	 */
 	public final void save() {
+		if (this.file == null && this.skipSaveIfNoFile()) {
+			return;
+		}
+
 		Valid.checkNotNull(this.file, "Cannot call save() for " + this + " when no file was set! Call load first!");
 
 		this.save(this.file);
@@ -1678,9 +1686,20 @@ public abstract class FileConfig {
 	}
 
 	/**
+	 * false (default) = will raise an exception if no file is set and attempting to call save()
+	 * true = will fail gracefully in the above scenario
+	 *
+	 * @return
+	 */
+	protected boolean skipSaveIfNoFile() {
+		return false;
+	}
+
+	/**
 	 * Implementation by specific configurations to generate file contents to save.
 	 */
-	abstract String saveToString();
+	@NonNull
+	public abstract String saveToString();
 
 	/**
 	 * Override to implement custom saving mechanism, used automatically in {@link #onSave()}
@@ -1804,7 +1823,7 @@ public abstract class FileConfig {
 	 * Return the file name, if set
 	 */
 	public final String getFileName() {
-		return this.file == null ? "null" : this.file.getName();
+		return this.file == null ? "no file" : this.file.getName();
 	}
 
 	/**

@@ -5,7 +5,6 @@ import com.google.common.io.ByteStreams;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.messaging.ChannelNotRegisteredException;
@@ -19,6 +18,7 @@ import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.plugin.SimplePlugin;
 import org.mineacademy.fo.remain.Remain;
 
+import javax.annotation.Nullable;
 import java.util.UUID;
 
 /**
@@ -33,6 +33,9 @@ public final class BungeeUtil {
 	 * NB: This one uses the default channel name specified in {@link SimplePlugin}. By
 	 * default, nothing is specified there and so an exception will be thrown.
 	 *
+	 * We find a random player through which we will send the message. If the server is
+	 * empty, nothing will happen.
+	 *
 	 * @param <T>
 	 * @param action
 	 * @param datas
@@ -46,6 +49,25 @@ public final class BungeeUtil {
 	}
 
 	/**
+	 * See {@link #sendPluginMessage(String, BungeeMessageType, Object...)}
+	 * <p>
+	 * NB: This one uses the default channel name specified in {@link SimplePlugin}. By
+	 * default, nothing is specified there and so an exception will be thrown.
+	 *
+	 * @param <T>
+	 * @param player
+	 * @param action
+	 * @param datas
+	 */
+	@SafeVarargs
+	public static <T> void sendPluginMessageAs(@Nullable Player player, BungeeMessageType action, T... datas) {
+		final BungeeListener bungee = SimplePlugin.getInstance().getBungeeCord();
+		Valid.checkNotNull(bungee, "Cannot call tellBungee() without channel name because " + SimplePlugin.getInstance().getClass() + " does not implement getBungeeCord()!");
+
+		sendPluginMessage(player, bungee.getChannel(), action, datas);
+	}
+
+	/**
 	 * Sends message via a channel to the bungee network (upstreams). You need an
 	 * implementation in bungee to handle it, otherwise nothing will happen.
 	 *
@@ -55,6 +77,8 @@ public final class BungeeUtil {
 	 * 2. {@link Remain#getServerName()}
 	 * 3. The action parameter
 	 *
+	 * We find a random player through which we will send the message. If the server is
+	 * empty, nothing will happen.
 	 *
 	 * @param <T>
 	 * @param channel
@@ -70,23 +94,23 @@ public final class BungeeUtil {
 	 * Sends message via a channel to the bungee network (upstreams). You need an
 	 * implementation in bungee to handle it, otherwise nothing will happen.
 	 *
-	 * OBS! The data written always start with:
+	 * OBS! The data written always start with the following header data:
 	 *
-	 * 1. The recipient UUID
-	 * 2. {@link Remain#getServerName()}
-	 * 3. The action parameter
-	 *
+	 * 1. The channel name (String)
+	 * 2. The recipient UUID (String)
+	 * 3. {@link Remain#getServerName()} (String)
+	 * 4. The action parameter (enum to String)
 	 *
 	 * @param <T>
-	 * @param sender through which sender to send
+	 * @param sender through which sender to send, if empty, we find a random player, or if server is empty, no message is sent
 	 * @param channel
 	 * @param action
 	 * @param data
 	 */
 	@SafeVarargs
-	public static <T> void sendPluginMessage(Player sender, String channel, BungeeMessageType action, T... data) {
+	public static <T> void sendPluginMessage(@Nullable Player sender, String channel, BungeeMessageType action, T... data) {
 		Valid.checkBoolean(data.length == action.getContent().length, "Data count != valid values count in " + action + "! Given data: " + data.length + " vs needed: " + action.getContent().length);
-		Valid.checkBoolean(Remain.isServerNameChanged(), "Please configure your 'server-name' in server.properties the same as in your BungeeCord config.yml");
+		Remain.getServerName(); // check
 
 		if (!action.name().equals("PLAYERS_CLUSTER_DATA"))
 			Debugger.put("bungee", "Server '" + Remain.getServerName() + "' sent bungee message [" + channel + ", " + action + "]: ");
@@ -96,13 +120,15 @@ public final class BungeeUtil {
 
 		// This server is empty, do not send
 		if (sender == null) {
-			Debugger.put("bungee", "Cannot send " + action + " bungee channel '" + channel + "' message because this server has no players");
+			Debugger.debug("bungee", "&eWarning: Cannot send " + action + " bungee message to channel '" + channel + "' because this server has no players");
 
 			return;
 		}
 
 		final ByteArrayDataOutput out = ByteStreams.newDataOutput();
 
+		// Write Foundation header
+		out.writeUTF(channel);
 		out.writeUTF(sender.getUniqueId().toString());
 		out.writeUTF(Remain.getServerName());
 		out.writeUTF(action.toString());
@@ -195,15 +221,22 @@ public final class BungeeUtil {
 
 		final byte[] byteArray = out.toByteArray();
 
+		if (byteArray.length > 30_000) { // Safety margin
+			Common.log("Outgoing bungee message '" + action + "' was oversized, not sending. Max length: 32766 bytes, got " + byteArray.length + " bytes.");
+
+			actionHead = 0;
+			return;
+		}
+
 		try {
-			Bukkit.getServer().sendPluginMessage(SimplePlugin.getInstance(), channel, byteArray);
+			sender.sendPluginMessage(SimplePlugin.getInstance(), channel, byteArray);
 
 		} catch (final ChannelNotRegisteredException ex) {
 			Common.log("Cannot send Bungee '" + action + "' message because channel '" + channel + "' is not registered. "
 					+ "Use @AutoRegister above your class extending BungeeListener and return its instance in getBungeeCord in your main plugin class.");
 
 		} catch (final MessageTooLargeException ex) {
-			Common.log("Outgoing bungee message '" + action + "' was oversized, not sending. Max length: 32766 bytes, got " + byteArray.length + " bytes.");
+			Common.log("Outgoing bungee message '" + action + "' was oversized, not sending. Max length: 32,766 bytes, got " + byteArray.length + " bytes.");
 		}
 
 		actionHead = 0;
@@ -255,6 +288,7 @@ public final class BungeeUtil {
 				throw new FoException("Unknown type of data: " + datum + " (" + datum.getClass().getSimpleName() + ")");
 		}
 
+		// Can't use "Bukkit.getServer()" since it will send one message for each player, creating duplicates (i.e. 4X join message bug)
 		sender.sendPluginMessage(SimplePlugin.getInstance(), "BungeeCord", out.toByteArray());
 	}
 

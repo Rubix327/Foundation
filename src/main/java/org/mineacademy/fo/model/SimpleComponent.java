@@ -1,5 +1,6 @@
 package org.mineacademy.fo.model;
 
+import lombok.Getter;
 import lombok.NonNull;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -13,9 +14,12 @@ import org.bukkit.inventory.ItemStack;
 import org.mineacademy.fo.*;
 import org.mineacademy.fo.SerializeUtil.Mode;
 import org.mineacademy.fo.collection.SerializedMap;
+import org.mineacademy.fo.event.SimpleComponentSendEvent;
+import org.mineacademy.fo.exception.FoScriptException;
 import org.mineacademy.fo.remain.CompMaterial;
 import org.mineacademy.fo.remain.Remain;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -46,6 +50,12 @@ public final class SimpleComponent implements ConfigSerializable {
 	 * The current component being created
 	 */
 	private Part currentComponent;
+
+	/**
+	 * Shall this component call {@link SimpleComponentSendEvent} each time? Defaults to false
+	 */
+	@Getter
+	private boolean firingEvent = false;
 
 	/**
 	 * Create a new interactive chat component
@@ -420,12 +430,21 @@ public final class SimpleComponent implements ConfigSerializable {
 	 * @param sender
 	 * @param receivers
 	 */
-	public <T extends CommandSender> void sendAs(CommandSender sender, Iterable<T> receivers) {
+	public <T extends CommandSender> void sendAs(@Nullable CommandSender sender, Iterable<T> receivers) {
 		for (final CommandSender receiver : receivers) {
-			final TextComponent component = this.build(receiver);
+			TextComponent component = this.build(receiver);
 
 			if (receiver instanceof Player && sender instanceof Player)
 				this.setRelationPlaceholders(component, (Player) receiver, (Player) sender);
+
+			if (this.firingEvent) {
+				final SimpleComponentSendEvent event = new SimpleComponentSendEvent(sender, receiver, component);
+
+				if (!Common.callEvent(event))
+					continue;
+
+				component = event.getComponent();
+			}
 
 			// Prevent clients being kicked out, so we just send plain message instead
 			if (STRIP_OVERSIZED_COMPONENTS && Remain.toJson(component).length() + 1 >= Short.MAX_VALUE) {
@@ -485,6 +504,18 @@ public final class SimpleComponent implements ConfigSerializable {
 	}
 
 	/**
+	 * Set if this component should call {@link SimpleComponentSendEvent}? Defaults to false to prevent overloading
+	 *
+	 * @param firingEvent
+	 * @return
+	 */
+	public SimpleComponent setFiringEvent(boolean firingEvent) {
+		this.firingEvent = firingEvent;
+
+		return this;
+	}
+
+	/**
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
@@ -532,11 +563,6 @@ public final class SimpleComponent implements ConfigSerializable {
 	 * Compile the message into components, creating a new {@link PermissibleComponent}
 	 * each time the message has a new & color/formatting, preserving
 	 * the last color
-	 *
-	 * @param message
-	 * @param inheritFormatting
-	 * @param viewPermission
-	 * @return
 	 */
 	private static TextComponent[] toComponent(@NonNull String message, BaseComponent inheritFormatting) {
 		final List<TextComponent> components = new ArrayList<>();
@@ -871,7 +897,22 @@ public final class SimpleComponent implements ConfigSerializable {
 				if (receiver == null)
 					return false;
 
-				final Object result = JavaScriptExecutor.run(Variables.replace(this.viewCondition, receiver), receiver);
+				final Object result;
+
+				try {
+					result = JavaScriptExecutor.run(Variables.replace(this.viewCondition, receiver), receiver);
+
+				} catch (final FoScriptException ex) {
+					Common.logFramed(
+							"Failed parsing View_Condition for component!",
+							"",
+							"The View_Condition must be a JavaScript code that returns a boolean!",
+							"Component: " + this,
+							"Line: " + ex.getErrorLine(),
+							"Error: " + ex.getMessage());
+
+					throw ex;
+				}
 
 				if (result != null) {
 					Valid.checkBoolean(result instanceof Boolean, "View condition must return Boolean not " + (result == null ? "null" : result.getClass()) + " for component: " + this);
@@ -879,6 +920,7 @@ public final class SimpleComponent implements ConfigSerializable {
 					if (!((boolean) result))
 						return false;
 				}
+
 			}
 
 			return true;

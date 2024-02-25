@@ -13,6 +13,10 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.mineacademy.fo.*;
+import org.mineacademy.fo.Common;
+import org.mineacademy.fo.ItemUtil;
+import org.mineacademy.fo.Messenger;
+import org.mineacademy.fo.MinecraftVersion;
 import org.mineacademy.fo.MinecraftVersion.V;
 import org.mineacademy.fo.constants.FoConstants;
 import org.mineacademy.fo.event.MenuCloseEvent;
@@ -24,6 +28,7 @@ import org.mineacademy.fo.menu.button.annotation.Position;
 import org.mineacademy.fo.menu.model.InventoryDrawer;
 import org.mineacademy.fo.menu.model.ItemCreator;
 import org.mineacademy.fo.menu.model.MenuClickLocation;
+import org.mineacademy.fo.model.SimpleRunnable;
 import org.mineacademy.fo.model.SimpleSound;
 import org.mineacademy.fo.plugin.SimplePlugin;
 import org.mineacademy.fo.remain.CompMaterial;
@@ -80,6 +85,7 @@ public abstract class Menu {
 	 * <p>
 	 * Used in {@link PlayerUtil#updateInventoryTitle(Menu, Player, String, String, int)}
 	 */
+	@Getter
 	@Setter
 	private static int titleAnimationDurationTicks = 20;
 
@@ -319,8 +325,8 @@ public abstract class Menu {
 			for (final Button button : this.registeredButtons.keySet()) {
 				Valid.checkNotNull(button, "Menu button is null at " + this.getClass().getSimpleName());
 
-				ItemStack item = button.getItem();
-				Valid.checkNotNull(item, "Menu " + this.getTitle() + " contained button " + button.getClass().getSimpleName() + " with empty item!");
+				final ItemStack item = button.getItem();
+				Valid.checkNotNull(item, "Menu " + this.getTitle() + " contained button " + button.getClass() + " named '" + button.getClass().getSimpleName() + "' with empty item!");
 
 				if (ItemUtil.isSimilar(fromItem, item))
 					return button;
@@ -399,7 +405,7 @@ public abstract class Menu {
 		}
 
 		// Allow last minute modifications
-		this.onDisplay(drawer);
+		this.onPreDisplay(drawer);
 
 		// Render empty slots as slot numbers if enabled
 		this.debugSlotNumbers(drawer);
@@ -426,7 +432,7 @@ public abstract class Menu {
 		}
 
 		// Register current menu
-		Common.runLater(0, () -> {
+		Common.runLater(1, () -> {
 			try {
 				drawer.display(player);
 			}
@@ -437,6 +443,7 @@ public abstract class Menu {
 
 			player.setMetadata(FoConstants.NBT.TAG_MENU_CURRENT, new FixedMetadataValue(SimplePlugin.getInstance(), Menu.this));
 			this.opened = true;
+			this.onPostDisplay(player);
 		});
 	}
 
@@ -463,7 +470,15 @@ public abstract class Menu {
 	 *
 	 * @param drawer the drawer
 	 */
-	protected void onDisplay(final InventoryDrawer drawer) {
+	protected void onPreDisplay(final InventoryDrawer drawer) {
+	}
+
+	/**
+	 * Called automatically after the menu is displayed to the viewer
+	 *
+	 * @param viewer
+	 */
+	protected void onPostDisplay(final Player viewer) {
 	}
 
 	/**
@@ -480,6 +495,10 @@ public abstract class Menu {
 	 * @param animatedTitle the animated title
 	 */
 	public final void restartMenu(final String animatedTitle) {
+		this.restartMenu(animatedTitle, true);
+	}
+
+	final void restartMenu(final String animatedTitle, boolean callOnMenuClose) {
 
 		final Player player = this.getViewer();
 		Valid.checkNotNull(player, "Cannot restartMenu if it was not yet shown to a player! Menu: " + this);
@@ -487,9 +506,14 @@ public abstract class Menu {
 		final Inventory inventory = player.getOpenInventory().getTopInventory();
 		Valid.checkBoolean(inventory.getType() == InventoryType.CHEST, player.getName() + "'s inventory closed in the meanwhile (now == " + inventory.getType() + ").");
 
+		// Most plugins save items here
+		if (callOnMenuClose)
+			this.onMenuClose(player, inventory);
+
 		this.registerButtons();
 
 		// Call before calling getItemAt
+		this.onRestartInternal();
 		this.onRestart();
 
 		this.getViewer().updateInventory();
@@ -501,7 +525,13 @@ public abstract class Menu {
 	/*
 	 * Internal hook before calling getItemAt
 	 */
-	void onRestart() {
+	void onRestartInternal() {
+	}
+
+	/**
+	 * Called automatically when a menu is restarted. Called before getItemAt() and after registerButtons()
+	 */
+	public void onRestart() {
 	}
 
 	/**
@@ -533,7 +563,7 @@ public abstract class Menu {
 	 *
 	 * @param title the title to animate
 	 */
-	public final void animateTitle(final String title) {
+	public void animateTitle(final String title) {
 		if (titleAnimationEnabled)
 			PlayerUtil.updateInventoryTitle(this, this.getViewer(), title, this.getTitle(), titleAnimationDurationTicks);
 	}
@@ -548,6 +578,8 @@ public abstract class Menu {
 	 * @param task
 	 */
 	protected final void animate(int periodTicks, MenuRunnable task) {
+		Valid.checkNotNull(this.viewer, "Cannot call animate() before the menu is shown, call your method in onDisplay() method instead.");
+
 		Common.runTimer(2, periodTicks, this.wrapAnimation(task));
 	}
 
@@ -561,20 +593,24 @@ public abstract class Menu {
 	 * @param task
 	 */
 	protected final void animateAsync(int periodTicks, MenuRunnable task) {
+		Valid.checkNotNull(this.viewer, "Cannot call animate() before the menu is shown, call your method in onDisplay() method instead.");
+
 		Common.runTimerAsync(2, periodTicks, this.wrapAnimation(task));
 	}
 
 	/*
 	 * Helper method to create a bukkit runnable
 	 */
-	private BukkitRunnable wrapAnimation(MenuRunnable task) {
-		return new BukkitRunnable() {
+	private SimpleRunnable wrapAnimation(MenuRunnable task) {
+		return new SimpleRunnable() {
+			boolean canceled = false;
 
 			@Override
 			public void run() {
 
 				if (Menu.this.closed) {
-					this.cancel();
+					if (!canceled)
+						this.cancel();
 
 					return;
 				}
@@ -583,6 +619,8 @@ public abstract class Menu {
 					task.run();
 
 				} catch (final EventHandledException ex) {
+					canceled = true;
+
 					this.cancel();
 				}
 			}

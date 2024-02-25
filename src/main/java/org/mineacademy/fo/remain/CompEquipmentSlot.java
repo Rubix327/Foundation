@@ -2,6 +2,9 @@ package org.mineacademy.fo.remain;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.entity.Enderman;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.EntityEquipment;
@@ -17,8 +20,9 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Represents {@link EquipmentSlot}
+ * Represents EquipmentSlot
  */
+@Getter
 @RequiredArgsConstructor
 public enum CompEquipmentSlot {
 
@@ -35,14 +39,57 @@ public enum CompEquipmentSlot {
 	/**
 	 * The localizable key
 	 */
-	@Getter
 	private final String key;
 
 	/**
 	 * The alternative Bukkit name.
 	 */
-	@Getter
 	private final String bukkitName;
+
+	/**
+	 * Applies this equipment slot to the given entity with the given item
+	 */
+	public void applyTo(LivingEntity entity, ItemCreator itemCreator) {
+		this.applyTo(entity, itemCreator.make(), null);
+	}
+
+	/**
+	 * Applies this equipment slot to the given entity with the given item,
+	 * and optional drop chance from 0 to 1.0
+	 */
+	public void applyTo(LivingEntity entity, ItemCreator itemCreator, @Nullable Double dropChance) {
+		this.applyTo(entity, itemCreator.make(), dropChance);
+	}
+
+	/**
+	 * Applies this equipment slot to the given entity with the given item
+	 */
+	public void applyTo(LivingEntity entity, CompMaterial material) {
+		this.applyTo(entity, material.toItem(), null);
+	}
+
+	/**
+	 * Applies this equipment slot to the given entity with the given item,
+	 * and optional drop chance from 0 to 1.0
+	 */
+	public void applyTo(LivingEntity entity, CompMaterial material, @Nullable Double dropChance) {
+		this.applyTo(entity, material.toItem(), dropChance);
+	}
+
+	/**
+	 * Applies this equipment slot to the given entity with the given item
+	 */
+	public void applyTo(LivingEntity entity, Material material) {
+		this.applyTo(entity, new ItemStack(material), null);
+	}
+
+	/**
+	 * Applies this equipment slot to the given entity with the given item,
+	 * and optional drop chance from 0 to 1.0
+	 */
+	public void applyTo(LivingEntity entity, Material material, @Nullable Double dropChance) {
+		this.applyTo(entity, new ItemStack(material), dropChance);
+	}
 
 	/**
 	 * Applies this equipment slot to the given entity with the given item
@@ -52,6 +99,15 @@ public enum CompEquipmentSlot {
 	 */
 	public void applyTo(LivingEntity entity, ItemStack item) {
 		this.applyTo(entity, item, null);
+	}
+
+	/**
+	 * Clear this equipment slot.
+	 *
+	 * @param entity
+	 */
+	public void clear(LivingEntity entity) {
+		this.applyTo(entity, (ItemStack) null, (Double) null);
 	}
 
 	/**
@@ -71,10 +127,25 @@ public enum CompEquipmentSlot {
 		switch (this) {
 
 			case HAND:
-				equipment.setItemInHand(item);
 
-				if (dropChance != null && !lacksDropChance)
-					equipment.setItemInHandDropChance(dropChance.floatValue());
+				if (entity instanceof Enderman) {
+					final Enderman enderman = (Enderman) entity;
+
+					if (item != null && item.getType().isBlock())
+						try {
+							enderman.setCarriedBlock(Bukkit.createBlockData(item.getType()));
+
+						} catch (final Throwable t) {
+							enderman.setCarriedMaterial(item.getData());
+						}
+
+				} else {
+					equipment.setItemInHand(item);
+
+					if (dropChance != null && !lacksDropChance) {
+						equipment.setItemInHandDropChance(dropChance.floatValue());
+					}
+				}
 
 				break;
 
@@ -175,10 +246,6 @@ public enum CompEquipmentSlot {
 
 	/**
 	 * A convenience shortcut to quickly give the entity a full leather armor in the given color
-	 *
-	 * @param entity
-	 * @param color
-	 * @param dropChance
 	 */
 	public static void applyArmor(LivingEntity entity, CompColor color, Double dropChance, Set<CompEquipmentSlot> ignoredSlots) {
 		if (!ignoredSlots.contains(HEAD))
@@ -208,9 +275,6 @@ public enum CompEquipmentSlot {
 	/**
 	 * A convenience shortcut to quickly give the entity a full armor of the given type
 	 * with 0 drop chance
-	 *
-	 * @param entity
-	 * @param ignoredSlots
 	 */
 	public static void applyArmor(LivingEntity entity, Type type, Set<CompEquipmentSlot> ignoredSlots) {
 		applyArmor(entity, type, 0d, ignoredSlots);
@@ -218,9 +282,6 @@ public enum CompEquipmentSlot {
 
 	/**
 	 * A convenience shortcut to quickly give the entity a full armor of the given type
-	 *
-	 * @param entity
-	 * @param dropChance
 	 */
 	public static void applyArmor(LivingEntity entity, Type type, double dropChance) {
 		applyArmor(entity, type, dropChance, new HashSet<>());
@@ -240,7 +301,7 @@ public enum CompEquipmentSlot {
 		if (type == Type.NETHERITE && MinecraftVersion.olderThan(V.v1_16))
 			type = Type.DIAMOND;
 
-		String name = type == Type.GOLD ? "GOLDEN" : type.toString();
+		final String name = type == Type.GOLD ? "GOLDEN" : type.toString();
 
 		if (!ignoredSlots.contains(HEAD))
 			HEAD.applyTo(entity, CompMaterial.valueOf(name + "_HELMET").toItem(), dropChance);
@@ -280,7 +341,7 @@ public enum CompEquipmentSlot {
 		 * @return
 		 */
 		public static Type fromArmor(CompMaterial armorMaterial) {
-			String n = armorMaterial.name();
+			final String n = armorMaterial.name();
 
 			Valid.checkBoolean(n.contains("LEATHER") || n.contains("CHAINMAIL") || n.contains("IRON") || n.contains("GOLD") || n.contains("DIAMOND") || n.contains("NETHERITE"),
 					"Only leather to netherite armors are supported, not: " + armorMaterial);

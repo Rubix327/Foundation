@@ -78,10 +78,10 @@ public class JSONParser {
 	/**
 	 * @see #deserialize(String)
 	 *
-	 * @param json
+	 * @param reader
 	 * @return
-	 * @throws JsonException
-	 * @deprecated use {@link #deserialize(Reader))} instead
+	 * @throws JSONParseException
+	 * @deprecated use deserialize() instead
 	 *
 	 */
 	@Deprecated
@@ -94,7 +94,7 @@ public class JSONParser {
 	 *
 	 * @param json
 	 * @return
-	 * @throws JsonException
+	 * @throws JSONParseException
 	 * @deprecated use {@link #deserialize(String)} instead
 	 *
 	 */
@@ -106,7 +106,7 @@ public class JSONParser {
 	/** Deserializes a readable stream according to the RFC 7159 JSON specification.
 	 * @param readableDeserializable representing content to be deserialized as JSON.
 	 * @return either a boolean, null, Number, String, JsonObject, or JsonArray that best represents the deserializable.
-	 * @throws JsonException if an unexpected token is encountered in the deserializable. To recover from a
+	 * @throws JSONParseException if an unexpected token is encountered in the deserializable. To recover from a
 	 *         JsonException: fix the deserializable to no longer have an unexpected token and try again. */
 	public static Object deserialize(final Reader readableDeserializable) throws JSONParseException {
 		return JSONParser.deserialize(readableDeserializable, EnumSet.of(DeserializationOptions.ALLOW_JSON_ARRAYS, DeserializationOptions.ALLOW_JSON_OBJECTS, DeserializationOptions.ALLOW_JSON_DATA)).get(0);
@@ -116,8 +116,8 @@ public class JSONParser {
 	 * @param deserializable representing content to be deserialized as JSON.
 	 * @param flags representing the allowances and restrictions on deserialization.
 	 * @return the allowable object best represented by the deserializable.
-	 * @throws JsonException if a disallowed or unexpected token is encountered in the deserializable. To recover from a
-	 *         JsonException: fix the deserializable to no longer have a disallowed or unexpected token and try
+	 * @throws JSONParseException if a disallowed or unexpected token is encountered in the deserializable. To recover from a
+	 *         JSONParseException: fix the deserializable to no longer have a disallowed or unexpected token and try
 	 *         again. */
 	private static JSONArray deserialize(final Reader deserializable, final Set<DeserializationOptions> flags) throws JSONParseException {
 		final Yylex lexer = new Yylex(deserializable);
@@ -302,9 +302,9 @@ public class JSONParser {
 	/** A convenience method that assumes a StringReader to deserialize a string.
 	 * @param deserializable representing content to be deserialized as JSON.
 	 * @return either a boolean, null, Number, String, JsonObject, or JsonArray that best represents the deserializable.
-	 * @throws JsonException if an unexpected token is encountered in the deserializable. To recover from a
+	 * @throws JSONParseException if an unexpected token is encountered in the deserializable. To recover from a
 	 *         JsonException: fix the deserializable to no longer have an unexpected token and try again.
-	 * @see Jsoner#deserialize(Reader)
+	 *
 	 * @see StringReader */
 	public static Object deserialize(@NonNull final String deserializable) throws JSONParseException {
 
@@ -337,7 +337,7 @@ public class JSONParser {
 	 *        NullPointerException, or JsonException occurs during deserialization.
 	 * @return a JsonArray that represents the deserializable, or the defaultValue if there isn't a JsonArray that
 	 *         represents deserializable.
-	 * @see Jsoner#deserialize(Reader) */
+	 */
 	public static JSONArray deserialize(final String deserializable, final JSONArray defaultValue) {
 		StringReader readable = null;
 		JSONArray returnable;
@@ -360,7 +360,7 @@ public class JSONParser {
 	 *        NullPointerException, or JsonException occurs during deserialization.
 	 * @return a JsonObject that represents the deserializable, or the defaultValue if there isn't a JsonObject that
 	 *         represents deserializable.
-	 * @see Jsoner#deserialize(Reader) */
+	 */
 	public static JSONObject deserialize(final String deserializable, final JSONObject defaultValue) {
 		StringReader readable = null;
 		JSONObject returnable;
@@ -395,7 +395,7 @@ public class JSONParser {
 	 * @return a JsonArray that contains each of the concatenated objects as its elements. Each concatenated element is
 	 *         either a boolean, null, Number, String, JsonArray, or JsonObject that best represents the concatenated
 	 *         content inside deserializable.
-	 * @throws JsonException if an unexpected token is encountered in the deserializable. To recover from a
+	 * @throws JSONParseException if an unexpected token is encountered in the deserializable. To recover from a
 	 *         JsonException: fix the deserializable to no longer have an unexpected token and try again. */
 	public static JSONArray deserializeMany(final Reader deserializable) throws JSONParseException {
 		return JSONParser.deserialize(deserializable, EnumSet.of(DeserializationOptions.ALLOW_JSON_ARRAYS, DeserializationOptions.ALLOW_JSON_OBJECTS, DeserializationOptions.ALLOW_JSON_DATA, DeserializationOptions.ALLOW_CONCATENATED_JSON_VALUES));
@@ -455,7 +455,7 @@ public class JSONParser {
 	/** Processes the lexer's reader for the next token.
 	 * @param lexer represents a text processor being used in the deserialization process.
 	 * @return a token representing a meaningful element encountered by the lexer.
-	 * @throws JsonException if an unexpected character is encountered while processing the text. */
+	 * @throws JSONParseException if an unexpected character is encountered while processing the text. */
 	private static Yytoken lexNextToken(final Yylex lexer) throws JSONParseException {
 		Yytoken returnable;
 		/* Parse through the next token. */
@@ -490,8 +490,8 @@ public class JSONParser {
 	 * @param newline representing the newline used to format the JSON string. NOT validated as a proper newline. It is
 	 *        recommended to use "\n", but "\r" or "/r/n" are common alternatives.
 	 * @throws IOException if the provided writer encounters an IO issue.
-	 * @throws JsonException if the provided reader encounters an IO issue.
-	 * @see Jsoner#prettyPrint(String)
+	 * @throws JSONParseException if the provided reader encounters an IO issue.
+	 *
 	 * @since 3.1.0 made public to allow large JSON inputs and more pretty print control. */
 	public static void prettyPrint(final Reader readable, final Writer writable, final String indentation, final String newline) throws IOException, JSONParseException {
 		final Yylex lexer = new Yylex(readable);
@@ -566,7 +566,7 @@ public class JSONParser {
 	 * @param jsonSerializable represents the object that should be serialized as a string in JSON format.
 	 * @return a string, in JSON format, that represents the object provided.
 	 * @throws IllegalArgumentException if the jsonSerializable isn't serializable in JSON.
-	 * @see Jsoner#serialize(Object, Writer)
+	 *
 	 * @see StringWriter */
 	public static String serialize(final Object jsonSerializable) {
 		final StringWriter writableDestination = new StringWriter();

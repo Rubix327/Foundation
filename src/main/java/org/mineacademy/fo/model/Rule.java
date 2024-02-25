@@ -2,6 +2,8 @@ package org.mineacademy.fo.model;
 
 import java.io.File;
 
+import org.mineacademy.fo.Common;
+
 public interface Rule {
 
 	/**
@@ -31,4 +33,10 @@ public interface Rule {
 	 * @return true if the operator was parsed successfully
 	 */
 	boolean onOperatorParse(String[] args);
+
+	/**
+	 * Called after all operators have been parsed
+	 */
+	default void onLoadFinish() {
+	}
 }

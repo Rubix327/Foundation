@@ -23,6 +23,7 @@ import org.mineacademy.fo.remain.CompMaterial;
 import org.mineacademy.fo.remain.Remain;
 import org.mineacademy.fo.settings.SimpleLocalization;
 
+import javax.annotation.Nullable;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -41,12 +42,26 @@ public abstract class SimpleCommand extends Command {
 	protected static final List<String> NO_COMPLETE = Collections.unmodifiableList(new ArrayList<>());
 
 	/**
+	 * The default permission syntax, {pluginName}.command.{label}
+	 */
+	private static String defaultPermission = SimplePlugin.getNamed().toLowerCase() + ".command.{label}";
+
+	/**
 	 * Return the default permission syntax
 	 *
 	 * @return
 	 */
-	protected static final String getDefaultPermission() {
-		return SimplePlugin.getNamed().toLowerCase() + ".command.{label}";
+	public static String getDefaultPermission() {
+		return defaultPermission;
+	}
+
+	/**
+	 * Set the default permission syntax
+	 *
+	 * @param permission
+	 */
+	public static void setDefaultPermission(String permission) {
+		defaultPermission = permission;
 	}
 
 	/**
@@ -93,6 +108,12 @@ public abstract class SimpleCommand extends Command {
 	private int cooldownSeconds = 0;
 
 	/**
+	 * The permission for players to bypass this command's cooldown, if it is set
+	 */
+	@Getter
+	private String cooldownBypassPermission = null;
+
+	/**
 	 * A custom message when the player attempts to run this command
 	 * within {@link #cooldownSeconds}. By default we use the one found in
 	 * {@link SimpleLocalization.Commands#COOLDOWN_WAIT}
@@ -100,6 +121,14 @@ public abstract class SimpleCommand extends Command {
 	 * TIP: Use {duration} to replace the remaining time till next run
 	 */
 	private String cooldownMessage = null;
+
+	/**
+	 * The permission to run this command. Set to null to always allow.
+	 *
+	 * Defaults to {@link #getDefaultPermission()}
+	 */
+	@Nullable
+	private String permission = null;
 
 	/**
 	 * Should we automatically send usage message when the first argument
@@ -173,7 +202,7 @@ public abstract class SimpleCommand extends Command {
 			this.setAliases(aliases);
 
 		// Set a default permission for this command
-		this.setPermission(getDefaultPermission());
+		this.permission = defaultPermission;
 	}
 
 	/*
@@ -295,7 +324,7 @@ public abstract class SimpleCommand extends Command {
 	public final boolean execute(final CommandSender sender, final String label, final String[] args) {
 
 		if (SimplePlugin.isReloading() || !SimplePlugin.getInstance().isEnabled()) {
-			Common.tell(sender, SimpleLocalization.Commands.USE_WHILE_NULL.replace("{state}", SimplePlugin.isReloading() ? SimpleLocalization.Commands.RELOADING : SimpleLocalization.Commands.DISABLED));
+			Common.tell(sender, SimpleLocalization.Commands.CANNOT_USE_WHILE_NULL.replace("{state}", SimplePlugin.isReloading() ? SimpleLocalization.Commands.RELOADING : SimpleLocalization.Commands.DISABLED));
 
 			return false;
 		}
@@ -328,8 +357,8 @@ public abstract class SimpleCommand extends Command {
 					final String usage = this.getMultilineUsageMessage() != null ? String.join("\n&c", this.getMultilineUsageMessage()) : this.getUsage() != null ? this.getUsage() : null;
 					Valid.checkNotNull(usage, "getUsage() nor getMultilineUsageMessage() not implemented for '/" + this.getLabel() + sublabel + "' command!");
 
-					String description = this.replacePlaceholders("&c" + this.getDescription());
-					List<String> usages = new ArrayList<>();
+					final String description = this.replacePlaceholders("&c" + this.getDescription());
+					final List<String> usages = new ArrayList<>();
 					String singleLineUsage = null;
 
 					final ChatPaginator paginator = new ChatPaginator(SimpleLocalization.Commands.HEADER_SECONDARY_COLOR);
@@ -368,7 +397,7 @@ public abstract class SimpleCommand extends Command {
 						else {
 							Common.tellNoPrefix(sender, SimpleLocalization.Commands.LABEL_USAGES);
 
-							for (String usagePart : usages)
+							for (final String usagePart : usages)
 								Common.tellNoPrefix(sender, usagePart);
 
 						}
@@ -450,6 +479,12 @@ public abstract class SimpleCommand extends Command {
 		if (this.isPlayer()) {
 			final Player player = this.getPlayer();
 
+			if (this.cooldownBypassPermission != null && this.hasPerm(this.cooldownBypassPermission))
+				return;
+
+			if (!this.isCooldownApplied(player))
+				return;
+
 			final long lastRun = this.cooldownMap.getOrDefault(player.getUniqueId(), 0L);
 			final long difference = (System.currentTimeMillis() - lastRun) / 1000;
 
@@ -461,6 +496,17 @@ public abstract class SimpleCommand extends Command {
 			// Update the last try with the current time
 			this.cooldownMap.put(player.getUniqueId(), System.currentTimeMillis());
 		}
+	}
+
+	/**
+	 * Override this if you need to customize if the specific player should have the cooldown
+	 * for this command.
+	 *
+	 * @param player
+	 * @return
+	 */
+	protected boolean isCooldownApplied(Player player) {
+		return true;
 	}
 
 	/**
@@ -699,6 +745,12 @@ public abstract class SimpleCommand extends Command {
 	 * @return
 	 */
 	protected final World findWorld(String name) {
+		if ("~".equals(name)) {
+			this.checkBoolean(this.isPlayer(), SimpleLocalization.Commands.CANNOT_AUTODETECT_WORLD);
+
+			return this.getPlayer().getWorld();
+		}
+
 		final World world = Bukkit.getWorld(name);
 
 		this.checkNotNull(world, SimpleLocalization.Commands.INVALID_WORLD.replace("{world}", name).replace("{available}", Common.join(Bukkit.getWorlds())));
@@ -1404,7 +1456,8 @@ public abstract class SimpleCommand extends Command {
 
 	/**
 	 * Sets a custom prefix used in tell messages for this command.
-	 * This overrides {@link Common#getTellPrefix()}
+	 * This overrides {@link Common#getTellPrefix()} however won't work if
+	 * {@link #addTellPrefix} is disabled
 	 *
 	 * @param tellPrefix
 	 */
@@ -1433,6 +1486,15 @@ public abstract class SimpleCommand extends Command {
 		Valid.checkBoolean(cooldown >= 0, "Cooldown must be >= 0 for /" + this.getLabel());
 
 		this.cooldownSeconds = (int) unit.toSeconds(cooldown);
+	}
+
+	/**
+	 * Set the permission to bypass the cooldown, only works if the {@link #setCooldown(int, TimeUnit)} is set
+	 *
+	 * @param cooldownBypassPermission
+	 */
+	protected final void setCooldownBypassPermission(String cooldownBypassPermission) {
+		this.cooldownBypassPermission = cooldownBypassPermission;
 	}
 
 	/**
@@ -1468,7 +1530,7 @@ public abstract class SimpleCommand extends Command {
 	 */
 	@Override
 	public final String getPermission() {
-		return super.getPermission() == null ? null : this.replaceBasicPlaceholders0(super.getPermission());
+		return this.permission == null ? null : this.replaceBasicPlaceholders0(this.permission);
 	}
 
 	/**
@@ -1479,7 +1541,7 @@ public abstract class SimpleCommand extends Command {
 	 */
 	@Deprecated
 	protected final String getRawPermission() {
-		return super.getPermission();
+		return this.permission;
 	}
 
 	/**
@@ -1490,7 +1552,10 @@ public abstract class SimpleCommand extends Command {
 	 */
 	@Override
 	public final void setPermission(final String permission) {
-		super.setPermission(permission);
+		// Apparently Spigot/Paper sends "Unknown" command when this is set
+		//super.setPermission(permission);
+
+		this.permission = permission;
 	}
 
 	/**

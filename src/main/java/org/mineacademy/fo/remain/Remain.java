@@ -1353,8 +1353,7 @@ public final class Remain {
 	 */
 	@Deprecated
 	public static void registerEnchantment(final Enchantment enchantment) {
-
-		if (MinecraftVersion.olderThan(V.v1_20))
+		if (MinecraftVersion.olderThan(V.v1_20)) {
 			try {
 				unregisterEnchantment(enchantment);
 
@@ -1363,6 +1362,7 @@ public final class Remain {
 			} catch (final Throwable t) {
 				t.printStackTrace();
 			}
+		}
 	}
 
 	/**

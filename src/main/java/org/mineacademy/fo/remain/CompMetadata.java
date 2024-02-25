@@ -14,11 +14,8 @@ import org.bukkit.metadata.MetadataValue;
 import org.bukkit.metadata.Metadatable;
 import org.bukkit.persistence.PersistentDataHolder;
 import org.bukkit.persistence.PersistentDataType;
-import org.mineacademy.fo.Common;
-import org.mineacademy.fo.MinecraftVersion;
+import org.mineacademy.fo.*;
 import org.mineacademy.fo.MinecraftVersion.V;
-import org.mineacademy.fo.SerializeUtil;
-import org.mineacademy.fo.Valid;
 import org.mineacademy.fo.annotation.AutoRegister;
 import org.mineacademy.fo.collection.SerializedMap;
 import org.mineacademy.fo.collection.StrictMap;
@@ -29,7 +26,10 @@ import org.mineacademy.fo.remain.nbt.NBTCompound;
 import org.mineacademy.fo.remain.nbt.NBTItem;
 import org.mineacademy.fo.settings.YamlConfig;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Utility class for persistent metadata manipulation
@@ -43,8 +43,7 @@ public final class CompMetadata {
 	/**
 	 * Legacy <1.14 uses a hard file storage in data.db for metadata
 	 */
-	@Getter
-	private static boolean legacy = MinecraftVersion.olderThan(V.v1_14);
+	public static final boolean IS_LEGACY = MinecraftVersion.olderThan(V.v1_14);
 
 	/**
 	 * The tag delimiter
@@ -95,12 +94,12 @@ public final class CompMetadata {
 
 			if (!entity.getScoreboardTags().contains(tag)) {
 				entity.addScoreboardTag(tag);
+				return;
 			}
-
-		} else {
-			entity.setMetadata(key, new FixedMetadataValue(SimplePlugin.getInstance(), value));
-			MetadataFile.getInstance().addMetadata(entity, key, value);
 		}
+
+		entity.setMetadata(key, new FixedMetadataValue(SimplePlugin.getInstance(), value));
+		MetadataFile.getInstance().addMetadata(entity, key, value);
 	}
 
 	/**
@@ -136,21 +135,38 @@ public final class CompMetadata {
 		Valid.checkNotNull(value);
 
 		BlockState state = block.getState();
-		if (MinecraftVersion.atLeast(V.v1_14)){
-			if (state instanceof TileState){
-				setNamespaced((TileState) state, key, value);
-				state.update();
-				return;
-			}
-		}
-		state.setMetadata(key, new FixedMetadataValue(SimplePlugin.getInstance(), value));
-		state.update();
+		if (IS_LEGACY){
+			state.setMetadata(key, new FixedMetadataValue(SimplePlugin.getInstance(), value));
+			state.update();
 
-		MetadataFile.getInstance().addMetadata(state, key, value, typed);
+			MetadataFile.getInstance().addMetadata(state, key, value, typed);
+		}
+
+		if (!(state instanceof TileState)){
+			Logger.warning("BlockState must be instance of TileState, not " + state);
+			return;
+		}
+
+		setNamespaced((TileState) state, key, value);
+		state.update();
 	}
 
 	private static void setNamespaced(final TileState tile, final String key, final String value) {
 		tile.getPersistentDataContainer().set(new NamespacedKey(SimplePlugin.getInstance(), key), PersistentDataType.STRING, value);
+	}
+
+	/**
+	 * Set persistent tag on world.
+	 */
+	public static void setMetadata(final World world, final String tag){
+		setMetadata(world, tag, tag);
+	}
+
+	/**
+	 * Set persistent key-value tag on block.
+	 */
+	public static void setMetadata(final World world, final String key, final String value) {
+		world.getPersistentDataContainer().set(new NamespacedKey(SimplePlugin.getInstance(), key), PersistentDataType.STRING, value);
 	}
 
 	// ----------------------------------------------------------------------------------------
@@ -213,14 +229,16 @@ public final class CompMetadata {
 		Valid.checkNotNull(key);
 
 		BlockState state = block.getState();
-		if (MinecraftVersion.atLeast(V.v1_14)) {
-			if (state instanceof TileState){
-				return getNamespaced((TileState) state, key);
-			}
+		if (IS_LEGACY){
+			final String value = state.hasMetadata(key) ? state.getMetadata(key).get(0).asString() : null;
+			return Common.getOrNull(value);
 		}
 
-		final String value = state.hasMetadata(key) ? state.getMetadata(key).get(0).asString() : null;
-		return Common.getOrNull(value);
+		if (!(state instanceof TileState)){
+			return null;
+		}
+
+		return getNamespaced((TileState) state, key);
 	}
 
 	private static String getNamespaced(final TileState tile, final String key) {
@@ -283,12 +301,15 @@ public final class CompMetadata {
 		Valid.checkNotNull(key);
 
 		BlockState state = block.getState();
-		if (MinecraftVersion.atLeast(V.v1_14)) {
-			if (state instanceof TileState){
-				return hasNamespaced((TileState) state, key);
-			}
+		if (IS_LEGACY){
+			return state.hasMetadata(key);
 		}
-		return state.hasMetadata(key);
+
+		if (!(state instanceof TileState)){
+			return false;
+		}
+
+		return hasNamespaced((TileState) state, key);
 	}
 
 	private static boolean hasNamespaced(final PersistentDataHolder object, final String key) {
@@ -357,17 +378,21 @@ public final class CompMetadata {
 		Valid.checkNotNull(key);
 
 		BlockState state = block.getState();
-		if (MinecraftVersion.atLeast(V.v1_14)){
-			if (state instanceof TileState){
-				removeNamespaced((TileState) state, key);
-				state.update();
-				return;
-			}
-		}
-		state.removeMetadata(key, SimplePlugin.getInstance());
-		state.update();
+		if (IS_LEGACY){
+			state.removeMetadata(key, SimplePlugin.getInstance());
+			state.update();
 
-		MetadataFile.getInstance().removeMetadata(state, key);
+			MetadataFile.getInstance().removeMetadata(state, key);
+			return;
+		}
+
+		if (!(state instanceof TileState)){
+			Logger.warning("CompMetadata#removeMetadata: BlockState must be instance of TileState, not " + state);
+			return;
+		}
+
+		removeNamespaced((TileState) state, key);
+		state.update();
 	}
 
 	/**
@@ -448,14 +473,13 @@ public final class CompMetadata {
 
 		@Getter
 		private static final MetadataFile instance = new MetadataFile();
-
 		private static volatile boolean canSave = false;
 
 		private final StrictMap<UUID, List<String>> entityMetadataMap = new StrictMap<>();
 		private final StrictMap<Location, BlockCache> blockMetadataMap = new StrictMap<>();
 
 		private MetadataFile() {
-			if (CompMetadata.legacy) {
+			if (IS_LEGACY){
 				this.setPathPrefix("Metadata");
 				this.setSaveEmptyValues(false);
 
@@ -465,7 +489,7 @@ public final class CompMetadata {
 
 		@Override
 		protected void onLoad() {
-			if (CompMetadata.legacy) {
+			if (IS_LEGACY) {
 				this.loadEntities();
 
 				this.loadBlockStates();
@@ -484,7 +508,7 @@ public final class CompMetadata {
 
 		@Override
 		protected void onSave() {
-			if (CompMetadata.legacy) {
+			if (IS_LEGACY){
 				this.set("Entity", this.entityMetadataMap);
 				this.set("Block", this.blockMetadataMap);
 			}
@@ -527,9 +551,9 @@ public final class CompMetadata {
 				final Block block = location.getBlock();
 
 				// Check if the block remained the same
-				if (!CompMaterial.isAir(block) && CompMaterial.fromBlock(block) == blockCache.getType()) {
+				if (blockCache.getType() == null || !CompMaterial.isAir(block) &&
+						CompMaterial.fromBlock(block) == blockCache.getType()){
 					this.blockMetadataMap.put(location, blockCache);
-
 					this.applySavedMetadata(blockCache.getMetadata(), block);
 				}
 			}
@@ -587,35 +611,42 @@ public final class CompMetadata {
 			this.save("Block", this.blockMetadataMap);
 		}
 
-		private void removeMetadata(final BlockState blockState, final String key) {
-			if (!blockMetadataMap.containsKey(blockState.getLocation()))
-				return;
+		private void removeMetadata(final Entity entity, final String key){
+			UUID uuid = entity.getUniqueId();
+			List<String> tags = this.entityMetadataMap.get(uuid);
+			if (tags == null) return;
 
-			final BlockCache blockCache = blockMetadataMap.get(blockState.getLocation());
+			// Remove all tags with the given key
+			tags.removeIf(meta -> getTag(meta, key) != null);
 
-			for (final Iterator<String> i = blockCache.getMetadata().iterator(); i.hasNext();) {
-				final String meta = i.next();
-
-				if (getTag(meta, key) != null) {
-					i.remove();
-					break;
-				}
+			// Remove this entity from the file completely if it has no more metadata
+			if (tags.isEmpty()){
+				this.entityMetadataMap.remove(uuid);
 			}
 
-			if (blockCache.getMetadata().isEmpty()) {
-				blockMetadataMap.remove(blockState.getLocation());
+			// Save
+			this.save("Entity", this.entityMetadataMap);
+		}
+
+		private void removeMetadata(final BlockState state, final String key){
+			Location location = state.getLocation();
+			BlockCache cache = this.blockMetadataMap.get(location);
+			if (cache == null) return;
+
+			// Remove all tags with the given key
+			cache.getMetadata().removeIf(meta -> getTag(meta, key) != null);
+
+			// Remove this block from the file completely if it has no more metadata
+			if (cache.getMetadata().isEmpty()){
+				this.blockMetadataMap.remove(location);
 			}
 
-			{ // Save
-				for (final Map.Entry<Location, BlockCache> entry : this.blockMetadataMap.entrySet())
-					this.set("Block." + SerializeUtil.serializeLoc(entry.getKey()), entry.getValue().serialize());
-
-				this.save();
-			}
+			// Save
+			this.save("Block", this.blockMetadataMap);
 		}
 
 		public static void saveOnce() {
-			if (CompMetadata.legacy) {
+			if (IS_LEGACY) {
 				try {
 					canSave = true;
 					instance.save();
@@ -643,7 +674,9 @@ public final class CompMetadata {
 			public SerializedMap serialize() {
 				final SerializedMap map = new SerializedMap();
 
-				map.put("Type", this.type.toString());
+				if (type != null){
+					map.put("Type", this.type.toString());
+				}
 				map.put("Metadata", this.metadata);
 
 				return map;

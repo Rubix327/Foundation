@@ -45,7 +45,6 @@ import net.citizensnpcs.api.npc.NPCRegistry;
 import net.milkbowl.vault.chat.Chat;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
@@ -255,7 +254,7 @@ public final class HookManager {
 			} catch (final Throwable t) {
 				protocolLibHook = null;
 
-				Common.error(t, "You are running an old and unsupported version of ProtocolLib, please update it. The plugin will continue to function without hooking into it.");
+				Common.error(t, "You are running an old and unsupported version of ProtocolLib, please update it (or remove it from plugins). The plugin will continue to function without hooking into it.");
 			}
 		}
 

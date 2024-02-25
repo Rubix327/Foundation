@@ -23,10 +23,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.Messenger;
 import org.mineacademy.fo.*;
-import org.mineacademy.fo.BungeeUtil;
-import org.mineacademy.fo.Common;
-import org.mineacademy.fo.FileUtil;
-import org.mineacademy.fo.MinecraftVersion;
 import org.mineacademy.fo.MinecraftVersion.V;
 import org.mineacademy.fo.annotation.AutoRegister;
 import org.mineacademy.fo.bungee.BungeeListener;
@@ -38,15 +34,8 @@ import org.mineacademy.fo.event.SimpleListener;
 import org.mineacademy.fo.exception.FoException;
 import org.mineacademy.fo.menu.AdvancedMenu;
 import org.mineacademy.fo.menu.MenuListener;
-import org.mineacademy.fo.menu.tool.Tool;
 import org.mineacademy.fo.menu.tool.ToolsListener;
 import org.mineacademy.fo.metrics.Metrics;
-import org.mineacademy.fo.model.DiscordListener;
-import org.mineacademy.fo.model.FolderWatcher;
-import org.mineacademy.fo.model.HookManager;
-import org.mineacademy.fo.model.SimpleHologram;
-import org.mineacademy.fo.model.SimpleScoreboard;
-import org.mineacademy.fo.model.SpigotUpdater;
 import org.mineacademy.fo.model.*;
 import org.mineacademy.fo.remain.CompMetadata;
 import org.mineacademy.fo.remain.Remain;
@@ -804,7 +793,7 @@ public abstract class SimplePlugin extends JavaPlugin implements Listener {
 			this.onPluginPreReload();
 			this.reloadables.reload();
 
-			if (CompMetadata.isLegacy()) {
+			if (CompMetadata.IS_LEGACY) {
 				final YamlConfig metadata = CompMetadata.MetadataFile.getInstance();
 
 				metadata.save();

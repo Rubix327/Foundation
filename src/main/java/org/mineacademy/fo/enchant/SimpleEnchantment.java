@@ -18,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mineacademy.fo.*;
 import org.mineacademy.fo.MinecraftVersion.V;
+import org.mineacademy.fo.plugin.SimplePlugin;
 import org.mineacademy.fo.remain.Remain;
 
 import java.util.*;
@@ -68,7 +69,15 @@ public abstract class SimpleEnchantment extends Enchantment {
 	 * Create a new enchantment with the given name.
 	 */
 	protected SimpleEnchantment(String name, int maxLevel) {
-		super(toKey(name));
+		super();
+		if (!MinecraftVersion.atLeast(V.v1_13)) {
+			throw new RuntimeException("SimpleEnchantment requires Minecraft 1.13.2 or greater. Cannot make " + name);
+		}
+
+		name = name.toLowerCase().replace(" ", "_");
+		name = ChatUtil.replaceDiacritic(name);
+
+		Valid.checkBoolean(VALID_NAMESPACE.matcher(name).matches(), "Enchant name must only contain English alphabet names: " + name);
 
 		this.name = name;
 		this.maxLevel = maxLevel;
@@ -77,18 +86,10 @@ public abstract class SimpleEnchantment extends Enchantment {
 		customEnchants.put(name.replace(" ", "_").toLowerCase(), this);
 	}
 
-	/**
-	 * Convert the name of the enchantment to a key.
-	 */
-	private static NamespacedKey toKey(@NonNull String name) {
-		if (!MinecraftVersion.atLeast(V.v1_13))
-			throw new RuntimeException("SimpleEnchantment requires Minecraft 1.13.2 or greater. Cannot make " + name);
-
-		name = name.toLowerCase().replace(" ", "_");
-		name = ChatUtil.replaceDiacritic(name);
-
-		Valid.checkBoolean(VALID_NAMESPACE.matcher(name).matches(), "Enchant name must only contain English alphabet names: " + name);
-		return NamespacedKey.minecraft(name);
+	@NotNull
+	@Override
+	public NamespacedKey getKey() {
+		return new NamespacedKey(SimplePlugin.getInstance(), name);
 	}
 
 	/**

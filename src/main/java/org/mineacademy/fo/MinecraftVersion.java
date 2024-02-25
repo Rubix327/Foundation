@@ -1,9 +1,10 @@
 package org.mineacademy.fo;
 
+import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.mineacademy.fo.exception.FoException;
 
-import lombok.Getter;
+import java.util.Objects;
 
 /**
  * Represents the current Minecraft version the plugin loaded on
@@ -20,6 +21,9 @@ public final class MinecraftVersion {
 	 */
 	@Getter
 	private static V current;
+
+	@Getter
+	private static FullVersion fullVersion;
 
 	/**
 	 * The version wrapper
@@ -200,4 +204,77 @@ public final class MinecraftVersion {
 			Common.error(t, "Error detecting your Minecraft version. Check your server compatibility.");
 		}
 	}
+
+	@Getter
+	public static class FullVersion implements Comparable<FullVersion> {
+
+		private final int major;
+		private final int minor;
+		private final int sub;
+
+		public FullVersion(int major, int minor, int sub) {
+			this.major = major;
+			this.minor = minor;
+			this.sub = sub;
+		}
+
+		public FullVersion(String version) throws NumberFormatException {
+			int firstPeriod = version.indexOf(".");
+			int secondPeriod = version.indexOf(".", firstPeriod + 1);
+
+			this.major = Integer.parseInt(version.substring(0, firstPeriod));
+			this.minor = Integer.parseInt(version.substring(firstPeriod + 1, secondPeriod));
+			this.sub = Integer.parseInt(version.substring(secondPeriod + 1));
+		}
+
+		@Override
+		public int compareTo(FullVersion o) {
+			if (major < o.getMajor()) return -1;
+			if (major > o.getMajor()) return 1;
+
+			if (minor < o.getMinor()) return -1;
+			if (minor > o.getMinor()) return 1;
+
+			return Integer.compare(sub, o.getSub());
+		}
+
+		public boolean isHigherThan(FullVersion o){
+			return compareTo(o) > 0;
+		}
+
+		public boolean isLessThan(FullVersion o){
+			return compareTo(o) < 0;
+		}
+
+		public boolean isSameAs(FullVersion o){
+			return compareTo(o) == 0;
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (this == o) return true;
+			if (o == null || getClass() != o.getClass()) return false;
+			FullVersion version = (FullVersion) o;
+			return major == version.major && minor == version.minor && sub == version.sub;
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(major, minor, sub);
+		}
+
+		@Override
+		public String toString() {
+			return major + "." + minor + "." + sub;
+		}
+	}
+
+	static {
+		String bukkitVersion = Bukkit.getBukkitVersion();
+		int R01index = bukkitVersion.indexOf("-R0.1");
+		if (R01index > -1){
+			fullVersion = new FullVersion(bukkitVersion.substring(0, R01index));
+		}
+	}
+
 }

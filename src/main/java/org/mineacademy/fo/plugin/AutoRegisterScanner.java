@@ -260,21 +260,40 @@ final class AutoRegisterScanner {
 	private static void autoRegister(Class<?> clazz, boolean printWarnings) {
 
 		// Special case: Prevent class init error
-		if (SimpleEnchantment.class.isAssignableFrom(clazz) && MinecraftVersion.olderThan(V.v1_13)) {
-			if (printWarnings) {
-				Bukkit.getLogger().warning("**** WARNING ****");
-				Bukkit.getLogger().warning("SimpleEnchantment requires Minecraft 1.13.2 or greater. The following class will not be registered: " + clazz.getName()
-						+ ". To hide this message, put @AutoRegister(hideIncompatibilityWarnings=true) over the class.");
+		if (SimpleEnchantment.class.isAssignableFrom(clazz)) {
+			// In Spigot 1.20.4 there was a change in Enchantment class -
+			// they removed a one-arg constructor and added a no-args constructor instead.
+			// Legacy (< 1.20.4) servers cannot run our new configuration in SimpleEnchantment (no-args constructor),
+			// and on the other hand modern versions cannot leave the old configuration because then the plugin cannot
+			// be compiled. This situation even cannot be handled with Java Reflection.
+			// That's the reason why Foundation cannot provide version compatibility in this case.
+			if (MinecraftVersion.getFullVersion().isLessThan(new MinecraftVersion.FullVersion(1, 20, 4))) {
+				if (printWarnings){
+					Logger.printErrors(
+							"***** WARNING *****",
+							"You are using Foundation made for Minecraft 1.20.4, but your server is running on " + MinecraftVersion.getFullVersion() + ".",
+							"SimpleEnchantment (" + clazz.getSimpleName() + ") won't work on this version. To use SimpleEnchantment on MC from 1.13.2 to 1.20.3 please use Foundation 6.2.5.10 or older:",
+							"https://github.com/Rubix327/Foundation/releases/tag/6.2.5.10"
+					);
+				}
+				return;
 			}
-
-			return;
+			if (MinecraftVersion.olderThan(V.v1_13)){
+				if (printWarnings) {
+					Logger.printErrors("**** WARNING ****",
+							"SimpleEnchantment requires Minecraft 1.13.2 or greater. The following class will not be registered: " + clazz.getName() + ".",
+							"To hide this message, put @AutoRegister(hideIncompatibilityWarnings=true) over the class."
+					);
+				}
+			}
 		}
 
 		if (DiscordListener.class.isAssignableFrom(clazz) && !HookManager.isDiscordSRVLoaded()) {
 			if (printWarnings) {
-				Bukkit.getLogger().warning("**** WARNING ****");
-				Bukkit.getLogger().warning("The following class requires DiscordSRV and won't be registered: " + clazz.getName()
-						+ ". To hide this message, put @AutoRegister(hideIncompatibilityWarnings=true) over the class.");
+				Logger.printErrors("**** WARNING ****",
+						"The following class requires DiscordSRV and won't be registered: " + clazz.getName() + ".",
+						"To hide this message, put @AutoRegister(hideIncompatibilityWarnings=true) over the class."
+				);
 			}
 
 			return;
@@ -283,8 +302,8 @@ final class AutoRegisterScanner {
 		if (PacketListener.class.isAssignableFrom(clazz) && !HookManager.isProtocolLibLoaded()) {
 			if (printWarnings) {
 				Logger.printErrors("**** WARNING ****",
-						"The following class requires ProtocolLib and won't be registered: " + clazz.getName(),
-						". To hide this message, put @AutoRegister(hideIncompatibilityWarnings=true) over the class.");
+						"The following class requires ProtocolLib and won't be registered: " + clazz.getName() + ".",
+						"To hide this message, put @AutoRegister(hideIncompatibilityWarnings=true) over the class.");
 			}
 
 			return;
